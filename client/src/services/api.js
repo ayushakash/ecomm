@@ -109,7 +109,7 @@ export const productAPI = {
   updateStock: (id, stock) => api.put(`/api/products/${id}/stock`, { stock }),
   toggleProduct: (id, enabled) => api.put(`/api/products/${id}/enable`, { enabled }),
   getCategories: () => api.get('/api/products/categories'),
-  getMerchantProducts: (params) => api.get('/api/products/merchant/my', { params }),
+  getMerchantProducts: (params) => api.get('/api/products/merchant/my', { params }).then(res => res.data),
 };
 
 export const orderAPI = {

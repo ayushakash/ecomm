@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { orderAPI } from '../../services/api';
 
 const Orders = () => {
-  const { data: orders, isLoading, error } = useQuery({
+  const { data: orderList, isLoading, error } = useQuery({
     queryKey: ['merchant-orders'],
-  queryFn: () => orderAPI.getAll()
+  queryFn: () => orderAPI.getOrders()
   });
 
   const getStatusColor = (status) => {
@@ -78,7 +78,7 @@ const Orders = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {orders?.map((order) => (
+              {orderList.orders?.map((order) => (
                 <tr key={order._id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">

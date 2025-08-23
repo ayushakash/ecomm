@@ -35,6 +35,7 @@ import MerchantDashboard from './pages/merchant/Dashboard';
 import MerchantProducts from './pages/merchant/Products';
 import MerchantOrders from './pages/merchant/Orders';
 import MerchantProfile from './pages/merchant/Profile';
+import MerchantAnalytics from './pages/merchant/Analytics';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -121,9 +122,10 @@ function AppRoutes() {
         }
       >
         <Route index element={<MerchantDashboard />} />
-        <Route path="products" element={<MerchantProducts />} />
-        <Route path="orders" element={<MerchantOrders />} />
-        <Route path="profile" element={<MerchantProfile />} />
+  <Route path="products" element={<MerchantProducts />} />
+  <Route path="orders" element={<MerchantOrders />} />
+  <Route path="profile" element={<MerchantProfile />} />
+  <Route path="analytics" element={<MerchantAnalytics />} />
       </Route>
 
       {/* 404 Route */}
