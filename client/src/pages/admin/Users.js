@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { userAPI } from '../../services/api';
 
 const Users = () => {
-  const { data: users, isLoading, error } = useQuery({
+  const { data: userList, isLoading, error } = useQuery({
     queryKey: ['users'],
-  queryFn: () => userAPI.getAll()
+  queryFn: () => userAPI.getUsers()
   });
+  console.log(userList);
 
   if (isLoading) {
     return (
@@ -58,7 +59,7 @@ const Users = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {users?.map((user) => (
+              {userList?.users?.map((user) => (
                 <tr key={user._id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{user.name}</div>

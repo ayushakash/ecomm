@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { productAPI } from '../../services/api';
 
 const Products = () => {
-  const { data: products, isLoading, error } = useQuery({
+  const { data: productList, isLoading, error } = useQuery({
     queryKey: ['products'],
-  queryFn: () => productAPI.getAll()
+  queryFn: () => productAPI.getProducts()
   });
+  console.log(productList)
 
   if (isLoading) {
     return (
@@ -58,7 +59,7 @@ const Products = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {products?.map((product) => (
+              {productList?.products?.map((product) => (
                 <tr key={product._id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">

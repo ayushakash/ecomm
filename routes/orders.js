@@ -72,6 +72,7 @@ router.post('/', [
 
     // Create order
     const order = new Order({
+      orderNumber: "TEMP",
       customerId: req.user._id,
       customerName: req.user.name,
       customerPhone,

@@ -84,7 +84,7 @@ export const authAPI = {
 export const userAPI = {
   getProfile: () => api.get('/api/users/profile'),
   updateProfile: (profileData) => api.put('/api/users/profile', profileData),
-  getUsers: (params) => api.get('/api/users', { params }),
+  getUsers: (params) => api.get('/api/users', { params }).then(res => res.data),
   updateUserStatus: (userId, status) => api.put(`/api/users/${userId}/status`, status),
   updateUserRole: (userId, role) => api.put(`/api/users/${userId}/role`, role),
   getAreas: () => api.get('/api/users/areas'),
@@ -92,7 +92,7 @@ export const userAPI = {
 
 export const merchantAPI = {
   onboard: (merchantData) => api.post('/api/merchants/onboard', merchantData),
-  getMerchants: (params) => api.get('/api/merchants', { params }),
+  getMerchants: (params) => api.get('/api/merchants', { params }).then(res => res.data),
   getMerchantsByArea: (area) => api.get(`/api/merchants/area/${area}`),
   getMerchant: (id) => api.get(`/api/merchants/${id}`),
   updateMerchantStatus: (id, status) => api.put(`/api/merchants/${id}/status`, status),
@@ -101,7 +101,7 @@ export const merchantAPI = {
 };
 
 export const productAPI = {
-  getProducts: (params) => api.get('/api/products', { params }),
+  getProducts: (params) => api.get('/api/products', { params }).then(res => res.data),
   getProduct: (id) => api.get(`/api/products/${id}`),
   createProduct: (productData) => api.post('/api/products', productData),
   updateProduct: (id, productData) => api.put(`/api/products/${id}`, productData),
@@ -114,7 +114,7 @@ export const productAPI = {
 
 export const orderAPI = {
   createOrder: (orderData) => api.post('/api/orders', orderData),
-  getOrders: (params) => api.get('/api/orders', { params }),
+  getOrders: (params) => api.get('/api/orders', { params }).then(res => res.data),
   getOrder: (id) => api.get(`/api/orders/${id}`),
   updateOrderStatus: (id, status, note) => api.put(`/api/orders/${id}/status`, { status, note }),
   assignOrder: (id, merchantId) => api.put(`/api/orders/${id}/assign`, { merchantId }),

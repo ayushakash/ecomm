@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { merchantAPI } from '../../services/api';
 
 const Merchants = () => {
-  const { data: merchants, isLoading, error } = useQuery({
+  const { data: merchantList, isLoading, error } = useQuery({
     queryKey: ['merchants'],
-  queryFn: () => merchantAPI.getAll()
+  queryFn: () => merchantAPI.getMerchants()
   });
 
   if (isLoading) {
@@ -58,13 +58,13 @@ const Merchants = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {merchants?.map((merchant) => (
+              {merchantList?.merchants?.map((merchant) => (
                 <tr key={merchant._id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{merchant.name}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{merchant.contact}</div>
+                    <div className="text-sm text-gray-900">{merchant.contact.phone}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {merchant.area}

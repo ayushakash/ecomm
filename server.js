@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
+const responseTime = require('response-time');
 require('dotenv').config();
 
 const app = express();
@@ -20,7 +22,13 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 });
-app.use(limiter);
+// app.use(limiter);
+
+// Response time header
+app.use(responseTime());
+
+// Logging middleware (morgan)
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/construction-ecommerce', {

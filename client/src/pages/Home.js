@@ -1,6 +1,6 @@
+import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from 'react-query';
 import { productAPI } from '../services/api';
 import { 
   TruckIcon, 
@@ -13,13 +13,11 @@ import CategoryCard from '../components/categories/CategoryCard';
 
 const Home = () => {
   // Fetch featured products
-  const { data: productsData, isLoading: productsLoading } = useQuery(
-    ['featured-products'],
-    () => productAPI.getProducts({ limit: 8, sortBy: 'rating', sortOrder: 'desc' }),
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ['featured-products'],
+    queryFn: () => productAPI.getProducts({ limit: 8, sortBy: 'rating', sortOrder: 'desc' }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const categories = [
     {
