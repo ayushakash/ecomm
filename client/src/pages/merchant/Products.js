@@ -1,9 +1,10 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productAPI } from '../../services/api';
-
+import { toast } from 'react-hot-toast';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import ConfirmDeleteButton from '../../components/products/ConfirmDeleteButton';
 
 const Products = () => {
   const { data: productlist, isLoading, error } = useQuery({
@@ -43,6 +44,17 @@ const Products = () => {
       setErrorMsg(err?.response?.data?.message || 'Error adding product');
     }
   });
+
+  const deleteProductMutation = useMutation({
+  mutationFn: (id) => productAPI.deleteProduct(id),
+  onSuccess: () => {
+    queryClient.invalidateQueries(['merchant-products']);
+    toast.success('Product deleted successfully');
+  },
+  onError: (err) => {
+    toast.error(err?.response?.data?.message || 'Error deleting product');
+  }
+});
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -415,7 +427,13 @@ const Products = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                    <button className="text-red-600 hover:text-red-900">Delete</button>
+                    <ConfirmDeleteButton
+                    title="Delete Product?"
+                    message="This will permanently remove the product from your store."
+                    loading={deleteProductMutation.isLoading}
+                    onConfirm={() => deleteProductMutation.mutate(product._id)}
+                    />
+                    
                   </td>
                 </tr>
               ))}

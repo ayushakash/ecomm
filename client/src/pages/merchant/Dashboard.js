@@ -16,26 +16,26 @@ const MerchantDashboard = () => {
 
   const stats = [
     {
-      name: 'Total Products',
-      value: dashboard?.totalProducts || 0,
+      name: 'Completed Orders',
+      value: dashboard?.summary?.completedOrders || 0,
       icon: CubeIcon,
       color: 'bg-blue-500'
     },
     {
       name: 'Total Orders',
-      value: dashboard?.totalOrders || 0,
+      value: dashboard?.summary?.totalOrders || 0,
       icon: ShoppingCartIcon,
       color: 'bg-green-500'
     },
     {
-      name: 'Total Revenue',
-      value: `₹${dashboard?.totalRevenue || 0}`,
-      icon: CurrencyRupeeIcon,
-      color: 'bg-purple-500'
+      name: 'Processing Orders',
+      value: dashboard?.summary?.processingOrders || 0,
+      icon: ShoppingCartIcon,
+      color: 'bg-orange-500'
     },
     {
       name: 'Pending Orders',
-      value: dashboard?.pendingOrders || 0,
+      value: dashboard?.summary?.pendingOrders || 0,
       icon: ChartBarIcon,
       color: 'bg-yellow-500'
     }

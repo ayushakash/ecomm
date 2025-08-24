@@ -9,9 +9,9 @@ const ProductList = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
 
-  const { data: products, isLoading, error } = useQuery({
+  const { data: productList, isLoading, error } = useQuery({
     queryKey: ['products', searchTerm, selectedCategory, priceRange],
-    queryFn: () => productAPI.getAll({ 
+    queryFn: () => productAPI.getProducts({ 
       search: searchTerm, 
       category: selectedCategory,
       minPrice: priceRange.min,
@@ -19,11 +19,10 @@ const ProductList = () => {
     })
   });
 
-  const { data: categories } = useQuery({
+  const { data: categorieList } = useQuery({
     queryKey: ['categories'],
   queryFn: () => productAPI.getCategories()
   });
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -70,7 +69,7 @@ const ProductList = () => {
             className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">All Categories</option>
-            {categories?.map((category) => (
+            {categorieList?.categories?.map((category) => (
               <option key={category} value={category}>
                 {category}
               </option>
@@ -98,7 +97,7 @@ const ProductList = () => {
       </div>
 
       {/* Products Grid */}
-      {products?.length === 0 ? (
+      {productList?.products?.length === 0 ? (
         <div className="text-center py-12">
           <FunnelIcon className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
@@ -106,7 +105,7 @@ const ProductList = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products?.map((product) => (
+          {productList?.products?.map((product) => (
             <ProductCard key={product._id} product={product} />
           ))}
         </div>

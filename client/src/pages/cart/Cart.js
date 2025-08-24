@@ -5,7 +5,7 @@ import { useCart } from '../../contexts/CartContext';
 
 const Cart = () => {
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
-
+  console.log(cart)
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   if (cart.length === 0) {

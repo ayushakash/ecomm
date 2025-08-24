@@ -108,7 +108,7 @@ export const productAPI = {
   deleteProduct: (id) => api.delete(`/api/products/${id}`),
   updateStock: (id, stock) => api.put(`/api/products/${id}/stock`, { stock }),
   toggleProduct: (id, enabled) => api.put(`/api/products/${id}/enable`, { enabled }),
-  getCategories: () => api.get('/api/products/categories'),
+  getCategories: () => api.get('/api/products/categories').then(res => res.data),
   getMerchantProducts: (params) => api.get('/api/products/merchant/my', { params }).then(res => res.data),
 };
 
@@ -119,8 +119,10 @@ export const orderAPI = {
   updateOrderStatus: (id, status, note) => api.put(`/api/orders/${id}/status`, { status, note }),
   assignOrder: (id, merchantId) => api.put(`/api/orders/${id}/assign`, { merchantId }),
   cancelOrder: (id) => api.put(`/api/orders/${id}/cancel`),
-  getAnalytics: () => api.get('/api/orders/analytics/summary'),
-  getMerchantDashboard: () => api.get('/api/orders/merchant/dashboard'),
+  getAnalytics: () => api.get('/api/orders/analytics/summary').then(res => res.data),
+  getMerchantDashboard: () => api.get('/api/orders/merchant/dashboard').then(res => res.data),
+  getMerchantAnalytics: () => api.get('/api/orders/merchant/analytics/summary').then(res => res.data),
+  
 };
 
 export default api;

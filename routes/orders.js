@@ -414,4 +414,64 @@ router.get('/merchant/dashboard', [verifyToken, requireMerchantOrAdmin], async (
   }
 });
 
+// @route   GET /api/orders/merchant/analytics/summary
+// @desc    Get analytics summary for a merchant
+// @access  Private (Merchant only)
+router.get('/merchant/analytics/summary', [verifyToken, requireMerchantOrAdmin], async (req, res) => {
+  console.log("reached here")
+  try {
+    const merchant = await Merchant.findOne({ userId: req.user._id });
+    if (!merchant) {
+      return res.status(400).json({ message: 'Merchant profile not found' });
+    }
+
+    // Order counts
+    const totalOrders = await Order.countDocuments({ assignedMerchantId: merchant._id });
+    const pendingOrders = await Order.countDocuments({ assignedMerchantId: merchant._id, status: 'pending' });
+    const processingOrders = await Order.countDocuments({ assignedMerchantId: merchant._id, status: 'processing' });
+    const deliveredOrders = await Order.countDocuments({ assignedMerchantId: merchant._id, status: 'delivered' });
+    const cancelledOrders = await Order.countDocuments({ assignedMerchantId: merchant._id, status: 'cancelled' });
+
+    // Revenue for delivered orders
+    const totalRevenueAgg = await Order.aggregate([
+      { $match: { assignedMerchantId: merchant._id, status: 'delivered' } },
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ]);
+    const totalRevenue = totalRevenueAgg[0]?.total || 0;
+
+    // Monthly revenue (last 6 months)
+    const monthlyRevenue = await Order.aggregate([
+      { $match: { assignedMerchantId: merchant._id, status: 'delivered' } },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          revenue: { $sum: '$totalAmount' },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': -1, '_id.month': -1 } },
+      { $limit: 6 }
+    ]);
+
+    res.json({
+      summary: {
+        totalOrders,
+        pendingOrders,
+        processingOrders,
+        deliveredOrders,
+        cancelledOrders,
+        totalRevenue
+      },
+      monthlyRevenue
+    });
+  } catch (error) {
+    console.error('Get merchant analytics error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 module.exports = router;

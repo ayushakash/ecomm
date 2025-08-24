@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useMutation } from '@tanstack/react-query';
+import { orderAPI } from '../../services/api';
+import toast from 'react-hot-toast';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -22,13 +25,28 @@ const Checkout = () => {
   const deliveryCharge = 50;
   const total = subtotal + tax + deliveryCharge;
 
+    const createOrderMutation = useMutation({
+    mutationFn: (orderData) => orderAPI.createOrder(orderData),
+    onSuccess: (res) => {
+      console.log("✅ Order created:", res.data);
+       toast.success('Order Successfully Placed!');
+
+      clearCart();
+      navigate('/orders');
+    },
+    onError: (err) => {
+      console.error("❌ Order creation failed:", err.response?.data || err.message);
+      alert("Failed to place order. Please try again!");
+    }
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     const orderData = {
       ...formData,
       items: cart.map(item => ({
-        productId: item._id,
+        productId: item.productId,
         name: item.name,
         price: item.price,
         quantity: item.quantity,
@@ -42,6 +60,7 @@ const Checkout = () => {
 
     // Here you would typically make an API call to create the order
     console.log('Order data:', orderData);
+     createOrderMutation.mutate(orderData);
     
     // For now, just clear cart and redirect
     clearCart();
@@ -170,7 +189,7 @@ const Checkout = () => {
           {/* Cart Items */}
           <div className="space-y-4 mb-6">
             {cart.map((item) => (
-              <div key={item._id} className="flex justify-between items-center">
+              <div key={item.productId} className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium text-gray-900">{item.name}</h3>
                   <p className="text-sm text-gray-600">

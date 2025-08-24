@@ -74,15 +74,20 @@ router.get('/', async (req, res) => {
       minPrice,
       maxPrice,
       merchantId,
-      enabled = true,
+      enabled ,
       page = 1,
       limit = 12,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = req.query;
 
-    const filter = { enabled: enabled === 'true' };
-    
+    const filter = {};
+
+   if (enabled !== undefined) {
+     filter.enabled = enabled === 'true';
+   } else {
+    filter.enabled = true;  
+    }
     if (category) filter.category = category;
     if (merchantId) filter.merchantId = merchantId;
     if (minPrice || maxPrice) {
@@ -115,6 +120,7 @@ router.get('/', async (req, res) => {
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .exec();
+      console.log(products)
 
     const total = await Product.countDocuments(filter);
 

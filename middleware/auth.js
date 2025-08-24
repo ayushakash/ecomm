@@ -3,6 +3,7 @@ const User = require('../models/User');
 
 // Verify JWT token
 const verifyToken = async (req, res, next) => {
+  console.log(req.headers)
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
@@ -19,6 +20,7 @@ const verifyToken = async (req, res, next) => {
     }
 
     req.user = user;
+    console.log(req.user)
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
@@ -33,6 +35,7 @@ const verifyToken = async (req, res, next) => {
 
 // Role-based authorization middleware
 const authorize = (...roles) => {
+  console.log(roles)
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Access denied. No token provided.' });
