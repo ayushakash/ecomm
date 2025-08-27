@@ -46,11 +46,12 @@ const Checkout = () => {
     const orderData = {
       ...formData,
       items: cart.map(item => ({
-        productId: item.productId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        unit: item.unit
+       productId: item.productId,
+      productName: item.name,
+      unitPrice: item.price,     // 👈 use unitPrice
+      quantity: item.quantity,
+      unit: item.unit,
+      totalPrice: item.price * item.quantity
       })),
       subtotal,
       tax,
@@ -63,8 +64,8 @@ const Checkout = () => {
      createOrderMutation.mutate(orderData);
     
     // For now, just clear cart and redirect
-    clearCart();
-    navigate('/orders');
+    // clearCart();
+    // navigate('/orders');
   };
 
   const handleInputChange = (e) => {

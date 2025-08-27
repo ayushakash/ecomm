@@ -8,8 +8,9 @@ const OrderHistory = () => {
     queryKey: ["orders"],
     queryFn: () => orderAPI.getOrders(),
   });
+  console.log(orderList);
 
-  const [openOrder, setOpenOrder] = useState(null); // track which order is expanded
+  const [openOrder, setOpenOrder] = useState(null); 
 
   const toggleOrder = (orderId) => {
     setOpenOrder(openOrder === orderId ? null : orderId);

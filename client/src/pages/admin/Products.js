@@ -1,13 +1,89 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { productAPI } from '../../services/api';
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { productAPI } from "../../services/api";
+import DataTable from "../../components/commonComponents/dataTable";
 
 const Products = () => {
   const { data: productList, isLoading, error } = useQuery({
-    queryKey: ['products'],
-  queryFn: () => productAPI.getProducts()
+    queryKey: ["products"],
+    queryFn: () => productAPI.getProducts(),
   });
-  console.log(productList)
+
+  const [globalFilter, setGlobalFilter] = useState("");
+
+  const columns = [
+    {
+      accessorKey: "name",
+      header: "Product",
+      cell: (info) => {
+        const row = info.row.original;
+        return (
+          <div className="flex items-center">
+            <div className="h-10 w-10 flex-shrink-0">
+              <img
+                className="h-10 w-10 rounded-lg object-cover"
+                src={row.images?.[0] || "/placeholder-product.jpg"}
+                alt={row.name}
+              />
+            </div>
+            <div className="ml-4">
+              <div className="text-sm font-medium text-gray-900">
+                {row.name}
+              </div>
+              <div className="text-sm text-gray-500">
+                {row.merchant?.name}
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "category",
+      header: "Category",
+    },
+    {
+      accessorKey: "price",
+      header: "Price",
+      cell: (info) => {
+        const row = info.row.original;
+        return `₹${row.price} per ${row.unit}`;
+      },
+    },
+    {
+      accessorKey: "merchantId.name",
+      header: "Merchant Name",
+      cell: (info) => info.getValue() || "N/A",
+    },
+    {
+      accessorKey: "stock",
+      header: "Stock",
+    },
+    {
+      accessorKey: "enabled",
+      header: "Status",
+      cell: (info) => (
+        <span
+          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+            info.getValue()
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {info.getValue() ? "Enabled" : "Disabled"}
+        </span>
+      ),
+    },
+    {
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <button className="text-blue-600 hover:underline">Edit</button>
+          <button className="text-red-600 hover:underline">Delete</button>
+        </div>
+      ),
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -20,7 +96,9 @@ const Products = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600">Error loading products: {error.message}</p>
+        <p className="text-red-600">
+          Error loading products: {error.message}
+        </p>
       </div>
     );
   }
@@ -28,76 +106,19 @@ const Products = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Products Management
+        </h1>
         <p className="text-gray-600">Manage all products in the system</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">All Products</h2>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Product
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {productList?.products?.map((product) => (
-                <tr key={product._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0">
-                        <img
-                          className="h-10 w-10 rounded-lg object-cover"
-                          src={product.images?.[0] || '/placeholder-product.jpg'}
-                          alt={product.name}
-                        />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                        <div className="text-sm text-gray-500">{product.merchant?.name}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.category}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ₹{product.price} per {product.unit}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.stock}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      product.enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {product.enabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+      title="All Products"
+        columns={columns}
+        data={productList?.products || []}
+        globalFilter={globalFilter}
+        setGlobalFilter={setGlobalFilter}
+      />
     </div>
   );
 };

@@ -1,12 +1,59 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { merchantAPI } from '../../services/api';
+import React, { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { merchantAPI } from "../../services/api";
+import DataTable from "../../components/commonComponents/dataTable";
 
 const Merchants = () => {
   const { data: merchantList, isLoading, error } = useQuery({
-    queryKey: ['merchants'],
-  queryFn: () => merchantAPI.getMerchants()
+    queryKey: ["merchants"],
+    queryFn: () => merchantAPI.getMerchants(),
   });
+
+  const [globalFilter, setGlobalFilter] = useState(""); // 🔎 search state
+
+  // Define table columns for merchants
+  const columns = useMemo(
+    () => [
+      {
+        header: "Name",
+        accessorKey: "name",
+        cell: (info) => (
+          <span className="font-medium text-gray-900">{info.getValue()}</span>
+        ),
+      },
+      {
+        header: "Contact",
+        accessorKey: "contact.phone",
+        cell: (info) => (
+          <span className="text-gray-700">{info.getValue()}</span>
+        ),
+      },
+      {
+        header: "Area",
+        accessorKey: "area",
+      },
+      {
+        header: "Business Type",
+        accessorKey: "businessType",
+      },
+      {
+        header: "Status",
+        accessorKey: "activeStatus",
+        cell: (info) => (
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              info.getValue() === "active"
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {info.getValue()}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
 
   if (isLoading) {
     return (
@@ -27,64 +74,19 @@ const Merchants = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Merchants Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Merchants Management
+        </h1>
         <p className="text-gray-600">Manage all merchants in the system</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">All Merchants</h2>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Area
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Business Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {merchantList?.merchants?.map((merchant) => (
-                <tr key={merchant._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{merchant.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{merchant.contact.phone}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {merchant.area}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {merchant.businessType}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      merchant.activeStatus === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {merchant.activeStatus}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        data={merchantList?.merchants ?? []}
+        title="All Merchants"
+        globalFilter={globalFilter}       // ✅ pass search state
+        setGlobalFilter={setGlobalFilter} // ✅ pass updater
+      />
     </div>
   );
 };

@@ -1,29 +1,114 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { orderAPI } from '../../services/api';
+import React, { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { orderAPI } from "../../services/api";
+import DataTable from "../../components/commonComponents/dataTable";
 
 const Orders = () => {
   const { data: orderList, isLoading, error } = useQuery({
-    queryKey: ['merchant-orders'],
-  queryFn: () => orderAPI.getOrders()
+    queryKey: ["merchant-orders"],
+    queryFn: () => orderAPI.getOrders(),
   });
+
+  const [globalFilter, setGlobalFilter] = useState(""); // 🔎 search state
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800';
-      case 'shipped':
-        return 'bg-purple-100 text-purple-800';
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "processing":
+        return "bg-blue-100 text-blue-800";
+      case "shipped":
+        return "bg-purple-100 text-purple-800";
+      case "delivered":
+        return "bg-green-100 text-green-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
+
+  // ✅ Define columns for DataTable
+  const columns = useMemo(
+    () => [
+      {
+        header: "Order",
+        accessorKey: "orderNumber",
+        cell: (info) => {
+          const order = info.row.original;
+          return (
+            <div>
+              <div className="font-medium text-gray-900">
+                #{order.orderNumber}
+              </div>
+              <div className="text-sm text-gray-500">
+                {new Date(order.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        header: "Customer",
+        accessorKey: "customerName",
+        cell: (info) => {
+          const order = info.row.original;
+          return (
+            <div>
+              <div className="text-sm text-gray-900">
+                {order.customerName}
+              </div>
+              <div className="text-sm text-gray-500">
+                {order.customerPhone}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        header: "Items",
+        accessorFn: (row) => `${row.items?.length || 0} item(s)`,
+        cell: (info) => <span>{info.getValue()}</span>,
+      },
+      {
+        header: "Amount",
+        accessorFn: (row) => `₹${row.totalAmount}`,
+        cell: (info) => <span>{info.getValue()}</span>,
+      },
+      {
+        header: "Status",
+        accessorKey: "status",
+        cell: (info) => (
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+              info.getValue()
+            )}`}
+          >
+            {info.getValue().charAt(0).toUpperCase() +
+              info.getValue().slice(1)}
+          </span>
+        ),
+      },
+      {
+        header: "Actions",
+        id: "actions",
+        cell: (info) => {
+          const order = info.row.original;
+          return (
+            <div className="flex gap-3">
+              <button className="text-blue-600 hover:text-blue-900">
+                View
+              </button>
+              <button className="text-green-600 hover:text-green-900">
+                Update Status
+              </button>
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
 
   if (isLoading) {
     return (
@@ -48,71 +133,14 @@ const Orders = () => {
         <p className="text-gray-600">Manage orders assigned to you</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Order List</h2>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Order
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Items
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {orderList.orders?.map((order) => (
-                <tr key={order._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      #{order.orderNumber}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{order.customerName}</div>
-                    <div className="text-sm text-gray-500">{order.customerPhone}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {order.items?.length} item{order.items?.length !== 1 ? 's' : ''}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ₹{order.totalAmount}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">View</button>
-                    <button className="text-green-600 hover:text-green-900">Update Status</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* ✅ Reusable DataTable */}
+      <DataTable
+        title="Order List"
+        columns={columns}
+        data={orderList?.orders ?? []}
+        globalFilter={globalFilter}
+        setGlobalFilter={setGlobalFilter}
+      />
     </div>
   );
 };
