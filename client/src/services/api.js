@@ -98,6 +98,7 @@ export const merchantAPI = {
   updateMerchantStatus: (id, status) => api.put(`/api/merchants/${id}/status`, status),
   updateProfile: (profileData) => api.put('/api/merchants/profile', profileData),
   getProfile: () => api.get('/api/merchants/profile/me'),
+   getMerchantsByProduct: (productId) => api.get(`/api/merchants/product/${productId}`).then(res => res.data),
 };
 
 export const productAPI = {
@@ -117,11 +118,12 @@ export const orderAPI = {
   getOrders: (params) => api.get('/api/orders', { params }).then(res => res.data),
   getOrder: (id) => api.get(`/api/orders/${id}`),
   updateOrderStatus: (id, status, note) => api.put(`/api/orders/${id}/status`, { status, note }),
-  assignOrder: (id, merchantId) => api.put(`/api/orders/${id}/assign`, { merchantId }),
   cancelOrder: (id) => api.put(`/api/orders/${id}/cancel`),
   getAnalytics: () => api.get('/api/orders/analytics/summary').then(res => res.data),
   getMerchantDashboard: () => api.get('/api/orders/merchant/dashboard').then(res => res.data),
   getMerchantAnalytics: () => api.get('/api/orders/merchant/analytics/summary').then(res => res.data),
+  assignItem: (orderId, itemId, merchantId) =>api.put(`/api/orders/${orderId}/items/${itemId}/assign`, { merchantId }),
+  autoAssignItem: (orderId, itemId, merchantId) =>api.put(`/api/orders/${orderId}/assign-merchant`, { itemId, merchantId }),
   
 };
 

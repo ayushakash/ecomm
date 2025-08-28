@@ -28,6 +28,18 @@ const orderItemSchema = new mongoose.Schema({
   unit: {
     type: String,
     required: true
+  },
+  assignedMerchantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Merchant'
+  },
+  assignedMerchantName: {
+    type: String
+  },
+  itemStatus: {
+    type: String,
+   enum: ['pending', 'approved', 'assigned', 'processing', 'shipped', 'delivered', 'cancelled'],
+    default: 'pending'
   }
 });
 
@@ -58,7 +70,7 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  items: [orderItemSchema],
+  items: [orderItemSchema], // 👈 each item has its own merchant assignment
   subtotal: {
     type: Number,
     required: true,
@@ -79,17 +91,10 @@ const orderSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  status: {
+  orderStatus: {
     type: String,
-    enum: ['pending', 'approved', 'processing', 'shipped', 'delivered', 'cancelled'],
+   enum: ['pending', 'approved', 'assigned', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
-  },
-  assignedMerchantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Merchant'
-  },
-  assignedMerchantName: {
-    type: String
   },
   paymentStatus: {
     type: String,
@@ -158,9 +163,9 @@ orderSchema.pre('save', async function(next) {
 
 // Add status to history when status changes
 orderSchema.pre('save', function(next) {
-  if (this.isModified('status')) {
+  if (this.isModified('orderStatus')) {
     this.statusHistory.push({
-      status: this.status,
+      status: this.orderStatus,
       timestamp: new Date()
     });
   }
@@ -169,8 +174,8 @@ orderSchema.pre('save', function(next) {
 
 // Indexes for efficient queries
 orderSchema.index({ customerId: 1, createdAt: -1 });
-orderSchema.index({ assignedMerchantId: 1, status: 1 });
-orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ 'items.assignedMerchantId': 1, orderStatus: 1 });
+orderSchema.index({ orderStatus: 1, createdAt: -1 });
 orderSchema.index({ orderNumber: 1 });
 
 module.exports = mongoose.model('Order', orderSchema);

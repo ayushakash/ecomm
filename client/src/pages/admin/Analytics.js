@@ -39,10 +39,11 @@ function formatMonth({ year, month }) {
 }
 
 const Analytics = () => {
-  const { data, isLoading, error } = useQuery({
+  const { data } = useQuery({
     queryKey: ['admin-analytics'],
-    queryFn: () => orderAPI.getAnalytics().then(res => res.data),
+    queryFn: () => orderAPI.getAnalytics(),
   });
+  console.log(data)
 
   // Pie chart data for order status
   const statusPieData = [

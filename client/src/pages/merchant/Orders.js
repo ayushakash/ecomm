@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { orderAPI } from "../../services/api";
-import DataTable from "../../components/commonComponents/dataTable";
 
 const Orders = () => {
   const { data: orderList, isLoading, error } = useQuery({
@@ -9,12 +8,11 @@ const Orders = () => {
     queryFn: () => orderAPI.getOrders(),
   });
 
-  const [globalFilter, setGlobalFilter] = useState(""); // 🔎 search state
-
   const getStatusColor = (status) => {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800";
+      case "assigned":
       case "processing":
         return "bg-blue-100 text-blue-800";
       case "shipped":
@@ -28,103 +26,19 @@ const Orders = () => {
     }
   };
 
-  // ✅ Define columns for DataTable
-  const columns = useMemo(
-    () => [
-      {
-        header: "Order",
-        accessorKey: "orderNumber",
-        cell: (info) => {
-          const order = info.row.original;
-          return (
-            <div>
-              <div className="font-medium text-gray-900">
-                #{order.orderNumber}
-              </div>
-              <div className="text-sm text-gray-500">
-                {new Date(order.createdAt).toLocaleDateString()}
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        header: "Customer",
-        accessorKey: "customerName",
-        cell: (info) => {
-          const order = info.row.original;
-          return (
-            <div>
-              <div className="text-sm text-gray-900">
-                {order.customerName}
-              </div>
-              <div className="text-sm text-gray-500">
-                {order.customerPhone}
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        header: "Items",
-        accessorFn: (row) => `${row.items?.length || 0} item(s)`,
-        cell: (info) => <span>{info.getValue()}</span>,
-      },
-      {
-        header: "Amount",
-        accessorFn: (row) => `₹${row.totalAmount}`,
-        cell: (info) => <span>{info.getValue()}</span>,
-      },
-      {
-        header: "Status",
-        accessorKey: "status",
-        cell: (info) => (
-          <span
-            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-              info.getValue()
-            )}`}
-          >
-            {info.getValue().charAt(0).toUpperCase() +
-              info.getValue().slice(1)}
-          </span>
-        ),
-      },
-      {
-        header: "Actions",
-        id: "actions",
-        cell: (info) => {
-          const order = info.row.original;
-          return (
-            <div className="flex gap-3">
-              <button className="text-blue-600 hover:text-blue-900">
-                View
-              </button>
-              <button className="text-green-600 hover:text-green-900">
-                Update Status
-              </button>
-            </div>
-          );
-        },
-      },
-    ],
-    []
-  );
-
-  if (isLoading) {
+  if (isLoading)
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
       <div className="text-center py-12">
         <p className="text-red-600">Error loading orders: {error.message}</p>
       </div>
     );
-  }
 
   return (
     <div className="space-y-6">
@@ -133,14 +47,83 @@ const Orders = () => {
         <p className="text-gray-600">Manage orders assigned to you</p>
       </div>
 
-      {/* ✅ Reusable DataTable */}
-      <DataTable
-        title="Order List"
-        columns={columns}
-        data={orderList?.orders ?? []}
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {orderList?.orders?.map((order) => (
+          <div
+            key={order._id}
+            className="bg-white shadow rounded-lg p-4 flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center mb-2">
+              <div className="font-semibold text-gray-900">
+                #{order.orderNumber}
+              </div>
+              <div className="text-sm text-gray-500">
+                {new Date(order.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+
+            {/* Customer */}
+            <div className="mb-2 text-sm text-gray-700">
+              <div>{order.customerName}</div>
+              <div>{order.customerPhone}</div>
+            </div>
+
+            {/* Items */}
+            <div className="mb-3">
+              {order.items
+                .filter((item) => item.assignedMerchantId)
+                .map((item) => (
+                  <div
+                    key={item._id}
+                    className="flex justify-between items-center bg-gray-50 p-2 rounded mb-1"
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium">{item.productName}</div>
+                      <div className="text-xs text-gray-500">
+                        Qty: {item.quantity} | ₹{item.totalPrice}
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full font-semibold ${getStatusColor(
+                        item.itemStatus
+                      )}`}
+                    >
+                      {item.itemStatus.charAt(0).toUpperCase() +
+                        item.itemStatus.slice(1)}
+                    </span>
+                  </div>
+                ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-2 mt-auto">
+              {order.items
+                .filter((item) => item.assignedMerchantId)
+                .map((item) => (
+                  <React.Fragment key={item._id}>
+                    <button
+                      className="bg-green-600 text-white px-3 py-1 rounded text-sm"
+                      onClick={() =>
+                        alert(`Mark ${item.productName} as Approved`)
+                      }
+                    >
+                      Approved
+                    </button>
+                    <button
+                      className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                      onClick={() =>
+                        alert(`Mark ${item.productName} as Delivered`)
+                      }
+                    >
+                      Delivered
+                    </button>
+                  </React.Fragment>
+                ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

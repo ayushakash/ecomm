@@ -14,6 +14,7 @@ const AdminDashboard = () => {
     queryKey: ['admin-analytics'],
   queryFn: () => orderAPI.getAnalytics()
   });
+  console.log(analytics)
 
   const stats = [
     {
@@ -36,13 +37,13 @@ const AdminDashboard = () => {
     },
     {
       name: 'Total Orders',
-      value: analytics?.totalOrders || 0,
+      value: analytics?.summary?.totalOrders || 0,
       icon: ShoppingCartIcon,
       color: 'bg-yellow-500'
     },
     {
       name: 'Total Sales',
-      value: `₹${analytics?.totalSales || 0}`,
+      value: `₹${analytics?.summary?.totalRevenue || 0}`,
       icon: CurrencyRupeeIcon,
       color: 'bg-red-500'
     }

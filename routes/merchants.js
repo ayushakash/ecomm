@@ -3,6 +3,8 @@ const { body, validationResult } = require('express-validator');
 const Merchant = require('../models/Merchant');
 const User = require('../models/User');
 const { verifyToken, requireAdmin, requireMerchant } = require('../middleware/auth');
+const Product = require('../models/Product');
+const mongoose = require('mongoose');
 
 const router = express.Router();
 
@@ -242,6 +244,34 @@ router.get('/profile/me', [verifyToken, requireMerchant], async (req, res) => {
     res.json({ merchant });
   } catch (error) {
     console.error('Get merchant profile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/product/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    // Ensure it's a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+
+    const product = await Product.findById(productId)
+      .populate('merchantId', 'name contact area activeStatus');
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Only approved merchants
+    const merchants = product.merchantId && product.merchantId.activeStatus === 'approved'
+      ? [product.merchantId]
+      : [];
+
+    res.json(merchants);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
