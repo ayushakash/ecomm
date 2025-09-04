@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { StarIcon, ShoppingCartIcon } from '@heroicons/react/24/solid';
-import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon } from '@heroicons/react/24/solid';
 import { useCart } from '../../contexts/CartContext';
 import { toast } from 'react-hot-toast';
 
@@ -12,40 +11,14 @@ const ProductCard = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (product.stock <= 0) {
+    if (product.totalStock <= 0) {
       toast.error('Product is out of stock');
       return;
     }
+    console.log("finaloooo",product);
 
     addToCart(product, 1);
     toast.success('Added to cart');
-  };
-
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <StarIcon key={i} className="h-4 w-4 text-yellow-400" />
-      );
-    }
-
-    if (hasHalfStar) {
-      stars.push(
-        <StarIcon key="half" className="h-4 w-4 text-yellow-400" />
-      );
-    }
-
-    const emptyStars = 5 - Math.ceil(rating);
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <StarOutlineIcon key={`empty-${i}`} className="h-4 w-4 text-gray-300" />
-      );
-    }
-
-    return stars;
   };
 
   return (
@@ -66,20 +39,20 @@ const ProductCard = ({ product }) => {
             <span className="text-gray-400 text-sm">No Image</span>
           </div>
         )}
-        
+
         {/* Stock Badge */}
-        {product.stock <= 0 && (
+        {product.myStock <= 0 && (
           <div className="absolute top-2 left-2">
             <span className="badge-danger">Out of Stock</span>
           </div>
         )}
-        
+
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          disabled={product.stock <= 0 || isInCart(product._id)}
+          disabled={product.myStock <= 0 || isInCart(product._id)}
           className={`absolute bottom-2 right-2 p-2 rounded-full shadow-lg transition-all duration-200 ${
-            product.stock <= 0 || isInCart(product._id)
+            product.myStock <= 0 || isInCart(product._id)
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-primary-600 hover:bg-primary-700 text-white'
           }`}
@@ -93,7 +66,7 @@ const ProductCard = ({ product }) => {
         {/* Category */}
         <div className="mb-2">
           <span className="text-xs font-medium text-primary-600 uppercase tracking-wide">
-            {product.category}
+            {product.category?.name || 'Uncategorized'}
           </span>
         </div>
 
@@ -102,63 +75,30 @@ const ProductCard = ({ product }) => {
           {product.name}
         </h3>
 
-        {/* Rating */}
-        {product.rating && product.rating.average > 0 && (
-          <div className="flex items-center mb-2">
-            <div className="flex items-center">
-              {renderStars(product.rating.average)}
-            </div>
-            <span className="text-sm text-gray-600 ml-1">
-              ({product.rating.count})
-            </span>
-          </div>
-        )}
-
         {/* Price */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-baseline">
             <span className="text-2xl font-bold text-gray-900">
               ₹{product.price.toLocaleString()}
             </span>
-            <span className="text-sm text-gray-500 ml-1">
-              /{product.unit}
-            </span>
+            {product.unit && (
+              <span className="text-sm text-gray-500 ml-1">/{product.unit}</span>
+            )}
           </div>
         </div>
 
         {/* Stock Info */}
         <div className="flex items-center justify-between text-sm text-gray-600">
           <span>
-            {product.stock > 0 ? (
-              <>
-                <span className="text-success-600 font-medium">
-                  In Stock: {product.stock}
-                </span>
-                {product.minOrderQuantity > 1 && (
-                  <span className="text-gray-500 ml-1">
-                    (Min: {product.minOrderQuantity})
-                  </span>
-                )}
-              </>
+            {product.totalStock > 0 ? (
+              <span className="text-success-600 font-medium">
+                In Stock: {product.totalStock}
+              </span>
             ) : (
               <span className="text-danger-600 font-medium">Out of Stock</span>
             )}
           </span>
-          
-          {/* Merchant Info */}
-          {product.merchantId && (
-            <span className="text-xs text-gray-500">
-              by {product.merchantId.name}
-            </span>
-          )}
         </div>
-
-        {/* Delivery Info */}
-        {product.deliveryTime && (
-          <div className="mt-2 text-xs text-gray-500">
-            Delivery: {product.deliveryTime} day{product.deliveryTime > 1 ? 's' : ''}
-          </div>
-        )}
       </div>
     </Link>
   );

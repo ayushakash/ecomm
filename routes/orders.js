@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Merchant = require('../models/Merchant');
 const { verifyToken, requireCustomer, requireMerchantOrAdmin, requireAdmin } = require('../middleware/auth');
+const MerchantProduct = require('../models/MerchantProduct');
 
 const router = express.Router();
 
@@ -47,6 +48,7 @@ router.post('/', [
         quantity: item.quantity,
         unitPrice: product.price,
         totalPrice,
+        sku: product.sku,
         unit: product.unit,
         merchantId: null, // assigned later
         status: 'pending'
@@ -186,15 +188,26 @@ router.get('/:id', verifyToken, async (req, res) => {
  */
 router.put('/:orderId/items/:itemId/assign', [
   verifyToken,
-  requireAdmin,
-  body('merchantId').isMongoId().withMessage('Valid merchant ID is required')
+  requireMerchantOrAdmin,
 ], async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
     const { orderId, itemId } = req.params;
-    const { merchantId } = req.body;
+    let merchantId;
+
+    if (req.user.role === 'merchant') {
+      // merchant assigns only themselves
+      const merchant = await Merchant.findOne({ userId: req.user._id });
+      if (!merchant) {
+        return res.status(400).json({ message: 'Merchant not found' });
+      }
+      merchantId = merchant._id;
+    } else if (req.user.role === 'admin') {
+      // admin can choose merchant freely
+      if (!req.body.merchantId) {
+        return res.status(400).json({ message: 'merchantId is required for admin assignment' });
+      }
+      merchantId = req.body.merchantId;
+    }
 
     const order = await assignMerchantToItem(orderId, itemId, merchantId, { validateMerchant: true });
 
@@ -204,6 +217,7 @@ router.put('/:orderId/items/:itemId/assign', [
     res.status(500).json({ message: error.message });
   }
 });
+
 
 /**
  * ---------------------------
@@ -330,12 +344,12 @@ router.get('/merchant/dashboard', [verifyToken, requireMerchantOrAdmin], async (
     const merchant = await Merchant.findOne({ userId: req.user._id });
     if (!merchant) return res.status(400).json({ message: 'Merchant not found' });
 
-    const totalItems = await Order.countDocuments({ 'items.merchantId': merchant._id });
-    const pending = await Order.countDocuments({ 'items.merchantId': merchant._id, 'items.status': 'assigned' });
-    const processing = await Order.countDocuments({ 'items.merchantId': merchant._id, 'items.status': 'processing' });
-    const completed = await Order.countDocuments({ 'items.merchantId': merchant._id, 'items.status': 'delivered' });
+    const totalItems = await Order.countDocuments({ 'items.assignedMerchantId': merchant._id });
+    const pending = await Order.countDocuments({ 'items.assignedMerchantId': merchant._id, 'items.status': 'assigned' });
+    const processing = await Order.countDocuments({ 'items.assignedMerchantId': merchant._id, 'items.status': 'processing' });
+    const completed = await Order.countDocuments({ 'items.assignedMerchantId': merchant._id, 'items.status': 'delivered' });
 
-    const recentOrders = await Order.find({ 'items.merchantId': merchant._id })
+    const recentOrders = await Order.find({ 'items.assignedMerchantId': merchant._id })
       .populate('customerId', 'name phone')
       .sort({ createdAt: -1 })
       .limit(5);
@@ -413,25 +427,36 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
   if (merchantId) {
     // If manual assignment, validate merchant has this product
     if (options.validateMerchant) {
-      const productExists = await Product.exists({
-        _id: item.productId,
+      const productExists = await MerchantProduct.exists({
+        productId: item.productId,
         merchantId,
         enabled: true,
       });
 
-      if (!productExists) throw new Error('Selected merchant does not sell this product or is inactive');
+      if (!productExists) {
+        throw new Error('Selected merchant does not sell this product or is inactive');
+      }
     }
 
     merchant = await Merchant.findById(merchantId);
+    if (!merchant) throw new Error('Merchant not found');
   } else {
     // Auto-assign: pick first available merchant for this product
-    const merchants = await Merchant.find({
-      _id: { $in: await Product.find({ _id: item.productId, enabled: true }).distinct('merchantId') },
-      activeStatus: 'approved',
+    const merchantProducts = await MerchantProduct.find({
+      productId: item.productId,
+      enabled: true,
+    }).populate({
+      path: 'merchantId',
+      match: { activeStatus: 'approved' }
     });
 
-    if (!merchants.length) throw new Error('No merchants available for this product');
-    merchant = merchants[0];
+    const availableMerchants = merchantProducts
+      .map(mp => mp.merchantId)
+      .filter(m => m); // filter out nulls (inactive merchants)
+
+    if (!availableMerchants.length) throw new Error('No merchants available for this product');
+
+    merchant = availableMerchants[0];
     merchantId = merchant._id;
   }
 
@@ -449,5 +474,118 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
 
   return order;
 }
+
+
+// Get unassigned orders (for merchants to claim)
+router.get('/status/unassigned', [verifyToken, requireMerchantOrAdmin], async (req, res) => {
+  try {
+  const merchant = await Merchant.findOne({ userId: req.user._id });
+if (!merchant) {
+  return res.status(400).json({ message: 'Merchant not found' });
+}
+
+const merchantProducts = await MerchantProduct.find({
+  merchantId: merchant._id,   // ✅ use merchant._id, not user._id
+  enabled: true,
+  stock: { $gt: 0 }
+}).select('productId');
+
+    const merchantProductIds = merchantProducts.map(mp => mp.productId.toString());
+  
+
+    if (merchantProductIds.length === 0) {
+      return res.json([]); // No products in stock, nothing to assign
+    }
+
+    // ✅ Step 2: Find unassigned orders containing those products
+    const unassignedOrders = await Order.find({
+      orderStatus: 'pending',
+      'items.itemStatus': 'pending',
+      'items.assignedMerchant': { $exists: false },
+      'items.productId': { $in: merchantProductIds }
+    }).populate('customerId', 'name phone');
+
+    // ✅ Step 3: Filter relevant items for this merchant
+    const filteredOrders = unassignedOrders.map(order => ({
+      ...order.toObject(),
+      items: order.items.filter(item =>
+        merchantProductIds.includes(item.productId.toString()) &&
+        item.itemStatus === 'pending' &&
+        !item.assignedMerchant
+      )
+    })).filter(order => order.items.length > 0);
+
+    res.json(filteredOrders);
+  } catch (error) {
+    console.error('Unassigned order fetch error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+
+
+
+
+// Get order by ID (must be placed AFTER the /unassigned route)
+router.get("/:id", async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// POST /orders/:orderId/items/:itemId/reject
+router.post("/:orderId/items/:itemId/reject", async (req, res) => {
+  const { orderId, itemId } = req.params;
+  const merchantId = req.user._id;
+
+  await Order.updateOne(
+    { _id: orderId, "items._id": itemId },
+    { $addToSet: { "items.$.rejectedBy": merchantId } } 
+  );
+
+  res.json({ success: true });
+});
+
+
+
+// Merchant claims an item
+router.post('/claim', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'merchant') {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    const { orderId, itemId } = req.body;
+    const merchant = await Merchant.findOne({ userId: req.user._id });
+
+    if (!merchant) {
+      return res.status(400).json({ message: 'Merchant not found' });
+    }
+
+    const order = await Order.findOneAndUpdate(
+      { _id: orderId, "items._id": itemId, "items.assignedMerchantId": null },
+      { $set: { "items.$.assignedMerchantId": merchant._id, "items.$.itemStatus": "assigned" } },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(400).json({ message: 'Item already taken by another merchant' });
+    }
+
+    res.json({ message: 'Order claimed successfully', order });
+  } catch (error) {
+    console.error('Claim order error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 
 module.exports = router;

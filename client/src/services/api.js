@@ -98,18 +98,20 @@ export const merchantAPI = {
   updateMerchantStatus: (id, status) => api.put(`/api/merchants/${id}/status`, status),
   updateProfile: (profileData) => api.put('/api/merchants/profile', profileData),
   getProfile: () => api.get('/api/merchants/profile/me'),
-   getMerchantsByProduct: (productId) => api.get(`/api/merchants/product/${productId}`).then(res => res.data),
+  getMerchantsByProduct: (productId) => api.get(`/api/merchants/product/${productId}`).then(res => res.data),
 };
 
 export const productAPI = {
   getProducts: (params) => api.get('/api/products', { params }).then(res => res.data),
+  getMasterProducts: (params) => api.get('/api/products/master-products', { params }).then(res => res.data),
   getProduct: (id) => api.get(`/api/products/${id}`),
   createProduct: (productData) => api.post('/api/products', productData),
   updateProduct: (id, productData) => api.put(`/api/products/${id}`, productData),
   deleteProduct: (id) => api.delete(`/api/products/${id}`),
-  updateStock: (id, stock) => api.put(`/api/products/${id}/stock`, { stock }),
+  updateStock: (id, data) => api.put(`/api/products/${id}/stock`, data),
   toggleProduct: (id, enabled) => api.put(`/api/products/${id}/enable`, { enabled }),
   getCategories: () => api.get('/api/products/categories').then(res => res.data),
+  addCategories: (category) => api.post('/api/products/categories',category).then(res => res.data),
   getMerchantProducts: (params) => api.get('/api/products/merchant/my', { params }).then(res => res.data),
 };
 
@@ -122,8 +124,11 @@ export const orderAPI = {
   getAnalytics: () => api.get('/api/orders/analytics/summary').then(res => res.data),
   getMerchantDashboard: () => api.get('/api/orders/merchant/dashboard').then(res => res.data),
   getMerchantAnalytics: () => api.get('/api/orders/merchant/analytics/summary').then(res => res.data),
-  assignItem: (orderId, itemId, merchantId) =>api.put(`/api/orders/${orderId}/items/${itemId}/assign`, { merchantId }),
+  assignItem: (orderId, itemId) =>api.put(`/api/orders/${orderId}/items/${itemId}/assign`),
   autoAssignItem: (orderId, itemId, merchantId) =>api.put(`/api/orders/${orderId}/assign-merchant`, { itemId, merchantId }),
+  getUnassignedOrders: () =>api.get(`/api/orders/status/unassigned`).then(res => res.data),
+  respondToOrder: (orderId, itemId, action) =>api.post('/api/orders/respond', { orderId, itemId, action }).then(res => res.data),
+  rejectItem: (orderId, itemId) =>api.post(`/orders/${orderId}/items/${itemId}/reject`)
   
 };
 

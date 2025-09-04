@@ -1,503 +1,382 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import DataTable from "../../components/commonComponents/dataTable";
 import { productAPI } from "../../services/api";
 import { toast } from "react-hot-toast";
-import ConfirmDeleteButton from "../../components/products/ConfirmDeleteButton";
-import DataTable from "../../components/commonComponents/dataTable";
 
 const Products = () => {
-  const { data: productlist, isLoading, error } = useQuery({
-    queryKey: ["merchant-products"],
-    queryFn: () => productAPI.getMerchantProducts(),
+  const queryClient = useQueryClient();
+
+  // States
+  const [showModal, setShowModal] = useState(false);
+  const [stockPopup, setStockPopup] = useState({
+    open: false,
+    productId: null,
+    currentStock: 0,
+    currentPrice: 0,
+    currentEnabled: true,
   });
 
-  const queryClient = useQueryClient();
-  const [globalFilter, setGlobalFilter] = useState(""); // 🔍 search state
-  const [showModal, setShowModal] = useState(false);
+  const [newStock, setNewStock] = useState(0);
+  const [newPrice, setNewPrice] = useState(0);
+  const [newEnabled, setNewEnabled] = useState(true);
+
   const [form, setForm] = useState({
-    name: "",
-    description: "",
-    category: "cement",
+    category: "",
+    productId: "",
     price: "",
-    unit: "kg",
     stock: "",
-    minOrderQuantity: "",
-    deliveryTime: "",
-    images: [""],
-    specifications: { brand: "", grade: "", weight: "" },
-    tags: [""],
     enabled: true,
   });
-  const [errorMsg, setErrorMsg] = useState("");
 
-  const createProductMutation = useMutation({
+  // Fetch merchant products
+  const { data: merchantProducts, isLoading } = useQuery({
+    queryKey: ["merchant-products"],
+    queryFn: () => productAPI.getProducts(),
+  });
+
+  // Fetch categories
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => productAPI.getCategories(),
+  });
+
+  // Fetch products for selected category
+  const { data: productList } = useQuery({
+    queryKey: ["products", form.category],
+    queryFn: () => productAPI.getMasterProducts({ category: form.category }),
+    enabled: !!form.category,
+  });
+
+  // Mutation to update stock, price, and enabled
+  const updateStockMutation = useMutation({
+   
+    mutationFn: ({ id, ...data }) => productAPI.updateStock(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["merchant-products"]);
+      toast.success("Product updated successfully!");
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Error updating product");
+    },
+  });
+
+  // Create merchant product
+  const createMerchantProduct = useMutation({
     mutationFn: (data) => productAPI.createProduct(data),
     onSuccess: () => {
       queryClient.invalidateQueries(["merchant-products"]);
       setShowModal(false);
       setForm({
-        name: "",
-        description: "",
-        category: "cement",
+        category: "",
+        productId: "",
         price: "",
-        unit: "kg",
         stock: "",
-        minOrderQuantity: "",
-        deliveryTime: "",
-        images: [""],
-        specifications: { brand: "", grade: "", weight: "" },
-        tags: [""],
         enabled: true,
       });
-      setErrorMsg("");
-      toast.success("Product added successfully");
+      toast.success("Product added successfully!");
     },
     onError: (err) => {
-      setErrorMsg(err?.response?.data?.message || "Error adding product");
+      toast.error(err?.response?.data?.message || "Error adding product");
     },
   });
 
-  const deleteProductMutation = useMutation({
-    mutationFn: (id) => productAPI.deleteProduct(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["merchant-products"]);
-      toast.success("Product deleted successfully");
-    },
-    onError: (err) => {
-      toast.error(err?.response?.data?.message || "Error deleting product");
-    },
-  });
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("FORM", form);
+    createMerchantProduct.mutate({
+      productId: form.productId,
+      price: parseFloat(form.price),
+      stock: parseInt(form.stock),
+      enabled: form.enabled,
+    });
+  };
 
-  // ✅ Columns for DataTable
-  const columns = useMemo(
-    () => [
-      {
-        header: "Product",
-        accessorKey: "name",
-        cell: (info) => {
-          const product = info.row.original;
-          return (
-            <div className="flex items-center">
-              <div className="h-10 w-10 flex-shrink-0">
-                <img
-                  className="h-10 w-10 rounded-lg object-cover"
-                  src={product.images?.[0] || "/placeholder-product.jpg"}
-                  alt={product.name}
-                />
-              </div>
-              <div className="ml-4">
-                <div className="text-sm font-medium text-gray-900">
-                  {product.name}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {product.description}
-                </div>
-              </div>
-            </div>
-          );
-        },
+  // Table columns
+  const columns = [
+    {
+      header: "Image",
+      accessorKey: "images",
+      cell: ({ getValue }) => {
+        const imgUrl = getValue()?.[0];
+        return imgUrl ? (
+          <img
+            src={imgUrl}
+            alt="product"
+            className="h-10 w-10 rounded-lg object-cover"
+          />
+        ) : (
+          <span>No Image</span>
+        );
       },
-      {
-        header: "Category",
-        accessorKey: "category",
-      },
-      {
-        header: "Price",
-        accessorFn: (row) => `₹${row.price} per ${row.unit}`,
-        cell: (info) => <span>{info.getValue()}</span>,
-      },
-      {
-        header: "Stock",
-        accessorKey: "stock",
-      },
-      {
-        header: "Status",
-        id: "status",
-        accessorFn: (row) => (row.enabled ? "Enabled" : "Disabled"),
-        cell: (info) => (
-          <span
-            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              info.getValue() === "Enabled"
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800"
-            }`}
-          >
-            {info.getValue()}
-          </span>
+    },
+    { header: "Product Name", accessorKey: "name" },
+    { header: "Category", accessorKey: "category.name" },
+    { header: "Price", accessorKey: "price" },
+    { header: "Stock", accessorKey: "myStock" },
+    {
+      header: "Enabled",
+      accessorKey: "enabled",
+      cell: ({ getValue }) =>
+        getValue() ? (
+          <span className="text-green-600">Yes</span>
+        ) : (
+          <span className="text-red-600">No</span>
         ),
+    },
+    {
+      header: "Actions",
+      cell: ({ row }) => {
+        const product = row.original;
+        return (
+          <button
+            className="bg-yellow-500 text-white px-2 py-1 rounded"
+            onClick={() => {
+              setStockPopup({
+                open: true,
+                productId: product._id,
+                currentStock: product.myStock,
+                currentPrice: product.price,
+                currentEnabled: product.enabled,
+              });
+              setNewStock(product.myStock);
+              setNewPrice(product.price);
+              setNewEnabled(product.enabled);
+            }}
+          >
+            Edit
+          </button>
+        );
       },
-      {
-        header: "Actions",
-        id: "actions",
-        cell: (info) => {
-          const product = info.row.original;
-          return (
-            <div className="flex gap-3">
-              <button className="text-blue-600 hover:text-blue-900">
-                Edit
-              </button>
-              <ConfirmDeleteButton
-                title="Delete Product?"
-                message="This will permanently remove the product from your store."
-                loading={deleteProductMutation.isLoading}
-                onConfirm={() => deleteProductMutation.mutate(product._id)}
-              />
-            </div>
-          );
-        },
-      },
-    ],
-    [deleteProductMutation]
-  );
+    },
+  ];
 
-  // 🌀 Loading state
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  // ❌ Error state
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-red-600">Error loading products: {error.message}</p>
-      </div>
-    );
-  }
-
-  // ✅ UI
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Products</h1>
-          <p className="text-gray-600">Manage your product catalog</p>
-        </div>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold">My Products</h1>
         <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           onClick={() => setShowModal(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
         >
-          Add Product
+          + Add Product
         </button>
       </div>
 
-      {/* ✅ Reusable DataTable */}
+      {/* Popup to edit stock, price, and enable */}
+      {stockPopup.open && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-80">
+            <h2 className="text-lg font-semibold mb-4">Update Product</h2>
+
+            {/* Stock */}
+            <label className="block mb-1">Stock</label>
+            <input
+              type="number"
+              value={newStock}
+              onChange={(e) => setNewStock(parseInt(e.target.value))}
+              className="w-full border p-2 rounded mb-2"
+              min={0}
+              placeholder="Stock"
+            />
+
+            {/* Price */}
+            <label className="block mb-1">Price</label>
+            <input
+              type="number"
+              value={newPrice}
+              onChange={(e) => setNewPrice(parseFloat(e.target.value))}
+              className="w-full border p-2 rounded mb-2"
+              min={0}
+              placeholder="Price"
+            />
+
+            {/* Enabled */}
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="checkbox"
+                checked={newEnabled}
+                onChange={(e) => setNewEnabled(e.target.checked)}
+              />
+              <span>Enabled</span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 border rounded"
+                onClick={() =>
+                  setStockPopup({
+                    open: false,
+                    productId: null,
+                    currentStock: 0,
+                    currentPrice: 0,
+                    currentEnabled: true,
+                  })
+                }
+              >
+                Cancel
+              </button>
+            <button
+  className="bg-blue-600 text-white px-4 py-2 rounded"
+  onClick={() => {
+    const payload = {};
+    
+    // Only include stock if it's a valid number
+    if (newStock !== undefined && !isNaN(newStock)) {
+      payload.stock = newStock;
+    }
+
+    // Only include price if it's a valid number
+    if (newPrice !== undefined && !isNaN(newPrice)) {
+      payload.price = newPrice;
+    }
+
+    // Only include enabled if it's boolean
+    if (newEnabled !== undefined) {
+      payload.enabled = newEnabled;
+    }
+
+    // Send request only if payload has something
+    if (Object.keys(payload).length > 0) {
+      updateStockMutation.mutate({
+        id: stockPopup.productId,
+        ...payload,
+      });
+    } else {
+      toast.error("Please enter valid values to update.");
+    }
+
+    // Reset popup state
+    setStockPopup({
+      open: false,
+      productId: null,
+      currentStock: 0,
+      currentPrice: 0,
+      currentEnabled: true,
+    });
+  }}
+>
+  Update
+</button>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Data table */}
       <DataTable
-        title="Product List"
+        data={merchantProducts?.products || []}
         columns={columns}
-        data={productlist?.products ?? []}
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
+        isLoading={isLoading}
       />
 
-      {/* Add Product Modal */}
+      {/* Modal for adding product */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl relative p-6 max-h-[90vh] overflow-y-auto">
-            {/* Close Button */}
-            <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl"
-              onClick={() => setShowModal(false)}
-            >
-              &times;
-            </button>
-
-            <h2 className="text-2xl font-bold mb-4">Add Product</h2>
-            {errorMsg && <p className="text-red-600 mb-2">{errorMsg}</p>}
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                createProductMutation.mutate({
-                  ...form,
-                  price: parseFloat(form.price),
-                  stock: parseInt(form.stock),
-                  minOrderQuantity: form.minOrderQuantity
-                    ? parseInt(form.minOrderQuantity)
-                    : undefined,
-                  deliveryTime: form.deliveryTime
-                    ? parseInt(form.deliveryTime)
-                    : undefined,
-                  images: form.images.filter((img) => img),
-                  tags: form.tags.filter((tag) => tag),
-                  specifications: {
-                    brand: form.specifications.brand,
-                    grade: form.specifications.grade,
-                    weight: form.specifications.weight
-                      ? parseFloat(form.specifications.weight)
-                      : undefined,
-                  },
-                });
-              }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-4"
-            >
-              {/* Left Column */}
-              <div className="space-y-4">
-                <input
-                  name="name"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, name: e.target.value }))
-                  }
-                  required
-                  placeholder="Product Name"
-                  className="w-full border rounded px-3 py-2"
-                />
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, description: e.target.value }))
-                  }
-                  required
-                  placeholder="Description"
-                  className="w-full border rounded px-3 py-2"
-                />
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-96">
+            <h2 className="text-lg font-semibold mb-4">Add Product</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Category */}
+              <div>
+                <label className="block mb-1">Category</label>
                 <select
-                  name="category"
                   value={form.category}
                   onChange={(e) =>
-                    setForm((p) => ({ ...p, category: e.target.value }))
+                    setForm((p) => ({
+                      ...p,
+                      category: e.target.value,
+                      productId: "",
+                    }))
                   }
+                  className="w-full border p-2 rounded"
                   required
-                  className="w-full border rounded px-3 py-2"
                 >
-                  <option value="cement">Cement</option>
-                  <option value="sand">Sand</option>
-                  <option value="tmt-bars">TMT Bars</option>
-                  <option value="bricks">Bricks</option>
-                  <option value="aggregates">Aggregates</option>
-                  <option value="steel">Steel</option>
-                  <option value="tools">Tools</option>
-                  <option value="other">Other</option>
+                  <option value="">Select Category</option>
+                  {categories?.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
+              </div>
+
+              {/* Product */}
+              <div>
+                <label className="block mb-1">Product</label>
+                <select
+                  value={form.productId}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, productId: e.target.value }))
+                  }
+                  className="w-full border p-2 rounded"
+                  required
+                >
+                  <option value="">Select Product</option>
+                  {productList?.products?.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="block mb-1">Price</label>
                 <input
-                  name="price"
                   type="number"
-                  min="0"
                   value={form.price}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, price: e.target.value }))
                   }
+                  className="w-full border p-2 rounded"
                   required
-                  placeholder="Price"
-                  className="w-full border rounded px-3 py-2"
                 />
-                <select
-                  name="unit"
-                  value={form.unit}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, unit: e.target.value }))
-                  }
-                  required
-                  className="w-full border rounded px-3 py-2"
-                >
-                  <option value="kg">kg</option>
-                  <option value="ton">ton</option>
-                  <option value="bag">bag</option>
-                  <option value="piece">piece</option>
-                  <option value="cubic-meter">cubic-meter</option>
-                  <option value="sq-ft">sq-ft</option>
-                </select>
+              </div>
+
+              {/* Stock */}
+              <div>
+                <label className="block mb-1">Stock</label>
                 <input
-                  name="stock"
                   type="number"
-                  min="0"
                   value={form.stock}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, stock: e.target.value }))
                   }
+                  className="w-full border p-2 rounded"
                   required
-                  placeholder="Stock"
-                  className="w-full border rounded px-3 py-2"
                 />
               </div>
 
-              {/* Right Column */}
-              <div className="space-y-4">
+              {/* Enabled */}
+              <div className="flex items-center gap-2">
                 <input
-                  name="minOrderQuantity"
-                  type="number"
-                  min="1"
-                  value={form.minOrderQuantity}
+                  type="checkbox"
+                  checked={form.enabled}
                   onChange={(e) =>
-                    setForm((p) => ({ ...p, minOrderQuantity: e.target.value }))
+                    setForm((p) => ({ ...p, enabled: e.target.checked }))
                   }
-                  placeholder="Min Order Quantity"
-                  className="w-full border rounded px-3 py-2"
                 />
-                <input
-                  name="deliveryTime"
-                  type="number"
-                  min="1"
-                  value={form.deliveryTime}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, deliveryTime: e.target.value }))
-                  }
-                  placeholder="Delivery Time (days)"
-                  className="w-full border rounded px-3 py-2"
-                />
-
-                {/* Images */}
-                <div>
-                  <label className="block font-medium">Images (URLs)</label>
-                  {form.images.map((img, idx) => (
-                    <div key={idx} className="flex gap-2 mb-2">
-                      <input
-                        value={img}
-                        onChange={(e) => {
-                          const arr = [...form.images];
-                          arr[idx] = e.target.value;
-                          setForm((p) => ({ ...p, images: arr }));
-                        }}
-                        placeholder="Image URL"
-                        className="w-full border rounded px-3 py-2"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForm((p) => ({
-                            ...p,
-                            images: p.images.filter((_, i) => i !== idx),
-                          }))
-                        }
-                        className="text-red-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((p) => ({ ...p, images: [...p.images, ""] }))
-                    }
-                    className="text-blue-600"
-                  >
-                    Add Image
-                  </button>
-                </div>
-
-                {/* Tags */}
-                <div>
-                  <label className="block font-medium">Tags</label>
-                  {form.tags.map((tag, idx) => (
-                    <div key={idx} className="flex gap-2 mb-2">
-                      <input
-                        value={tag}
-                        onChange={(e) => {
-                          const arr = [...form.tags];
-                          arr[idx] = e.target.value;
-                          setForm((p) => ({ ...p, tags: arr }));
-                        }}
-                        placeholder="Tag"
-                        className="w-full border rounded px-3 py-2"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForm((p) => ({
-                            ...p,
-                            tags: p.tags.filter((_, i) => i !== idx),
-                          }))
-                        }
-                        className="text-red-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((p) => ({ ...p, tags: [...p.tags, ""] }))
-                    }
-                    className="text-blue-600"
-                  >
-                    Add Tag
-                  </button>
-                </div>
-
-                {/* Specifications */}
-                <div>
-                  <label className="block font-medium">Specifications</label>
-                  <input
-                    name="specifications.brand"
-                    value={form.specifications.brand}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        specifications: {
-                          ...p.specifications,
-                          brand: e.target.value,
-                        },
-                      }))
-                    }
-                    placeholder="Brand"
-                    className="w-full border rounded px-3 py-2 mb-2"
-                  />
-                  <input
-                    name="specifications.grade"
-                    value={form.specifications.grade}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        specifications: {
-                          ...p.specifications,
-                          grade: e.target.value,
-                        },
-                      }))
-                    }
-                    placeholder="Grade"
-                    className="w-full border rounded px-3 py-2 mb-2"
-                  />
-                  <input
-                    name="specifications.weight"
-                    type="number"
-                    min="0"
-                    value={form.specifications.weight}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        specifications: {
-                          ...p.specifications,
-                          weight: e.target.value,
-                        },
-                      }))
-                    }
-                    placeholder="Weight"
-                    className="w-full border rounded px-3 py-2 mb-2"
-                  />
-                </div>
-
-                {/* Enabled toggle */}
-                <label className="flex items-center">
-                  <input
-                    name="enabled"
-                    type="checkbox"
-                    checked={form.enabled}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, enabled: e.target.checked }))
-                    }
-                    className="mr-2"
-                  />
-                  Enabled
-                </label>
+                <span>Enabled</span>
               </div>
 
-              {/* Submit */}
-              <div className="col-span-1 md:col-span-2">
+              {/* Actions */}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 border rounded"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 w-full"
-                  disabled={createProductMutation.isLoading}
+                  disabled={createMerchantProduct.isLoading}
+                  className="bg-blue-600 text-white px-4 py-2 rounded"
                 >
-                  {createProductMutation.isLoading
-                    ? "Adding..."
-                    : "Add Product"}
+                  {createMerchantProduct.isLoading ? "Saving..." : "Save"}
                 </button>
               </div>
             </form>

@@ -13,6 +13,7 @@ const ProductDetail = () => {
     queryKey: ['product', id],
   queryFn: () => productAPI.getById(id)
   });
+  console.log("PRODUCT",product);
 
   if (isLoading) {
     return (

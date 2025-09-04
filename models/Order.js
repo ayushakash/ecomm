@@ -36,11 +36,15 @@ const orderItemSchema = new mongoose.Schema({
   assignedMerchantName: {
     type: String
   },
+  sku: {
+    type: String
+  },
   itemStatus: {
     type: String,
    enum: ['pending', 'approved', 'assigned', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
-  }
+  },
+   rejectedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "Merchant" }]
 });
 
 const orderSchema = new mongoose.Schema({
@@ -157,6 +161,20 @@ orderSchema.pre('save', async function(next) {
     });
     
     this.orderNumber = `ORD${year}${month}${day}${(count + 1).toString().padStart(4, '0')}`;
+  }
+  next();
+});
+
+orderSchema.pre("save", function (next) {
+  if (this.isModified("items")) {
+    const statuses = this.items.map(i => i.itemStatus);
+
+    if (statuses.every(s => s === "delivered")) this.orderStatus = "delivered";
+    else if (statuses.every(s => s === "cancelled")) this.orderStatus = "cancelled";
+    else if (statuses.some(s => s === "processing" || s === "assigned")) this.orderStatus = "processing";
+    else if (statuses.some(s => s === "pending")) this.orderStatus = "pending";
+    else if (statuses.some(s => s === "shipped")) this.orderStatus = "shipped";
+    else this.orderStatus = "approved"; // fallback
   }
   next();
 });

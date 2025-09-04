@@ -16,9 +16,8 @@ const Home = () => {
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['featured-products'],
     queryFn: () => productAPI.getProducts({ limit: 8, sortBy: 'rating', sortOrder: 'desc' }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, 
   });
-  console.log(productsData)
 
   const categories = [
     {

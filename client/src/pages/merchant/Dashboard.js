@@ -13,7 +13,7 @@ const MerchantDashboard = () => {
     queryKey: ['merchant-dashboard'],
   queryFn: () => orderAPI.getMerchantDashboard()
   });
-
+console.log(dashboard)
   const stats = [
     {
       name: 'Completed Orders',
@@ -22,8 +22,8 @@ const MerchantDashboard = () => {
       color: 'bg-blue-500'
     },
     {
-      name: 'Total Orders',
-      value: dashboard?.summary?.totalOrders || 0,
+      name: 'Total Orders/Items',
+      value: dashboard?.summary?.totalItems || 0,
       icon: ShoppingCartIcon,
       color: 'bg-green-500'
     },

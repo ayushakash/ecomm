@@ -93,11 +93,11 @@ const OrderHistory = () => {
                 </div>
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                    order.status
+                    order.orderStatus
                   )}`}
                 >
-                  {order.status.charAt(0).toUpperCase() +
-                    order.status.slice(1)}
+                  {order.orderStatus.charAt(0).toUpperCase() +
+                    order.orderStatus.slice(1)}
                 </span>
               </div>
 

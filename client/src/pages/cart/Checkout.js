@@ -42,15 +42,18 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Form Data:', formData);
+        console.log('Cart:', cart);
     
     const orderData = {
       ...formData,
       items: cart.map(item => ({
-       productId: item.productId,
+      productId: item.productId,
       productName: item.name,
-      unitPrice: item.price,     // 👈 use unitPrice
+      unitPrice: item.price, 
       quantity: item.quantity,
       unit: item.unit,
+      sku: item.sku,
       totalPrice: item.price * item.quantity
       })),
       subtotal,

@@ -52,8 +52,8 @@ export const CartProvider = ({ children }) => {
           unit: product.unit,
           quantity,
           image: product.images?.[0] || '',
-          merchantId: product.merchantId,
-          stock: product.stock
+          stock: product.totalStock,
+          sku: product.sku
         }];
       }
     });

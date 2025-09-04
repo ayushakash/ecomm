@@ -12,6 +12,7 @@ const Layout = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
+
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Products', href: '/products' },

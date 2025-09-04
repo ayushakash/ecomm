@@ -3,151 +3,270 @@ const { body, validationResult } = require('express-validator');
 const Product = require('../models/Product');
 const Merchant = require('../models/Merchant');
 const { verifyToken, requireMerchantOrAdmin, requireAdmin } = require('../middleware/auth');
+const MerchantProduct = require('../models/MerchantProduct');
+const Category = require('../models/Category');
+const mongoose = require("mongoose");
 
 const router = express.Router();
 
 // @route   POST /api/products
-// @desc    Add a new product
-// @access  Private (Merchant or Admin)
-router.post('/', [
-  verifyToken,
-  requireMerchantOrAdmin,
-  body('name').trim().isLength({ min: 2 }).withMessage('Product name must be at least 2 characters'),
-  body('description').trim().isLength({ min: 10 }).withMessage('Description must be at least 10 characters'),
-  body('category').isIn(['cement', 'sand', 'tmt-bars', 'bricks', 'aggregates', 'steel', 'tools', 'other']).withMessage('Invalid category'),
-  body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-  body('unit').isIn(['kg', 'ton', 'bag', 'piece', 'cubic-meter', 'sq-ft']).withMessage('Invalid unit'),
-  body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer'),
-  body('minOrderQuantity').optional().isInt({ min: 1 }).withMessage('Minimum order quantity must be at least 1'),
-  body('deliveryTime').optional().isInt({ min: 1 }).withMessage('Delivery time must be at least 1 day'),
-  body('images').optional().isArray().withMessage('Images must be an array'),
-  body('specifications').optional().isObject().withMessage('Specifications must be an object'),
-  body('tags').optional().isArray().withMessage('Tags must be an array')
-], async (req, res) => {
-  try {
-    console.log(req.body)
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+/**
+ * POST /products
+ * - Admin: Creates a new master product (auto SKU generated in schema)
+ * - Merchant: Links an existing master product to their inventory with price & stock
+ */
+router.post(
+  "/",
+  [
+    verifyToken,
+    requireMerchantOrAdmin,
 
-    let merchantId = req.body.merchantId;
+    // Common validation
+    body("category").optional().notEmpty().withMessage("Category is required"),
+    body("name").optional().notEmpty().withMessage("Product name is required"),
 
-    // If user is merchant, use their merchant ID
-    if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
-      if (!merchant) {
-        return res.status(400).json({ message: 'Merchant profile not found' });
+    // Admin/Merchant-specific
+    body("price")
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage("Price must be a positive number"),
+    body("stock")
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage("Stock must be a non-negative integer"),
+    body("unit")
+      .optional()
+      .isString()
+      .withMessage("Unit must be a string"),
+  ],
+  async (req, res) => {
+     console.log("REQ BODY", req.body);
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
       }
-      merchantId = merchant._id;
-    } else if (req.user.role === 'admin' && !merchantId) {
-      return res.status(400).json({ message: 'Merchant ID is required for admin' });
+
+      const { category, name, description, images, specifications, tags, price, unit } = req.body;
+
+      // ---------------- Admin Flow ----------------
+      if (req.user.role === "admin") {
+        // Validate category
+        const categoryExists = await Category.findById(category);
+        if (!categoryExists) {
+          return res.status(404).json({ message: "Category not found" });
+        }
+
+        const newProduct = new Product({
+          name,
+          description,
+          category,
+          images: Array.isArray(images) ? images : images ? [images] : [],
+          specifications: specifications || {},
+          tags: tags || [],
+          price: price || 0,   // Admin-defined selling price
+          unit: unit || "",     // Admin-defined unit
+          enabled: true,
+        });
+
+        const savedProduct = await newProduct.save();
+
+        return res.status(201).json({
+          message: "✅ Product created successfully in master catalog",
+          product: savedProduct,
+        });
+      }
+
+      // ---------------- Merchant Flow ----------------
+      if (req.user.role === "merchant") {
+        console.log("REQ BODY", req.body);
+        const { productId, price, stock } = req.body;
+
+        if (!productId) {
+          return res
+            .status(400)
+            .json({ message: "Product ID (from master catalog) is required" });
+        }
+        if (price === undefined || stock === undefined) {
+          return res
+            .status(400)
+            .json({ message: "Price and Stock are required" });
+        }
+
+        const product = await Product.findById(productId);
+        if (!product) {
+          return res.status(404).json({ message: "Product not found in catalog" });
+        }
+
+        const merchant = await Merchant.findOne({ userId: req.user._id });
+        if (!merchant) {
+          return res.status(400).json({ message: "Merchant profile not found" });
+        }
+        console.log(merchant._id, product._id);
+        let merchantProduct = await MerchantProduct.findOne({
+          merchantId: merchant._id,
+          productId: product._id,
+        });
+
+        if (merchantProduct) {
+          merchantProduct.price = price;
+          merchantProduct.stock = stock;
+          merchantProduct.enabled = true;
+          await merchantProduct.save();
+          console.log("UPDATED", merchantProduct);
+          return res.status(200).json({
+            message: "✅ Merchant product updated successfully",
+            merchantProduct: await merchantProduct.populate("productId"),
+          });
+        }
+
+        merchantProduct = new MerchantProduct({
+          merchantId: merchant._id,
+          productId: product._id,
+          price,
+          stock,
+        });
+
+        await merchantProduct.save();
+
+        return res.status(201).json({
+          message: "✅ Product added to merchant inventory successfully",
+          merchantProduct: await merchantProduct.populate("productId"),
+        });
+      }
+    } catch (error) {
+      console.error("Add product error:", error);
+      res.status(500).json({ message: "Server error" });
     }
-
-    const product = new Product({
-      ...req.body,
-      merchantId
-    });
-    console.log(product)
-
-    await product.save();
-
-    res.status(201).json({
-      message: 'Product added successfully',
-      product
-    });
-  } catch (error) {
-    console.error('Add product error:', error);
-    res.status(500).json({ message: 'Server error' });
   }
-});
+);
+
+
+
+
 
 // @route   GET /api/products
 // @desc    Get products with filtering
 // @access  Public
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const {
-      category,
-      area,
-      search,
-      minPrice,
-      maxPrice,
-      merchantId,
-      enabled ,
-      page = 1,
-      limit = 12,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = req.query;
+    const { page = 1, limit = 12, category, search } = req.query;
+    const skip = (page - 1) * limit;
 
-    const filter = {};
+    const role = req.user?.role || 'customer';
 
-   if (enabled !== undefined) {
-     filter.enabled = enabled === 'true';
-   } else {
-    filter.enabled = true;  
+    if (role === 'merchant') {
+  // Get merchant profile from user
+  const merchant = await Merchant.findOne({ userId: req.user._id });
+  if (!merchant) {
+    return res.status(400).json({ message: "Merchant profile not found" });
+  }
+
+  // Fetch merchant’s products
+  const merchantProducts = await MerchantProduct.find({ merchantId: merchant._id })
+    .populate({
+      path: 'productId',
+      populate: { path: 'category', select: 'name' }
+    })
+    .skip(skip)
+    .limit(parseInt(limit))
+    .lean();
+
+  const products = merchantProducts.map(mp => ({
+    ...mp.productId,
+    myStock: mp.stock,
+    price: mp.price,
+    enabled: mp.enabled,
+  }));
+
+  return res.json({
+    products,
+    totalProducts: merchantProducts.length,
+    totalPages: Math.ceil(merchantProducts.length / limit),
+    currentPage: parseInt(page)
+  });
+} else {
+      // ---- Admin / Customer flow (existing logic) ----
+      const productFilter = {};
+      if (category) productFilter.category = category;
+      if (search) productFilter.$text = { $search: search };
+
+      const products = await Product.find(productFilter)
+        .populate('category', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+
+      const totalProducts = await Product.countDocuments(productFilter);
+
+      for (let product of products) {
+        if (role === 'admin' || role === 'customer') {
+          const totalStock = await MerchantProduct.aggregate([
+            { $match: { productId: product._id } },
+            { $group: { _id: '$productId', totalStock: { $sum: '$stock' } } }
+          ]);
+          product.totalStock = totalStock.length ? totalStock[0].totalStock : 0;
+        }
+      }
+
+      return res.json({
+        products,
+        totalProducts,
+        totalPages: Math.ceil(totalProducts / limit),
+        currentPage: parseInt(page)
+      });
     }
-    if (category) filter.category = category;
-    if (merchantId) filter.merchantId = merchantId;
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = parseFloat(minPrice);
-      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
-    }
 
-    // Area-based filtering
-    if (area) {
-      const merchants = await Merchant.find({
-        area: { $regex: area, $options: 'i' },
-        activeStatus: 'approved'
-      }).select('_id');
-      
-      filter.merchantId = { $in: merchants.map(m => m._id) };
-    }
-
-    // Search functionality
-    if (search) {
-      filter.$text = { $search: search };
-    }
-
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
-
-    const products = await Product.find(filter)
-      .populate('merchantId', 'name area rating')
-      .sort(sortOptions)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .exec();
-      console.log(products)
-
-    const total = await Product.countDocuments(filter);
-
-    res.json({
-      products,
-      totalPages: Math.ceil(total / limit),
-      currentPage: parseInt(page),
-      total
-    });
   } catch (error) {
     console.error('Get products error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+
+
+
+
 // @route   GET /api/products/categories
 // @desc    Get all product categories
 // @access  Public
 router.get('/categories', async (req, res) => {
   try {
-    const categories = await Product.distinct('category');
-    res.json({ categories });
-  } catch (error) {
-    console.error('Get categories error:', error);
-    res.status(500).json({ message: 'Server error' });
+    const categories = await Category.find().sort({ name: 1 });
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
+
+// Master products for adding inventory
+router.get('/master-products', verifyToken, async (req, res) => {
+  try {
+    const { category, search, page = 1, limit = 50 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (category) filter.category = category;
+    if (search) filter.$text = { $search: search };
+
+    const products = await Product.find(filter)
+      .select("_id name") // only id + name for dropdown
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    res.json({
+      products,
+      totalProducts: await Product.countDocuments(filter),
+    });
+  } catch (error) {
+    console.error("Get master products error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 // @route   GET /api/products/:id
 // @desc    Get product by ID
@@ -176,7 +295,16 @@ router.put('/:id', [
   requireMerchantOrAdmin,
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Product name must be at least 2 characters'),
   body('description').optional().trim().isLength({ min: 10 }).withMessage('Description must be at least 10 characters'),
-  body('category').optional().isIn(['cement', 'sand', 'tmt-bars', 'bricks', 'aggregates', 'steel', 'tools', 'other']).withMessage('Invalid category'),
+  body('category')
+    .optional()
+    .custom((value) => {
+      if (!value) return true;
+      const val = typeof value === 'string' ? value.trim() : value.toString();
+      if (!mongoose.Types.ObjectId.isValid(val)) {
+        throw new Error('Invalid category ID');
+      }
+      return true;
+    }),
   body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
   body('unit').optional().isIn(['kg', 'ton', 'bag', 'piece', 'cubic-meter', 'sq-ft']).withMessage('Invalid unit'),
   body('stock').optional().isInt({ min: 0 }).withMessage('Stock must be a non-negative integer'),
@@ -193,15 +321,16 @@ router.put('/:id', [
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Check if user has permission to update this product
+    // ----------------- Permission check -----------------
     if (req.user.role === 'merchant') {
       const merchant = await Merchant.findOne({ userId: req.user._id });
-      if (!merchant || product.merchantId.toString() !== merchant._id.toString()) {
+      if (!merchant || product.merchantId?.toString() !== merchant._id.toString()) {
         return res.status(403).json({ message: 'Not authorized to update this product' });
       }
     }
+    // Admin bypasses merchant check
 
-    // Update product
+    // ----------------- Update allowed fields -----------------
     const allowedUpdates = [
       'name', 'description', 'category', 'price', 'unit', 'stock',
       'enabled', 'images', 'specifications', 'tags', 'minOrderQuantity', 'deliveryTime'
@@ -209,7 +338,12 @@ router.put('/:id', [
 
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
-        product[field] = req.body[field];
+        // Convert price to float if provided as string
+        if (field === 'price') {
+          product[field] = parseFloat(req.body[field]);
+        } else {
+          product[field] = req.body[field];
+        }
       }
     });
 
@@ -225,45 +359,70 @@ router.put('/:id', [
   }
 });
 
+
 // @route   PUT /api/products/:id/stock
 // @desc    Update product stock
 // @access  Private (Merchant only)
 router.put('/:id/stock', [
   verifyToken,
   requireMerchantOrAdmin,
-  body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
+body('stock')
+    .optional()
+    .customSanitizer(value => {
+      if (typeof value === 'string') return parseInt(value, 10);
+      return value;
+    })
+    .isInt({ min: 0 }).withMessage('Stock must be a non-negative integer'),
+ body('price')
+    .optional()
+    .customSanitizer(value => {
+      if (typeof value === 'string') return parseFloat(value);
+      return value;
+    })
+    .isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+  body('enabled').optional({ nullable: true }).toBoolean().isBoolean().withMessage('Enabled must be true or false')
 ], async (req, res) => {
   try {
+    console.log(req.body);
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const product = await Product.findById(req.params.id);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
+    const { stock, price, enabled } = req.body;
 
-    // Check if user has permission to update this product
-    if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
-      if (!merchant || product.merchantId.toString() !== merchant._id.toString()) {
-        return res.status(403).json({ message: 'Not authorized to update this product' });
-      }
-    }
+    // Find merchant
+    const merchant = await Merchant.findOne({ userId: req.user._id });
+    if (!merchant) return res.status(400).json({ message: "Merchant profile not found" });
 
-    product.stock = req.body.stock;
-    await product.save();
+    // Find merchant product
+    const merchantProduct = await MerchantProduct.findOne({ 
+      merchantId: merchant._id,
+      productId: req.params.id
+    });
+    if (!merchantProduct) return res.status(404).json({ message: "Merchant product not found" });
+
+    // Update only fields provided
+    if (stock !== undefined) merchantProduct.stock = stock;
+    if (price !== undefined) merchantProduct.price = price;
+    if (enabled !== undefined) merchantProduct.enabled = enabled;
+
+    await merchantProduct.save();
 
     res.json({
-      message: 'Stock updated successfully',
-      product
+      message: "Product updated successfully",
+      merchantProduct
     });
   } catch (error) {
-    console.error('Update stock error:', error);
+    console.error('Update product error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+
+
+
 
 // @route   PUT /api/products/:id/enable
 // @desc    Enable/disable product
@@ -369,6 +528,20 @@ router.get('/merchant/my', [verifyToken, requireMerchantOrAdmin], async (req, re
   } catch (error) {
     console.error('Get merchant products error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+// Add new category
+router.post("/categories", async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const category = new Category({ name, description });
+    await category.save();
+    res.status(201).json(category);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 

@@ -1,104 +1,71 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Product name is required'],
-    trim: true
-  },
-  description: {
-    type: String,
-    required: [true, 'Product description is required'],
-    trim: true
-  },
-  category: {
-    type: String,
-    required: [true, 'Category is required'],
-    enum: ['cement', 'sand', 'tmt-bars', 'bricks', 'aggregates', 'steel', 'tools', 'other'],
-    trim: true
-  },
-  price: {
-    type: Number,
-    required: [true, 'Price is required'],
-    min: [0, 'Price cannot be negative']
-  },
-  unit: {
-    type: String,
-    required: [true, 'Unit is required'],
-    enum: ['kg', 'ton', 'bag', 'piece', 'cubic-meter', 'sq-ft'],
-    default: 'kg'
-  },
-  stock: {
-    type: Number,
-    required: [true, 'Stock quantity is required'],
-    min: [0, 'Stock cannot be negative'],
-    default: 0
-  },
-  merchantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Merchant',
-    required: [true, 'Merchant ID is required']
-  },
-  enabled: {
-    type: Boolean,
-    default: true
-  },
-  images: [{
-    type: String,
-    trim: true
-  }],
+  name: { type: String, required: true, trim: true },
+  description: { type: String, required: true, trim: true },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  images: [{ type: String, trim: true }],
   specifications: {
-    brand: {
-      type: String,
-      trim: true
-    },
-    grade: {
-      type: String,
-      trim: true
-    },
-    weight: {
-      type: Number,
-      min: 0
-    },
+    brand: { type: String, trim: true },
+    grade: { type: String, trim: true },
+    weight: { type: Number, min: 0 },
     dimensions: {
       length: Number,
       width: Number,
       height: Number
     }
   },
-  tags: [{
-    type: String,
-    trim: true
-  }],
-  rating: {
-    average: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 5
-    },
-    count: {
-      type: Number,
-      default: 0
-    }
-  },
-  minOrderQuantity: {
-    type: Number,
-    default: 1,
-    min: 1
-  },
-  deliveryTime: {
-    type: Number,
-    default: 1, // in days
-    min: 1
-  }
-}, {
-  timestamps: true
-});
+  tags: [{ type: String, trim: true }],
+  enabled: { type: Boolean, default: true },
 
-// Indexes for efficient queries
+  // 👉 SKU field
+  sku: { type: String, unique: true, index: true },
+
+  // ✅ Master catalog fields
+  price: { type: Number, default: 0 }, // master price
+  unit: {
+    type: String,
+    enum: ["kg", "ton", "bag", "piece", "cubic-meter", "sq-ft"],
+    default: "piece"
+  }
+
+}, { timestamps: true });
+
+// Indexes
 productSchema.index({ category: 1, enabled: 1 });
-productSchema.index({ merchantId: 1, enabled: 1 });
 productSchema.index({ name: 'text', description: 'text' });
+
+// 👉 Auto-generate SKU before saving
+productSchema.pre("save", async function (next) {
+  if (this.sku) return next(); // skip if already exists (like update)
+
+  try {
+    const Category = mongoose.model("Category");
+    const categoryDoc = await Category.findById(this.category).lean();
+    const categoryCode = categoryDoc?.code || categoryDoc?.name?.substring(0, 3).toUpperCase();
+
+    const brandCode = this.specifications?.brand
+      ? this.specifications.brand.substring(0, 3).toUpperCase()
+      : "GEN";
+
+    const prefix = `${categoryCode}-${brandCode}`;
+
+    const Product = mongoose.model("Product");
+    const lastProduct = await Product.findOne({ sku: new RegExp(`^${prefix}-`) })
+      .sort({ sku: -1 })
+      .lean();
+
+    let nextNumber = 1;
+    if (lastProduct) {
+      const lastSeq = parseInt(lastProduct.sku.split("-").pop(), 10);
+      nextNumber = lastSeq + 1;
+    }
+
+    this.sku = `${prefix}-${String(nextNumber).padStart(4, "0")}`;
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 module.exports = mongoose.model('Product', productSchema);
