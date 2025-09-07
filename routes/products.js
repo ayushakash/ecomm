@@ -6,6 +6,7 @@ const { verifyToken, requireMerchantOrAdmin, requireAdmin } = require('../middle
 const MerchantProduct = require('../models/MerchantProduct');
 const Category = require('../models/Category');
 const mongoose = require("mongoose");
+const { getPricingCalculator } = require('../utils/pricingUtils');
 
 const router = express.Router();
 
@@ -148,12 +149,12 @@ router.post(
 // @route   GET /api/products
 // @desc    Get products with filtering
 // @access  Public
-router.get('/', verifyToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 12, category, search } = req.query;
+    const { page = 1, limit = 12, category, search, minPrice, maxPrice } = req.query;
     const skip = (page - 1) * limit;
 
-    const role = req.user?.role || 'customer';
+    const role = req.user?.role || 'guest';
 
     if (role === 'merchant') {
   // Get merchant profile from user
@@ -189,24 +190,82 @@ router.get('/', verifyToken, async (req, res) => {
       // ---- Admin / Customer flow (existing logic) ----
       const productFilter = {};
       if (category) productFilter.category = category;
-      if (search) productFilter.$text = { $search: search };
+      if (search) {
+        productFilter.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { 'specifications.brand': { $regex: search, $options: 'i' } },
+          { 'specifications.grade': { $regex: search, $options: 'i' } },
+          { tags: { $regex: search, $options: 'i' } }
+        ];
+      }
+      
+      // For customers and guests, only show enabled products
+      if (role === 'customer' || role === 'guest') {
+        productFilter.enabled = true;
+      }
 
-      const products = await Product.find(productFilter)
+      // Apply price filtering
+      if (minPrice || maxPrice) {
+        productFilter.price = {};
+        if (minPrice) productFilter.price.$gte = parseFloat(minPrice);
+        if (maxPrice) productFilter.price.$lte = parseFloat(maxPrice);
+      }
+
+      // Dynamic sorting based on sortBy parameter
+      let sortOptions = { createdAt: -1 }; // default sort
+      if (req.query.sortBy) {
+        switch (req.query.sortBy) {
+          case 'name':
+            sortOptions = { name: 1 };
+            break;
+          case 'price':
+            sortOptions = { price: 1 };
+            break;
+          case 'createdAt':
+          case 'latest':
+            sortOptions = { createdAt: -1 };
+            break;
+          default:
+            sortOptions = { createdAt: -1 };
+        }
+      }
+
+      let products = await Product.find(productFilter)
         .populate('category', 'name')
-        .sort({ createdAt: -1 })
+        .sort(sortOptions)
         .skip(skip)
         .limit(parseInt(limit))
         .lean();
 
+      // For customers and guests, filter out products that don't have any enabled merchant variants
+      if (role === 'customer' || role === 'guest') {
+        const productIds = products.map(p => p._id);
+        const enabledMerchantProducts = await MerchantProduct.find({
+          productId: { $in: productIds },
+          enabled: true,
+          stock: { $gt: 0 } // Also ensure there's stock available
+        }).distinct('productId');
+        
+        products = products.filter(product => 
+          enabledMerchantProducts.some(id => id.toString() === product._id.toString())
+        );
+      }
+
       const totalProducts = await Product.countDocuments(productFilter);
 
+      // Get pricing calculator for centralized pricing logic
+      const pricingCalculator = await getPricingCalculator();
+
       for (let product of products) {
-        if (role === 'admin' || role === 'customer') {
-          const totalStock = await MerchantProduct.aggregate([
-            { $match: { productId: product._id } },
-            { $group: { _id: '$productId', totalStock: { $sum: '$stock' } } }
-          ]);
-          product.totalStock = totalStock.length ? totalStock[0].totalStock : 0;
+        if (role === 'admin' || role === 'customer' || role === 'guest') {
+          // Use centralized stock calculation
+          product.totalStock = await pricingCalculator.getTotalStock(product._id);
+          
+          // Use centralized price display logic
+          if (role === 'customer' || role === 'guest') {
+            product.price = await pricingCalculator.getDisplayPrice(product);
+          }
         }
       }
 
@@ -248,7 +307,15 @@ router.get('/master-products', verifyToken, async (req, res) => {
 
     const filter = {};
     if (category) filter.category = category;
-    if (search) filter.$text = { $search: search };
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { 'specifications.brand': { $regex: search, $options: 'i' } },
+        { 'specifications.grade': { $regex: search, $options: 'i' } },
+        { tags: { $regex: search, $options: 'i' } }
+      ];
+    }
 
     const products = await Product.find(filter)
       .select("_id name") // only id + name for dropdown
@@ -274,13 +341,26 @@ router.get('/master-products', verifyToken, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('merchantId', 'name area rating contact');
+      .populate('category', 'name');
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    res.json({ product });
+    // Get pricing calculator for centralized pricing logic
+    const pricingCalculator = await getPricingCalculator();
+
+    // Calculate total stock and display price
+    const totalStock = await pricingCalculator.getTotalStock(product._id);
+    const displayPrice = await pricingCalculator.getDisplayPrice(product);
+
+    const productWithStockAndPrice = {
+      ...product.toObject(),
+      totalStock,
+      price: displayPrice
+    };
+
+    res.json(productWithStockAndPrice);
   } catch (error) {
     console.error('Get product error:', error);
     res.status(500).json({ message: 'Server error' });

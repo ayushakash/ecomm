@@ -27,7 +27,8 @@ const productSchema = new mongoose.Schema({
     type: String,
     enum: ["kg", "ton", "bag", "piece", "cubic-meter", "sq-ft"],
     default: "piece"
-  }
+  },
+  weight: { type: Number, default: 0, min: 0 } // weight in kg for delivery calculations
 
 }, { timestamps: true });
 

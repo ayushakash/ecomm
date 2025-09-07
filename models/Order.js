@@ -39,6 +39,10 @@ const orderItemSchema = new mongoose.Schema({
   sku: {
     type: String
   },
+  weight: {
+    type: Number,
+    default: 0
+  },
   itemStatus: {
     type: String,
    enum: ['pending', 'approved', 'assigned', 'processing', 'shipped', 'delivered', 'cancelled'],
@@ -90,10 +94,20 @@ const orderSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  platformFee: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   totalAmount: {
     type: Number,
     required: true,
     min: 0
+  },
+  pricingBreakdown: {
+    taxRate: Number,
+    deliveryConfig: Object,
+    minimumOrderValue: Number
   },
   orderStatus: {
     type: String,
@@ -133,6 +147,39 @@ const orderSchema = new mongoose.Schema({
       type: String,
       trim: true
     }
+  }],
+  // Complete lifecycle tracking (replaces separate OrderLog)
+  lifecycle: [{
+    eventType: {
+      type: String,
+      enum: ['order_created', 'order_assigned', 'order_accepted', 'order_rejected', 
+             'order_shipped', 'order_delivered', 'order_cancelled', 'payment_confirmed', 
+             'payment_failed', 'stock_updated', 'refund_initiated', 'refund_completed'],
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    triggeredBy: {
+      userId: { type: mongoose.Schema.Types.ObjectId },
+      userType: { type: String, enum: ['customer', 'merchant', 'admin', 'system'] },
+      userName: String,
+      userEmail: String
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
+    notificationSent: {
+      n8n: {
+        sent: { type: Boolean, default: false },
+        sentAt: Date,
+        response: mongoose.Schema.Types.Mixed,
+        error: String
+      }
+    },
+    eventDescription: String
   }],
   notes: {
     type: String,

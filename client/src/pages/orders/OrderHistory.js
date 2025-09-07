@@ -119,16 +119,32 @@ const OrderHistory = () => {
                     {order.items?.map((item, index) => (
                       <div
                         key={index}
-                        className="flex justify-between items-center border-b border-gray-100 pb-2"
+                        className="flex items-center justify-between border-b border-gray-100 pb-3 mb-3"
                       >
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {item.name}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {item.quantity} x ₹{item.unitPrice} per {item.unit}
-                          </p>
+                        <div className="flex items-center gap-4">
+                          {/* Product Image */}
+                          <div className="flex-shrink-0">
+                            <img
+                              src={item.productId?.images?.[0] || '/placeholder-product.jpg'}
+                              alt={item.productName}
+                              className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                            />
+                          </div>
+                          
+                          {/* Product Details */}
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {item.productName}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {item.quantity} x ₹{item.unitPrice} per {item.unit}
+                            </p>
+                            {item.sku && (
+                              <p className="text-xs text-gray-500">SKU: {item.sku}</p>
+                            )}
+                          </div>
                         </div>
+                        
                         <span className="font-medium text-gray-900">
                           ₹{item.unitPrice * item.quantity}
                         </span>

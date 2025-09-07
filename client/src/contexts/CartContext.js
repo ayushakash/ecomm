@@ -13,6 +13,7 @@ export const useCart = () => {
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -25,42 +26,46 @@ export const CartProvider = ({ children }) => {
         setCart([]);
       }
     }
+    setIsInitialized(true);
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage whenever it changes (but not on initial load)
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+    if (isInitialized) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+  }, [cart, isInitialized]);
 
   const addToCart = (product, quantity = 1) => {
     setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.productId === product._id);
+      const existingItem = prevCart.find(item => item._id === product._id);
       
       if (existingItem) {
         // Update quantity if item already exists
         return prevCart.map(item =>
-          item.productId === product._id
+          item._id === product._id
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       } else {
         // Add new item
         return [...prevCart, {
-          productId: product._id,
+          _id: product._id,
           name: product.name,
           price: product.price,
           unit: product.unit,
           quantity,
-          image: product.images?.[0] || '',
-          stock: product.totalStock,
-          sku: product.sku
+          images: product.images || [],
+          stock: product.totalStock || product.stock,
+          sku: product.sku,
+          weight: product.weight || 0
         }];
       }
     });
   };
 
   const removeFromCart = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item.productId !== productId));
+    setCart(prevCart => prevCart.filter(item => item._id !== productId));
   };
 
   const updateQuantity = (productId, quantity) => {
@@ -71,7 +76,7 @@ export const CartProvider = ({ children }) => {
 
     setCart(prevCart =>
       prevCart.map(item =>
-        item.productId === productId
+        item._id === productId
           ? { ...item, quantity }
           : item
       )
@@ -87,15 +92,15 @@ export const CartProvider = ({ children }) => {
   };
 
   const getCartCount = () => {
-    return cart.reduce((count, item) => count + item.quantity, 0);
+    return cart.length; // Return count of unique products, not total quantity
   };
 
   const getCartItem = (productId) => {
-    return cart.find(item => item.productId === productId);
+    return cart.find(item => item._id === productId);
   };
 
   const isInCart = (productId) => {
-    return cart.some(item => item.productId === productId);
+    return cart.some(item => item._id === productId);
   };
 
   const value = {

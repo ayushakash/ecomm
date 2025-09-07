@@ -29,6 +29,7 @@ import AdminMerchants from './pages/admin/Merchants';
 import AdminProducts from './pages/admin/Products';
 import AdminOrders from './pages/admin/Orders';
 import AdminAnalytics from './pages/admin/Analytics';
+import AdminSettings from './pages/admin/Settings';
 
 // Merchant Pages
 import MerchantDashboard from './pages/merchant/Dashboard';
@@ -106,10 +107,11 @@ function AppRoutes() {
       >
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<AdminUsers />} />
-  <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="merchants" element={<AdminMerchants />} />
         <Route path="products" element={<AdminProducts />} />
         <Route path="orders" element={<AdminOrders />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
 
       {/* Merchant Routes */}

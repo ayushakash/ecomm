@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { merchantAPI } from '../../services/api';
+import { toast } from 'react-hot-toast';
 
 const Profile = () => {
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    contact: '',
+    contact: { phone: '', email: '' },
     address: '',
     area: '',
     businessType: ''
@@ -14,34 +16,60 @@ const Profile = () => {
 
   const { data: merchant, isLoading, error } = useQuery({
     queryKey: ['merchant-profile'],
-  queryFn: () => merchantAPI.getProfile(),
-    onSuccess: (data) => {
+    queryFn: () => merchantAPI.getProfile()
+  });
+
+  // Update form data when merchant data is loaded
+  useEffect(() => {
+    if (merchant?.merchant) {
       setFormData({
-        name: data.name || '',
-        contact: data.contact || '',
-        address: data.address || '',
-        area: data.area || '',
-        businessType: data.businessType || ''
+        name: merchant.merchant.name || '',
+        contact: {
+          phone: merchant.merchant.contact?.phone || '',
+          email: merchant.merchant.contact?.email || ''
+        },
+        address: merchant.merchant.address || '',
+        area: merchant.merchant.area || '',
+        businessType: merchant.merchant.businessType || ''
       });
+    }
+  }, [merchant]);
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: (profileData) => merchantAPI.updateProfile(profileData),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['merchant-profile']);
+      setIsEditing(false);
+      toast.success('Profile updated successfully!');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to update profile');
     }
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      // Here you would typically make an API call to update the merchant profile
-      console.log('Update profile:', formData);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-    }
+    updateProfileMutation.mutate(formData);
   };
 
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    
+    if (name === 'phone' || name === 'email') {
+      setFormData({
+        ...formData,
+        contact: {
+          ...formData.contact,
+          [name]: value
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   if (isLoading) {
@@ -61,7 +89,8 @@ const Profile = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Merchant Profile</h1>
@@ -98,8 +127,22 @@ const Profile = () => {
               </label>
               <input
                 type="tel"
-                name="contact"
-                value={formData.contact}
+                name="phone"
+                value={formData.contact?.phone || ''}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.contact?.email || ''}
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
@@ -160,13 +203,15 @@ const Profile = () => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={updateProfileMutation.isLoading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                Save Changes
+                {updateProfileMutation.isLoading ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           )}
         </form>
+      </div>
       </div>
     </div>
   );

@@ -5,22 +5,13 @@ import {
   ShoppingCartIcon, 
   UserIcon, 
   Bars3Icon,
-  ChevronDownIcon,
-  MagnifyingGlassIcon
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
 const Header = ({ navigation, user, isAuthenticated, cartCount, onMobileMenuToggle }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -54,21 +45,6 @@ const Header = ({ navigation, user, isAuthenticated, cartCount, onMobileMenuTogg
             ))}
           </nav>
 
-          {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-lg mx-8">
-            <form onSubmit={handleSearch} className="w-full">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-                <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-            </form>
-          </div>
 
           {/* Right side - Cart and User */}
           <div className="flex items-center space-x-4">
@@ -154,21 +130,6 @@ const Header = ({ navigation, user, isAuthenticated, cartCount, onMobileMenuTogg
         </div>
       </div>
 
-      {/* Mobile Search */}
-      <div className="md:hidden border-t border-gray-200 px-4 py-3">
-        <form onSubmit={handleSearch}>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-            <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-          </div>
-        </form>
-      </div>
     </header>
   );
 };

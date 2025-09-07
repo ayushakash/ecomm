@@ -198,12 +198,13 @@ const Products = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
-          <p className="text-gray-600">Manage all products in the system</p>
-        </div>
+    <div className="min-h-screen bg-gray-50 py-8 pl-8">
+      <div className="max-w-7xl mx-auto px-8 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
+            <p className="text-gray-600">Manage all products in the system</p>
+          </div>
         <button
   onClick={() => {
     setFormData({
@@ -293,6 +294,7 @@ const Products = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMutation } from '@tanstack/react-query';
-import { orderAPI } from '../../services/api';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { orderAPI, settingsAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 const Checkout = () => {
@@ -20,10 +20,31 @@ const Checkout = () => {
     paymentMethod: 'cod'
   });
 
+  // Prepare items for pricing calculation
+  const cartItems = useMemo(() => 
+    cart.map(item => ({
+      totalPrice: item.price * item.quantity,
+      quantity: item.quantity,
+      weight: item.weight || 0
+    })), [cart]
+  );
+
+  // Get dynamic pricing from backend
+  const { data: pricingData, isLoading: pricingLoading } = useQuery({
+    queryKey: ['checkout-pricing', cartItems],
+    queryFn: () => settingsAPI.calculatePricing(cartItems),
+    enabled: cart.length > 0
+  });
+
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const tax = subtotal * 0.1;
-  const deliveryCharge = 50;
-  const total = subtotal + tax + deliveryCharge;
+  
+  // Use dynamic pricing if available, fallback to static calculation
+  const finalPricing = pricingData || {
+    subtotal: subtotal,
+    tax: subtotal * 0.1,
+    deliveryCharges: 50,
+    totalAmount: subtotal + (subtotal * 0.1) + 50
+  };
 
     const createOrderMutation = useMutation({
     mutationFn: (orderData) => orderAPI.createOrder(orderData),
@@ -48,7 +69,7 @@ const Checkout = () => {
     const orderData = {
       ...formData,
       items: cart.map(item => ({
-      productId: item.productId,
+      productId: item._id,
       productName: item.name,
       unitPrice: item.price, 
       quantity: item.quantity,
@@ -56,10 +77,10 @@ const Checkout = () => {
       sku: item.sku,
       totalPrice: item.price * item.quantity
       })),
-      subtotal,
-      tax,
-      deliveryCharge,
-      totalAmount: total
+      subtotal: finalPricing.subtotal,
+      tax: finalPricing.tax,
+      deliveryCharge: finalPricing.deliveryCharges,
+      totalAmount: finalPricing.totalAmount
     };
 
     // Here you would typically make an API call to create the order
@@ -193,7 +214,7 @@ const Checkout = () => {
           {/* Cart Items */}
           <div className="space-y-4 mb-6">
             {cart.map((item) => (
-              <div key={item.productId} className="flex justify-between items-center">
+              <div key={item._id} className="flex justify-between items-center">
                 <div>
                   <h3 className="font-medium text-gray-900">{item.name}</h3>
                   <p className="text-sm text-gray-600">
@@ -211,20 +232,35 @@ const Checkout = () => {
           <div className="border-t border-gray-200 pt-4 space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-600">Subtotal:</span>
-              <span className="font-medium">₹{subtotal}</span>
+              <span className="font-medium">₹{finalPricing.subtotal.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Tax (10%):</span>
-              <span className="font-medium">₹{tax}</span>
+              <span className="text-gray-600">
+                Tax ({pricingData?.breakdown?.taxRate ? (pricingData.breakdown.taxRate * 100).toFixed(1) : '10'}%):
+              </span>
+              <span className="font-medium">₹{Math.round(finalPricing.tax).toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Delivery Charge:</span>
-              <span className="font-medium">₹{deliveryCharge}</span>
+              <span className="text-gray-600">
+                Delivery {pricingData?.breakdown?.deliveryConfig?.type === 'threshold' && 
+                        finalPricing.subtotal >= pricingData.breakdown.deliveryConfig.freeDeliveryThreshold ? 
+                        '(Free)' : ''}:
+              </span>
+              <span className="font-medium">₹{Math.round(finalPricing.deliveryCharges).toLocaleString()}</span>
             </div>
+            {finalPricing.platformFee && finalPricing.platformFee > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Platform Fee:</span>
+                <span className="font-medium">₹{Math.round(finalPricing.platformFee).toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between text-lg font-bold">
               <span className="text-gray-900">Total:</span>
-              <span className="text-gray-900">₹{total}</span>
+              <span className="text-gray-900">₹{Math.round(finalPricing.totalAmount).toLocaleString()}</span>
             </div>
+            {pricingLoading && (
+              <div className="text-xs text-blue-600 mt-1">Updating prices...</div>
+            )}
           </div>
         </div>
       </div>

@@ -152,7 +152,8 @@ const Products = () => {
   ];
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-8">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-bold">My Products</h1>
         <button
@@ -383,6 +384,7 @@ const Products = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

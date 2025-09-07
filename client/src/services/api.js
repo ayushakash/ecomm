@@ -96,8 +96,8 @@ export const merchantAPI = {
   getMerchantsByArea: (area) => api.get(`/api/merchants/area/${area}`),
   getMerchant: (id) => api.get(`/api/merchants/${id}`),
   updateMerchantStatus: (id, status) => api.put(`/api/merchants/${id}/status`, status),
-  updateProfile: (profileData) => api.put('/api/merchants/profile', profileData),
-  getProfile: () => api.get('/api/merchants/profile/me'),
+  updateProfile: (profileData) => api.put('/api/merchants/profile', profileData).then(res => res.data),
+  getProfile: () => api.get('/api/merchants/profile/me').then(res => res.data),
   getMerchantsByProduct: (productId) => api.get(`/api/merchants/product/${productId}`).then(res => res.data),
 };
 
@@ -105,6 +105,7 @@ export const productAPI = {
   getProducts: (params) => api.get('/api/products', { params }).then(res => res.data),
   getMasterProducts: (params) => api.get('/api/products/master-products', { params }).then(res => res.data),
   getProduct: (id) => api.get(`/api/products/${id}`),
+  getById: (id) => api.get(`/api/products/${id}`).then(res => res.data),
   createProduct: (productData) => api.post('/api/products', productData),
   updateProduct: (id, productData) => api.put(`/api/products/${id}`, productData),
   deleteProduct: (id) => api.delete(`/api/products/${id}`),
@@ -120,16 +121,25 @@ export const orderAPI = {
   getOrders: (params) => api.get('/api/orders', { params }).then(res => res.data),
   getOrder: (id) => api.get(`/api/orders/${id}`),
   updateOrderStatus: (id, status, note) => api.put(`/api/orders/${id}/status`, { status, note }),
+  updateOrderItemStatus: (orderId, itemId, status, note) => api.put(`/api/orders/${orderId}/items/${itemId}/status`, { status, note }),
   cancelOrder: (id) => api.put(`/api/orders/${id}/cancel`),
   getAnalytics: () => api.get('/api/orders/analytics/summary').then(res => res.data),
+  getAdminDashboard: () => api.get('/api/orders/admin/dashboard').then(res => res.data),
   getMerchantDashboard: () => api.get('/api/orders/merchant/dashboard').then(res => res.data),
   getMerchantAnalytics: () => api.get('/api/orders/merchant/analytics/summary').then(res => res.data),
   assignItem: (orderId, itemId) =>api.put(`/api/orders/${orderId}/items/${itemId}/assign`),
   autoAssignItem: (orderId, itemId, merchantId) =>api.put(`/api/orders/${orderId}/assign-merchant`, { itemId, merchantId }),
   getUnassignedOrders: () =>api.get(`/api/orders/status/unassigned`).then(res => res.data),
   respondToOrder: (orderId, itemId, action) =>api.post('/api/orders/respond', { orderId, itemId, action }).then(res => res.data),
-  rejectItem: (orderId, itemId) =>api.post(`/orders/${orderId}/items/${itemId}/reject`)
-  
+  rejectItem: (orderId, itemId) =>api.post(`/api/orders/${orderId}/items/${itemId}/reject`),
+  getOrderLifecycle: (orderId) => api.get(`/api/orders/${orderId}/lifecycle`).then(res => res.data)
+};
+
+export const settingsAPI = {
+  getSettings: () => api.get('/api/settings').then(res => res.data),
+  updateSettings: (settings) => api.put('/api/settings', settings).then(res => res.data),
+  calculatePricing: (items, customerData) => api.post('/api/settings/calculate-pricing', { items, customerData }).then(res => res.data),
+  getDeliveryPreview: () => api.get('/api/settings/delivery-preview').then(res => res.data)
 };
 
 export default api;

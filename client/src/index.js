@@ -11,14 +11,18 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchInterval: false,
+      refetchOnReconnect: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000 // 10 minutes
     },
   },
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
+  <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
         <Toaster
@@ -47,5 +51,28 @@ root.render(
         />
       </BrowserRouter>
     </QueryClientProvider>
-  </React.StrictMode>
 );
+
+// Unregister service worker - DISABLED due to infinite refresh issues
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister().then(function(boolean) {
+        console.log('Service Worker unregistered:', boolean);
+      });
+    }
+  });
+}
+
+// Register service worker - DISABLED due to infinite refresh issues
+// if ('serviceWorker' in navigator) {
+//   window.addEventListener('load', () => {
+//     navigator.serviceWorker.register('/service-worker.js')
+//       .then((registration) => {
+//         console.log('SW registered: ', registration);
+//       })
+//       .catch((registrationError) => {
+//         console.log('SW registration failed: ', registrationError);
+//       });
+//   });
+// }

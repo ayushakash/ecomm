@@ -1,10 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderAPI } from "../../services/api";
+import { useLocation } from 'react-router-dom';
 
 const Orders = () => {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState("my"); // "my" or "new"
+  const location = useLocation();
+  const [tab, setTab] = useState("new"); // "new" or "my" - default to new orders
+
+  // Set tab based on URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'new' || tabParam === 'my') {
+      setTab(tabParam);
+    }
+  }, [location.search]);
 
   // Fetch my assigned orders
   const {
@@ -78,6 +89,13 @@ const Orders = () => {
     }
   };
 
+  // Helper to check if order has mixed item statuses
+  const hasMixedStatuses = (order) => {
+    if (!order.items || order.items.length <= 1) return false;
+    const statuses = [...new Set(order.items.map(item => item.itemStatus))];
+    return statuses.length > 1;
+  };
+
   // Common order card renderer
   const renderOrderCard = (order, isNew = false) => (
     <div
@@ -86,8 +104,15 @@ const Orders = () => {
     >
       {/* Header */}
       <div className="flex justify-between items-center mb-2">
-        <div className="font-semibold text-gray-900">
-          #{order.orderNumber || order._id.slice(-6)}
+        <div className="flex items-center gap-2">
+          <div className="font-semibold text-gray-900">
+            #{order.orderNumber || order._id.slice(-6)}
+          </div>
+          {!isNew && hasMixedStatuses(order) && (
+            <span className="bg-orange-100 text-orange-800 px-2 py-1 text-xs rounded-full">
+              Partial
+            </span>
+          )}
         </div>
         <div className="text-sm text-gray-500">
           {new Date(order.createdAt).toLocaleDateString()}
@@ -113,7 +138,7 @@ const Orders = () => {
                 Qty: {item.quantity} | ₹{item.totalPrice}
               </div>
             </div>
-            {!isNew && (
+            <div className="flex items-center gap-2">
               <span
                 className={`px-2 py-1 text-xs rounded-full font-semibold ${getStatusColor(
                   item.itemStatus
@@ -122,48 +147,85 @@ const Orders = () => {
                 {item.itemStatus?.charAt(0).toUpperCase() +
                   item.itemStatus?.slice(1)}
               </span>
-            )}
+              {/* Action buttons for both new orders and unassigned items in my orders */}
+              {((isNew && item.itemStatus === 'pending') || (!isNew && !item.assignedMerchantId && item.itemStatus === 'pending')) && (
+                <div className="flex gap-1">
+                  <button
+                    className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition-colors"
+                    onClick={() =>
+                      respondMutation.mutate({
+                        orderId: order._id,
+                        itemId: item._id,
+                        action: "accept",
+                      })
+                    }
+                  >
+                    {isNew ? 'Accept' : 'Claim'}
+                  </button>
+                  <button
+                    className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition-colors"
+                    onClick={() =>
+                      respondMutation.mutate({
+                        orderId: order._id,
+                        itemId: item._id,
+                        action: "reject",
+                      })
+                    }
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-wrap gap-2 mt-auto">
-        {isNew
-          ? order.items?.map((item) => (
-              <React.Fragment key={item._id}>
-                <button
-                  className="bg-green-600 text-white px-3 py-1 rounded text-sm"
-                  onClick={() =>
-                    respondMutation.mutate({
-                      orderId: order._id,
-                      itemId: item._id,
-                      action: "accept",
-                    })
-                  }
-                >
-                  Accept
-                </button>
-                <button
-                  className="bg-red-600 text-white px-3 py-1 rounded text-sm"
-                  onClick={() =>
-                    respondMutation.mutate({
-                      orderId: order._id,
-                      itemId: item._id,
-                      action: "reject",
-                    })
-                  }
-                >
-                  Reject
-                </button>
-              </React.Fragment>
-            ))
-          : order.items
-              ?.filter((item) => item.assignedMerchantId) // only show actions for assigned items
-              .map((item) => (
-                <React.Fragment key={item._id}>
+      {/* Additional Actions for My Orders */}
+      {!isNew && (
+        <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-200">
+          {order.items
+            ?.filter((item) => 
+              item.assignedMerchantId && 
+              item.itemStatus !== 'delivered' && 
+              item.itemStatus !== 'cancelled'
+            ) // only show actions for assigned items that aren't already completed/cancelled
+            .map((item) => (
+              <div key={item._id} className="flex flex-wrap items-center gap-1 bg-gray-50 rounded-lg p-2">
+                <span className="text-xs font-medium text-gray-700 mr-2">{item.productName}:</span>
+                {item.itemStatus === 'assigned' && (
                   <button
-                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                    className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition-colors"
+                    onClick={() =>
+                      updateStatusMutation.mutate({
+                        orderId: order._id,
+                        itemId: item._id,
+                        status: "processing",
+                      })
+                    }
+                  >
+                    Start Processing
+                  </button>
+                )}
+                
+                {item.itemStatus === 'processing' && (
+                  <button
+                    className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700 transition-colors"
+                    onClick={() =>
+                      updateStatusMutation.mutate({
+                        orderId: order._id,
+                        itemId: item._id,
+                        status: "shipped",
+                      })
+                    }
+                  >
+                    Mark Shipped
+                  </button>
+                )}
+                
+                {(item.itemStatus === 'shipped' || item.itemStatus === 'processing') && (
+                  <button
+                    className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition-colors"
                     onClick={() =>
                       updateStatusMutation.mutate({
                         orderId: order._id,
@@ -172,10 +234,13 @@ const Orders = () => {
                       })
                     }
                   >
-                    Delivered
+                    Mark Delivered
                   </button>
+                )}
+                
+                {(item.itemStatus === 'assigned' || item.itemStatus === 'processing') && (
                   <button
-                    className="bg-gray-600 text-white px-3 py-1 rounded text-sm"
+                    className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 transition-colors"
                     onClick={() =>
                       updateStatusMutation.mutate({
                         orderId: order._id,
@@ -186,14 +251,17 @@ const Orders = () => {
                   >
                     Cancel
                   </button>
-                </React.Fragment>
-              ))}
-      </div>
+                )}
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
@@ -240,6 +308,7 @@ const Orders = () => {
         ) : (
           orderList?.orders?.map((order) => renderOrderCard(order, false))
         )}
+      </div>
       </div>
     </div>
   );

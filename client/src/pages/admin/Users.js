@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userAPI } from "../../services/api";
 import DataTable from "../../components/commonComponents/dataTable";
+import { toast } from "react-hot-toast";
 
 const Users = () => {
+  const queryClient = useQueryClient();
   const { data: userList, isLoading, error } = useQuery({
     queryKey: ["users"],
     queryFn: () => userAPI.getUsers(),
@@ -11,6 +13,24 @@ const Users = () => {
 
   // 🔎 search state (passed down to DataTable)
   const [globalFilter, setGlobalFilter] = useState("");
+
+  // Mutations for user management
+  const statusMutation = useMutation({
+    mutationFn: ({ userId, isActive }) => userAPI.updateUserStatus(userId, { isActive }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["users"]);
+      toast.success("User status updated successfully!");
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Failed to update user status");
+    }
+  });
+
+
+  const handleStatusToggle = (userId, isActive) => {
+    statusMutation.mutate({ userId, isActive });
+  };
+
 
   // Define columns for users
   const columns = useMemo(
@@ -69,8 +89,25 @@ const Users = () => {
           );
         },
       },
+      {
+        header: "Actions",
+        cell: ({ row }) => (
+          <div className="flex space-x-2">
+            <button
+              className={`px-3 py-1 text-xs rounded-full font-medium ${
+                row.original.isActive 
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+              }`}
+              onClick={() => handleStatusToggle(row.original._id, !row.original.isActive)}
+            >
+              {row.original.isActive ? 'Deactivate' : 'Activate'}
+            </button>
+          </div>
+        ),
+      },
     ],
-    []
+    [handleStatusToggle]
   );
 
   if (isLoading) {
@@ -90,19 +127,21 @@ const Users = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Users Management</h1>
-        <p className="text-gray-600">Manage all users in the system</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 py-8 pl-8">
+      <div className="max-w-7xl mx-auto px-8 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Users Management</h1>
+          <p className="text-gray-600">Manage all users in the system</p>
+        </div>
 
-      <DataTable
-        title="All Users"
-        columns={columns}
-        data={userList?.users ?? []}
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
-      />
+        <DataTable
+          title="All Users"
+          columns={columns}
+          data={userList?.users ?? []}
+          globalFilter={globalFilter}
+          setGlobalFilter={setGlobalFilter}
+        />
+      </div>
     </div>
   );
 };

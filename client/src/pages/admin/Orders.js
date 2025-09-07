@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { orderAPI, merchantAPI } from "../../services/api";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import OrderLifecycleModal from "../../components/orders/OrderLifecycleModal";
 
 const Orders = () => {
   const queryClient = useQueryClient();
@@ -14,6 +15,15 @@ const Orders = () => {
   const [autoAssign, setAutoAssign] = useState({}); // per item
   const [availableMerchants, setAvailableMerchants] = useState({});
   const [selectedMerchant, setSelectedMerchant] = useState({});
+  
+  // Order lifecycle modal state
+  const [showLifecycleModal, setShowLifecycleModal] = useState(false);
+  const [selectedOrderForLifecycle, setSelectedOrderForLifecycle] = useState(null);
+
+  const handleShowLifecycle = (order) => {
+    setSelectedOrderForLifecycle(order);
+    setShowLifecycleModal(true);
+  };
 
   const toggleExpand = (orderId) => {
     setExpandedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
@@ -58,11 +68,12 @@ const Orders = () => {
     const merchantId = selectedMerchant[itemId];
     if (!merchantId) return alert("Please select a merchant");
     try {
-      await orderAPI.assignItem(orderId, itemId, merchantId);
+      await orderAPI.autoAssignItem(orderId, itemId, merchantId);
       queryClient.invalidateQueries(["orders"]);
+      alert("Merchant assigned successfully!");
     } catch (err) {
       console.error(err);
-      alert("Failed to assign merchant");
+      alert("Failed to assign merchant: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -70,9 +81,10 @@ const Orders = () => {
     try {
       await orderAPI.autoAssignItem(orderId, itemId);
       queryClient.invalidateQueries(["orders"]);
+      alert("Merchant auto-assigned successfully!");
     } catch (err) {
       console.error(err);
-      alert("Failed to auto-assign merchant");
+      alert("Failed to auto-assign merchant: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -80,14 +92,15 @@ const Orders = () => {
   if (error) return <div className="text-red-600 text-center py-12">{error.message}</div>;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
-        <p className="text-gray-600">Manage all orders in the system</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 py-8 pl-8">
+      <div className="max-w-7xl mx-auto px-8 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
+          <p className="text-gray-600">Manage all orders in the system</p>
+        </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-200 divide-y divide-gray-200">
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-gray-200 divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-2 text-left">Order #</th>
@@ -127,16 +140,31 @@ const Orders = () => {
                   <td className="px-4 py-2">
                     <span
                       className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        order.status
+                        order.orderStatus || 'pending'
                       )}`}
                     >
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      {(order.orderStatus || 'pending').charAt(0).toUpperCase() + (order.orderStatus || 'pending').slice(1)}
                     </span>
                   </td>
                   <td className="px-4 py-2">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-2">-</td>
+                  <td className="px-4 py-2">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => toggleExpand(order._id)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        {expandedOrders[order._id] ? 'Collapse' : 'Manage'}
+                      </button>
+                      <button
+                        onClick={() => handleShowLifecycle(order)}
+                        className="text-green-600 hover:text-green-800 text-sm font-medium"
+                      >
+                        📋 Lifecycle
+                      </button>
+                    </div>
+                  </td>
                 </tr>
 
                 {expandedOrders[order._id] && (
@@ -228,8 +256,17 @@ const Orders = () => {
               </React.Fragment>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
+      
+      {/* Order Lifecycle Modal - Temporarily commented out */}
+      <OrderLifecycleModal
+        show={showLifecycleModal}
+        onHide={() => setShowLifecycleModal(false)}
+        orderId={selectedOrderForLifecycle?._id}
+        orderNumber={selectedOrderForLifecycle?.orderNumber}
+      />
     </div>
   );
 };
