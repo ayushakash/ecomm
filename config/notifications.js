@@ -2,7 +2,7 @@ module.exports = {
   // n8n Configuration
   n8n: {
     enabled: true, // Temporarily enabled for testing
-    webhookUrl: 'https://webhook.site/78bf2c85-f2b5-4358-b350-7a1a61e8881f' || process.env.N8N_WEBHOOK_URL ,
+    webhookUrl: process.env.N8N_WEBHOOK_URL ,
     timeout: parseInt(process.env.N8N_TIMEOUT) || 5000,
     retryAttempts: parseInt(process.env.N8N_RETRY_ATTEMPTS) || 3,
     retryDelay: parseInt(process.env.N8N_RETRY_DELAY) || 1000,

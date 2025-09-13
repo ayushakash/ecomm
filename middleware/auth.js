@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Merchant = require('../models/Merchant');
 
 // Verify JWT token
 const verifyToken = async (req, res, next) => {
@@ -48,6 +49,32 @@ const authorize = (...roles) => {
   };
 };
 
+// Check if merchant is approved
+const requireApprovedMerchant = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'merchant') {
+      return res.status(403).json({ message: 'Access denied. Merchant role required.' });
+    }
+
+    const merchant = await Merchant.findOne({ userId: req.user._id });
+    if (!merchant) {
+      return res.status(404).json({ message: 'Merchant profile not found.' });
+    }
+
+    if (merchant.activeStatus !== 'approved') {
+      return res.status(403).json({ 
+        message: 'Access denied. Your merchant account is pending approval.', 
+        status: merchant.activeStatus 
+      });
+    }
+
+    req.merchant = merchant;
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
 // Specific role middlewares
 const requireCustomer = authorize('customer');
 const requireMerchant = authorize('merchant');
@@ -80,6 +107,7 @@ module.exports = {
   authorize,
   requireCustomer,
   requireMerchant,
+  requireApprovedMerchant,
   requireAdmin,
   requireMerchantOrAdmin,
   optionalAuth

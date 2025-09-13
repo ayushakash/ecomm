@@ -164,7 +164,10 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
                           {event.triggeredBy && (
                             <div className="mb-2">
                               <span className="text-xs text-gray-500">
-                                Triggered by: <strong className="text-gray-700">{event.triggeredBy.userName}</strong> 
+                                Triggered by: <strong className="text-gray-700">{event.triggeredBy.userName}</strong>
+                                {event.triggeredBy.userPhone && (
+                                  <span className="ml-1 text-gray-600">({event.triggeredBy.userPhone})</span>
+                                )}
                                 <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                                   {event.triggeredBy.userType}
                                 </span>

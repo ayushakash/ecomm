@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
@@ -9,6 +10,8 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState('customer');
+  const [locationData, setLocationData] = useState(null);
+  const [gettingLocation, setGettingLocation] = useState(false);
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
 
@@ -21,12 +24,52 @@ const Register = () => {
 
   const password = watch('password');
 
+  const getLocation = async () => {
+    setGettingLocation(true);
+    try {
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by this browser');
+      }
+
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
+        });
+      });
+
+      const coords = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      };
+
+      setLocationData(coords);
+      toast.success('Location captured successfully!');
+    } catch (error) {
+      console.error('Location error:', error);
+      toast.error('Failed to get location. Please ensure location services are enabled.');
+    } finally {
+      setGettingLocation(false);
+    }
+  };
+
   const onSubmit = async (data) => {
+    // For merchants, require location data
+    if (selectedRole === 'merchant' && !locationData) {
+      toast.error('Location is required for merchant registration');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const userData = {
         ...data,
         role: selectedRole,
+        ...(selectedRole === 'merchant' && locationData && {
+          coordinates: [locationData.longitude, locationData.latitude]
+        })
       };
       
       const result = await registerUser(userData);
@@ -205,6 +248,55 @@ const Register = () => {
                 </button>
               </div>
             </div>
+
+            {/* Location for Merchants */}
+            {selectedRole === 'merchant' && (
+              <div className="form-group">
+                <label className="form-label">Business Location</label>
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">
+                    We need your exact location to match you with nearby customers.
+                  </p>
+                  
+                  {locationData ? (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-green-800">Location captured!</p>
+                          <p className="text-xs text-green-600">
+                            Lat: {locationData.latitude.toFixed(6)}, Lng: {locationData.longitude.toFixed(6)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={getLocation}
+                          disabled={gettingLocation}
+                          className="text-xs text-green-600 hover:text-green-800"
+                        >
+                          Update
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={getLocation}
+                      disabled={gettingLocation}
+                      className="w-full p-3 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 disabled:opacity-50"
+                    >
+                      {gettingLocation ? (
+                        <div className="flex items-center justify-center">
+                          <div className="loading-spinner mr-2"></div>
+                          Getting Location...
+                        </div>
+                      ) : (
+                        'Get Current Location'
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Password Field */}
             <div className="form-group">

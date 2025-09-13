@@ -1,0 +1,189 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-events",
+        "options": {}
+      },
+      "id": "7406ba41-d857-4874-bc6e-99c744b8d572",
+      "name": "Webhook (Order Events)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1344,
+        224
+      ],
+      "webhookId": "68bd5a3a-e86e-4a6d-a048-7204b1e83c23"
+    },
+    {
+      "parameters": {
+        "functionCode": "const event = $json.body;\n\n// Extract notification rules if present\nconst rules = event.notificationRules || {};\n\nreturn [{\n  json: {\n    eventType: event.eventType || null,\n    orderId: event.orderId || null,\n    orderNumber: event.orderData?.orderNumber || null,\n    customer: {\n      id: event.orderData?.customerId || null,\n      name: event.orderData?.customerName || null,\n      phone: event.orderData?.customerPhone || null,\n      email: event.triggeredBy?.userEmail || null\n    },\n    merchant: {\n      id: event.triggeredBy?.userId || event.merchantData?.id || null,\n      name: event.triggeredBy?.userName || event.merchantData?.name || null,\n      phone: event.triggeredBy?.userPhone || event.merchantData?.phone || null,\n      email: event.triggeredBy?.userEmail || event.merchantData?.email || null,\n      type: event.triggeredBy?.userType || \"merchant\"\n    },\n    rules,\n    raw: event  // keep full raw event for debugging\n  }\n}];\n"
+      },
+      "id": "02788b14-0664-4fb9-ad84-546a9411d4de",
+      "name": "Normalize Event",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.eventType }}",
+              "value2": "order_created_smart"
+            }
+          ]
+        }
+      },
+      "id": "4c17044d-3ea3-43e8-bc2f-a1f80770be02",
+      "name": "IF Smart Order?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -864,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// For smart order, send SMS + Email + Push\nconsole.log('Smart Order Event:', $json);\nreturn [{ json: { channel: 'sms', data: $json } }, { json: { channel: 'email', data: $json } }, { json: { channel: 'push', data: $json } }];"
+      },
+      "id": "6c0903f1-a668-4e5c-8ad7-7a134ccce393",
+      "name": "Smart Notifications",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -624,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Generic rules-based filter\nconst out = [];\nconst { rules, customer, merchant, raw } = $json;\n\nif (rules.notifyCustomer) {\n  out.push({ json: { channel: 'customer', target: customer, data: raw } });\n}\nif (rules.notifyMerchant && merchant) {\n  out.push({ json: { channel: 'merchant', target: merchant, data: raw } });\n}\nif (rules.notifyAdmin) {\n  out.push({ json: { channel: 'admin', target: { name: 'Admin', email: 'admin@example.com', phone: '+919999999999' }, data: raw } });\n}\n\nreturn out;"
+      },
+      "id": "68f1ec2e-9f1e-4087-a75a-b9c13ec33051",
+      "name": "Rules Based Notifications",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -624,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "console.log('SMS Notification:', $json);\nreturn [{ json: { status: 'SMS Sent', payload: $json } }];"
+      },
+      "id": "e20af8f0-406f-4692-ae5f-02c9e905fc19",
+      "name": "Send SMS (Log)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "console.log('Email Notification:', $json);\nreturn [{ json: { status: 'Email Sent', payload: $json } }];"
+      },
+      "id": "dd690e64-944e-4766-a8b1-64ec577ba5a6",
+      "name": "Send Email (Log)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "console.log('Push Notification:', $json);\nreturn [{ json: { status: 'Push Sent', payload: $json } }];"
+      },
+      "id": "b482f8f1-e5ae-46a9-a731-5c861ef24872",
+      "name": "Send Push (Log)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        256
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (Order Events)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Event": {
+      "main": [
+        [
+          {
+            "node": "IF Smart Order?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Rules Based Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Smart Order?": {
+      "main": [
+        [
+          {
+            "node": "Smart Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Smart Notifications": {
+      "main": [
+        [
+          {
+            "node": "Send SMS (Log)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Push (Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rules Based Notifications": {
+      "main": [
+        [
+          {
+            "node": "Send SMS (Log)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "2e20cc24bba1707ce62142c783fea10221099c83b1027352ae44941fc306aa94"
+  }
+}

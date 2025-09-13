@@ -12,6 +12,7 @@ import MerchantLayout from './components/layout/MerchantLayout';
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import PendingApproval from './pages/auth/PendingApproval';
 import ProductList from './pages/products/ProductList';
 import ProductDetail from './pages/products/ProductDetail';
 import Cart from './pages/cart/Cart';
@@ -81,6 +82,9 @@ function AppRoutes() {
         <Route path="cart" element={<Cart />} />
         <Route path="checkout" element={<Checkout />} />
       </Route>
+
+      {/* Auth-related Routes (outside main layout) */}
+      <Route path="/pending-approval" element={<PendingApproval />} />
 
       {/* Customer Protected Routes */}
       <Route

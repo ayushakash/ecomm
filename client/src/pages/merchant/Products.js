@@ -32,7 +32,7 @@ const Products = () => {
   // Fetch merchant products
   const { data: merchantProducts, isLoading } = useQuery({
     queryKey: ["merchant-products"],
-    queryFn: () => productAPI.getProducts(),
+    queryFn: () => productAPI.getMerchantProducts(),
   });
 
   // Fetch categories

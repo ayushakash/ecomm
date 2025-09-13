@@ -70,6 +70,28 @@ const merchantSchema = new mongoose.Schema({
   completedOrders: {
     type: Number,
     default: 0
+  },
+  // Location and GPS coordinates
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] }, // [longitude, latitude]
+    address: String,
+    area: String,
+    pincode: String,
+    city: String,
+    state: String
+  },
+  // Merchant availability and capacity
+  availability: {
+    isActive: { type: Boolean, default: true },
+    maxDailyOrders: { type: Number, default: 10 },
+    currentDayOrders: { type: Number, default: 0 },
+    lastOrderAt: Date,
+    workingHours: {
+      start: { type: String, default: "09:00" },
+      end: { type: String, default: "18:00" },
+      days: { type: [String], default: ["mon", "tue", "wed", "thu", "fri", "sat"] }
+    }
   }
 }, {
   timestamps: true
@@ -77,5 +99,11 @@ const merchantSchema = new mongoose.Schema({
 
 // Index for area-based queries
 merchantSchema.index({ area: 1, activeStatus: 1 });
+
+// Index for geospatial queries
+merchantSchema.index({ location: '2dsphere' });
+
+// Index for availability queries
+merchantSchema.index({ 'availability.isActive': 1, 'availability.currentDayOrders': 1 });
 
 module.exports = mongoose.model('Merchant', merchantSchema);

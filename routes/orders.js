@@ -31,7 +31,7 @@ router.post('/', [
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { items, customerPhone, customerAddress, paymentMethod = 'cod', deliveryInstructions } = req.body;
+    const { items, customerPhone, customerAddress, paymentMethod = 'cod', deliveryInstructions, deliveryLocation } = req.body;
 
     // Get pricing calculator with current settings
     const pricingCalculator = await getPricingCalculator();
@@ -92,6 +92,12 @@ router.post('/', [
       customerPhone,
       customerAddress,
       customerArea: req.user.area,
+      deliveryLocation: deliveryLocation || {
+        address: customerAddress,
+        area: req.user.area,
+        coordinates: [0, 0],
+        isCurrentLocation: false
+      },
       items: orderItems,
       subtotal: totals.subtotal,
       tax: totals.tax,
@@ -117,7 +123,8 @@ router.post('/', [
         userId: req.user._id,
         userType: 'customer',
         userName: req.user.name,
-        userEmail: req.user.email
+        userEmail: req.user.email,
+        userPhone: req.user.phone || customerPhone
       },
       req,
       {
@@ -274,14 +281,24 @@ router.put('/:orderId/items/:itemId/assign', [
 
     // Log merchant assignment
     try {
+      // Get merchant phone from merchant record if user is a merchant
+      let userPhone = req.user.phone;
+      if (req.user.role === 'merchant') {
+        const merchantUser = await Merchant.findOne({ userId: req.user._id });
+        if (merchantUser && merchantUser.contact?.phone) {
+          userPhone = merchantUser.contact.phone;
+        }
+      }
+
       await OrderLogService.logOrderEvent(
         'order_assigned',
         order,
         {
           userId: req.user._id,
           userType: req.user.role,
-          userName: req.user.name,
-          userEmail: req.user.email
+          merchantName: req.user.name,
+          merchantEmail: req.user.email,
+          merchantPhone: userPhone
         },
         req,
         {
@@ -377,7 +394,8 @@ router.put('/:orderId/items/:itemId/status', [
           userId: req.user._id,
           userType: req.user.role,
           userName: req.user.name,
-          userEmail: req.user.email
+          userEmail: req.user.email,   //TODO add the phone number for merchant 
+          userPhone: req.user.phone
         },
         req,
         {
@@ -435,7 +453,8 @@ router.put('/:id/cancel', [verifyToken, requireCustomer], async (req, res) => {
           userId: req.user._id,
           userType: 'customer',
           userName: req.user.name,
-          userEmail: req.user.email
+          userEmail: req.user.email,
+          userPhone: req.user.phone
         },
         req,
         {

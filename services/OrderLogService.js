@@ -342,8 +342,9 @@ class OrderLogService {
     const triggeredByData = {
       userId: triggeredBy.userId,
       userType: triggeredBy.userType,
-      userName: triggeredBy.userName,
-      userEmail: triggeredBy.userEmail
+      userName: triggeredBy.userName || triggeredBy.merchantName,
+      userEmail: triggeredBy.userEmail || triggeredBy.merchantEmail,
+      userPhone: triggeredBy.userPhone || triggeredBy.merchantPhone
     };
 
     return await this.addLifecycleEvent(

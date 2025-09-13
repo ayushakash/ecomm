@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { orderAPI, settingsAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import LocationConfirmation from '../../components/location/LocationConfirmation';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -19,6 +20,9 @@ const Checkout = () => {
     deliveryInstructions: '',
     paymentMethod: 'cod'
   });
+
+  const [deliveryLocation, setDeliveryLocation] = useState(null);
+  const [showLocationStep, setShowLocationStep] = useState(true);
 
   // Prepare items for pricing calculation
   const cartItems = useMemo(() => 
@@ -61,21 +65,36 @@ const Checkout = () => {
     }
   });
 
+  const handleLocationConfirm = (location) => {
+    console.log('Location confirmed:', location);
+    setDeliveryLocation(location);
+    setShowLocationStep(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!deliveryLocation) {
+      toast.error('Please confirm your delivery location first');
+      setShowLocationStep(true);
+      return;
+    }
+    
     console.log('Form Data:', formData);
-        console.log('Cart:', cart);
+    console.log('Cart:', cart);
+    console.log('Delivery Location:', deliveryLocation);
     
     const orderData = {
       ...formData,
+      deliveryLocation: deliveryLocation,
       items: cart.map(item => ({
-      productId: item._id,
-      productName: item.name,
-      unitPrice: item.price, 
-      quantity: item.quantity,
-      unit: item.unit,
-      sku: item.sku,
-      totalPrice: item.price * item.quantity
+        productId: item._id,
+        productName: item.name,
+        unitPrice: item.price, 
+        quantity: item.quantity,
+        unit: item.unit,
+        sku: item.sku,
+        totalPrice: item.price * item.quantity
       })),
       subtotal: finalPricing.subtotal,
       tax: finalPricing.tax,
@@ -83,13 +102,8 @@ const Checkout = () => {
       totalAmount: finalPricing.totalAmount
     };
 
-    // Here you would typically make an API call to create the order
-    console.log('Order data:', orderData);
-     createOrderMutation.mutate(orderData);
-    
-    // For now, just clear cart and redirect
-    // clearCart();
-    // navigate('/orders');
+    console.log('Order data with location:', orderData);
+    createOrderMutation.mutate(orderData);
   };
 
   const handleInputChange = (e) => {
@@ -112,6 +126,39 @@ const Checkout = () => {
         {/* Checkout Form */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Shipping Information</h2>
+          
+          {/* Location Confirmation Step */}
+          {showLocationStep && (
+            <LocationConfirmation 
+              onLocationConfirm={handleLocationConfirm}
+              customerAddress={formData.customerAddress}
+            />
+          )}
+
+          {/* Location Status */}
+          {deliveryLocation && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center">
+                <span className="text-green-600 mr-2">✅</span>
+                <span className="text-green-800 font-medium">Location Confirmed</span>
+                {deliveryLocation.isCurrentLocation && (
+                  <span className="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                    📍 Current Location
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-green-700 mt-1">
+                {deliveryLocation.address}
+              </p>
+              <button 
+                type="button"
+                onClick={() => setShowLocationStep(true)}
+                className="text-xs text-green-600 hover:text-green-800 mt-1"
+              >
+                Change Location
+              </button>
+            </div>
+          )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

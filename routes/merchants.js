@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Merchant = require('../models/Merchant');
 const User = require('../models/User');
-const { verifyToken, requireAdmin, requireMerchant } = require('../middleware/auth');
+const { verifyToken, requireAdmin, requireMerchant, requireApprovedMerchant } = require('../middleware/auth');
 const Product = require('../models/Product');
 const mongoose = require('mongoose');
 
@@ -191,7 +191,7 @@ router.put('/:id/status', [
 // @access  Private (Merchant only)
 router.put('/profile', [
   verifyToken,
-  requireMerchant,
+  requireApprovedMerchant,
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('contact.phone').optional().trim().notEmpty().withMessage('Phone number cannot be empty'),
   body('contact.email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
@@ -232,7 +232,7 @@ router.put('/profile', [
 // @route   GET /api/merchants/profile/me
 // @desc    Get current merchant profile
 // @access  Private (Merchant only)
-router.get('/profile/me', [verifyToken, requireMerchant], async (req, res) => {
+router.get('/profile/me', [verifyToken, requireApprovedMerchant], async (req, res) => {
   try {
     const merchant = await Merchant.findOne({ userId: req.user._id })
       .populate('userId', 'name email phone');

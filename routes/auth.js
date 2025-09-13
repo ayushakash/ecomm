@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const Merchant = require('../models/Merchant');
 const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -41,7 +42,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, area, phone, address, role = 'customer' } = req.body;
+    const { name, email, password, area, phone, address, role = 'customer', coordinates } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -62,6 +63,35 @@ router.post('/register', [
 
     await user.save();
 
+    // If user is registering as merchant, create pending merchant profile
+    if (role === 'merchant') {
+      const merchantData = {
+        userId: user._id,
+        name,
+        contact: {
+          phone,
+          email
+        },
+        area,
+        address,
+        businessType: 'General', // Default value, can be updated later
+        activeStatus: 'pending' // Requires admin approval
+      };
+
+      // Add location coordinates if provided
+      if (coordinates && Array.isArray(coordinates) && coordinates.length === 2) {
+        merchantData.location = {
+          type: 'Point',
+          coordinates: coordinates, // [longitude, latitude]
+          address: address,
+          area: area
+        };
+      }
+
+      const merchant = new Merchant(merchantData);
+      await merchant.save();
+    }
+
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user._id);
 
@@ -70,7 +100,9 @@ router.post('/register', [
     await user.save();
 
     res.status(201).json({
-      message: 'User registered successfully',
+      message: role === 'merchant' 
+        ? 'Merchant registration successful! Please wait for admin approval.' 
+        : 'User registered successfully',
       user: user.toJSON(),
       accessToken,
       refreshToken
@@ -113,6 +145,27 @@ router.post('/login', [
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // For merchants, check approval status
+    let merchantStatus = null;
+    if (user.role === 'merchant') {
+      const merchant = await Merchant.findOne({ userId: user._id });
+      if (merchant) {
+        merchantStatus = merchant.activeStatus;
+        if (merchantStatus !== 'approved') {
+          return res.status(403).json({ 
+            message: `Your merchant account is ${merchantStatus}. Please wait for admin approval.`,
+            status: merchantStatus,
+            canLogin: false
+          });
+        }
+      } else {
+        return res.status(404).json({ 
+          message: 'Merchant profile not found. Please contact support.',
+          canLogin: false
+        });
+      }
+    }
+
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user._id);
 
@@ -123,6 +176,7 @@ router.post('/login', [
     res.json({
       message: 'Login successful',
       user: user.toJSON(),
+      merchantStatus,
       accessToken,
       refreshToken
     });

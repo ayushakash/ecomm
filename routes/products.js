@@ -591,13 +591,33 @@ router.get('/merchant/my', [verifyToken, requireMerchantOrAdmin], async (req, re
     const filter = { merchantId };
     if (enabled !== undefined) filter.enabled = enabled === 'true';
 
-    const products = await Product.find(filter)
+    const merchantProducts = await MerchantProduct.find(filter)
+      .populate({
+        path: 'productId',
+        populate: { path: 'category' }
+      })
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .exec();
 
-    const total = await Product.countDocuments(filter);
+    const total = await MerchantProduct.countDocuments(filter);
+
+    // Transform data to match expected frontend format
+    const products = merchantProducts.map(mp => ({
+      _id: mp.productId._id,
+      name: mp.productId.name,
+      description: mp.productId.description,
+      category: mp.productId.category,
+      images: mp.productId.images,
+      specifications: mp.productId.specifications,
+      tags: mp.productId.tags,
+      unit: mp.productId.unit,
+      price: mp.price,              // Merchant's price
+      myStock: mp.stock,            // Merchant's stock
+      enabled: mp.enabled,          // Merchant's enabled status
+      merchantProductId: mp._id     // Reference to MerchantProduct
+    }));
 
     res.json({
       products,

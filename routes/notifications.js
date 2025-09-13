@@ -6,6 +6,7 @@ const { verifyToken: auth, requireAdmin: adminAuth } = require('../middleware/au
 
 // Send SMS notification
 router.post('/sms/send', auth, async (req, res) => {
+  console.log('SMS send request body:', req.body);
   try {
     const { phone, message, templateId, templateData } = req.body;
 
@@ -36,6 +37,7 @@ router.post('/sms/send', auth, async (req, res) => {
 
 // Send WhatsApp notification
 router.post('/whatsapp/send', auth, async (req, res) => {
+  console.log('WhatsApp send request body:', req.body);
   try {
     const { phone, templateId, templateData } = req.body;
 

@@ -48,6 +48,7 @@ app.use('/api/settings', require('./routes/settings'));
 
 // New routes for logging and notifications
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/smart-notifications', require('./routes/smartNotifications'));
 app.use('/api/order-logs', require('./routes/orderLogs'));
 app.use('/api/abandoned-carts', require('./routes/abandonedCarts'));
 

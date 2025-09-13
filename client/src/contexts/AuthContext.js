@@ -86,7 +86,14 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('refreshToken', refreshToken);
 
       toast.success('Registration successful!');
-      navigate('/');
+      
+      // Redirect merchants to pending approval page
+      if (newUser.role === 'merchant') {
+        navigate('/pending-approval');
+      } else {
+        navigate('/');
+      }
+      
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'Registration failed';

@@ -78,6 +78,17 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // Delivery location with GPS coordinates
+  deliveryLocation: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] }, // [longitude, latitude]
+    address: String,
+    area: String,
+    pincode: String,
+    city: String,
+    state: String,
+    isCurrentLocation: { type: Boolean, default: false }
+  },
   items: [orderItemSchema], // 👈 each item has its own merchant assignment
   subtotal: {
     type: Number,
@@ -165,7 +176,8 @@ const orderSchema = new mongoose.Schema({
       userId: { type: mongoose.Schema.Types.ObjectId },
       userType: { type: String, enum: ['customer', 'merchant', 'admin', 'system'] },
       userName: String,
-      userEmail: String
+      userEmail: String,
+      userPhone: String
     },
     metadata: {
       type: mongoose.Schema.Types.Mixed,
@@ -242,5 +254,8 @@ orderSchema.index({ customerId: 1, createdAt: -1 });
 orderSchema.index({ 'items.assignedMerchantId': 1, orderStatus: 1 });
 orderSchema.index({ orderStatus: 1, createdAt: -1 });
 orderSchema.index({ orderNumber: 1 });
+
+// Index for geospatial queries
+orderSchema.index({ deliveryLocation: '2dsphere' });
 
 module.exports = mongoose.model('Order', orderSchema);
