@@ -6,20 +6,24 @@ const Merchant = require('../models/Merchant');
 const verifyToken = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-jwt-key');
-    const user = await User.findById(decoded.userId).select('-password');
-    
-    
-    if (!user || !user.isActive) {
+
+    // Check both User and Merchant collections
+    let user = await User.findById(decoded.userId).select('-password');
+    let merchant = await Merchant.findById(decoded.userId).select('-password');
+
+    const authenticatedUser = user || merchant;
+
+    if (!authenticatedUser || !authenticatedUser.isActive) {
       return res.status(401).json({ message: 'Invalid token or user inactive.' });
     }
 
-    req.user = user;
+    req.user = authenticatedUser;
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
@@ -56,15 +60,13 @@ const requireApprovedMerchant = async (req, res, next) => {
       return res.status(403).json({ message: 'Access denied. Merchant role required.' });
     }
 
-    const merchant = await Merchant.findOne({ userId: req.user._id });
-    if (!merchant) {
-      return res.status(404).json({ message: 'Merchant profile not found.' });
-    }
+    // Since req.user is already the merchant from the unified schema
+    const merchant = req.user;
 
     if (merchant.activeStatus !== 'approved') {
-      return res.status(403).json({ 
-        message: 'Access denied. Your merchant account is pending approval.', 
-        status: merchant.activeStatus 
+      return res.status(403).json({
+        message: 'Access denied. Your merchant account is pending approval.',
+        status: merchant.activeStatus
       });
     }
 
@@ -85,16 +87,21 @@ const requireMerchantOrAdmin = authorize('merchant', 'admin');
 const optionalAuth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-jwt-key');
-      const user = await User.findById(decoded.userId).select('-password');
-      
-      if (user && user.isActive) {
-        req.user = user;
+
+      // Check both User and Merchant collections
+      let user = await User.findById(decoded.userId).select('-password');
+      let merchant = await Merchant.findById(decoded.userId).select('-password');
+
+      const authenticatedUser = user || merchant;
+
+      if (authenticatedUser && authenticatedUser.isActive) {
+        req.user = authenticatedUser;
       }
     }
-    
+
     next();
   } catch (error) {
     // Continue without authentication if token is invalid

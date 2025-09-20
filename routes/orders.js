@@ -3,11 +3,13 @@ const { body, validationResult } = require('express-validator');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Merchant = require('../models/Merchant');
+const Address = require('../models/Address');
 const { verifyToken, requireCustomer, requireMerchantOrAdmin, requireAdmin } = require('../middleware/auth');
 const MerchantProduct = require('../models/MerchantProduct');
 const { getPricingCalculator } = require('../utils/pricingUtils');
 const OrderLogService = require('../services/OrderLogService');
 const AbandonedCartService = require('../services/AbandonedCartService');
+const { cleanOrderResponse } = require('../utils/orderCleanup');
 
 const router = express.Router();
 
@@ -31,7 +33,7 @@ router.post('/', [
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { items, customerPhone, customerAddress, paymentMethod = 'cod', deliveryInstructions, deliveryLocation } = req.body;
+    const { items, customerPhone, customerAddress, paymentMethod = 'cod', deliveryInstructions, deliveryLocation, addressId, deliveryAddressDetails } = req.body;
 
     // Get pricing calculator with current settings
     const pricingCalculator = await getPricingCalculator();
@@ -76,14 +78,86 @@ router.post('/', [
     // Calculate totals using centralized pricing
     const customerData = {
       distance: req.user.distance || 0, // This could come from user profile or be calculated
-      area: req.user.area
+      area: deliveryLocation?.area || req.user.area // Use delivery area if provided, fallback to user area
     };
     
     const totals = pricingCalculator.calculateOrderTotals(orderItems, customerData);
 
+    // Handle address creation/update - ensure we always have an addressId
+    let finalAddressId = addressId;
+
+    if (deliveryAddressDetails && !addressId) {
+      // Create new address if no addressId provided (web app scenario)
+      try {
+        const newAddress = new Address({
+          ...deliveryAddressDetails,
+          user: req.user._id,
+          title: deliveryAddressDetails.title || 'Order Address',
+          addressType: deliveryAddressDetails.addressType || 'other',
+          deliveryInstructions: deliveryInstructions || deliveryAddressDetails.deliveryInstructions,
+          isDefault: false
+        });
+        const createdAddress = await newAddress.save();
+        finalAddressId = createdAddress._id;
+      } catch (addressError) {
+        console.error('Address creation error:', addressError);
+        return res.status(400).json({ message: 'Failed to create delivery address' });
+      }
+    } else if (!finalAddressId && (deliveryLocation || customerAddress)) {
+      // Create address from deliveryLocation or customer address if no addressId
+      try {
+        const addressData = deliveryLocation ? {
+          fullName: deliveryLocation.receiverName || req.user.name,
+          phoneNumber: deliveryLocation.receiverPhone || customerPhone,
+          addressLine1: deliveryLocation.address || customerAddress,
+          area: deliveryLocation.area || req.user.area,
+          city: deliveryLocation.city || '',
+          state: deliveryLocation.state || '',
+          pincode: deliveryLocation.pincode || '',
+          coordinates: deliveryLocation.coordinates || [0, 0]
+        } : {
+          fullName: req.user.name,
+          phoneNumber: customerPhone,
+          addressLine1: customerAddress,
+          area: req.user.area,
+          city: '',
+          state: '',
+          pincode: '',
+          coordinates: [0, 0]
+        };
+
+        const newAddress = new Address({
+          ...addressData,
+          user: req.user._id,
+          title: 'Order Address',
+          addressType: 'other',
+          deliveryInstructions: deliveryInstructions || '',
+          isDefault: false
+        });
+        const createdAddress = await newAddress.save();
+        finalAddressId = createdAddress._id;
+      } catch (addressError) {
+        console.error('Address creation error:', addressError);
+        return res.status(400).json({ message: 'Failed to create delivery address' });
+      }
+    }
+
+    // Ensure we have an address ID
+    if (!finalAddressId) {
+      return res.status(400).json({ message: 'Delivery address is required' });
+    }
+
     // Generate order number
     const orderCount = await Order.countDocuments() + 1;
     const orderNumber = `ORD${String(orderCount).padStart(6, '0')}`;
+
+    // Get area from address for customerArea (we'll populate it later)
+    let customerArea = req.user.area;
+    if (deliveryLocation?.area) {
+      customerArea = deliveryLocation.area;
+    } else if (deliveryAddressDetails?.area) {
+      customerArea = deliveryAddressDetails.area;
+    }
 
     const order = new Order({
       orderNumber,
@@ -91,13 +165,8 @@ router.post('/', [
       customerName: req.user.name,
       customerPhone,
       customerAddress,
-      customerArea: req.user.area,
-      deliveryLocation: deliveryLocation || {
-        address: customerAddress,
-        area: req.user.area,
-        coordinates: [0, 0],
-        isCurrentLocation: false
-      },
+      customerArea: customerArea,
+      deliveryAddressId: finalAddressId, // Always have an address ID now
       items: orderItems,
       subtotal: totals.subtotal,
       tax: totals.tax,
@@ -112,41 +181,46 @@ router.post('/', [
 
     await order.save();
 
-    // Reserve stock across merchants
-    await reserveStockForOrder(order);
-
-    // Log order creation (non-blocking)
-    OrderLogService.logOrderEvent(
-      'order_created',
-      order,
-      {
-        userId: req.user._id,
-        userType: 'customer',
-        userName: req.user.name,
-        userEmail: req.user.email,
-        userPhone: req.user.phone || customerPhone
-      },
-      req,
-      {
-        metadata: {
-          itemCount: orderItems.length,
-          totalWeight: totalWeight,
-          paymentMethod: paymentMethod
-        }
-      }
-    ).catch(logError => {
-      console.error('Error logging order creation:', logError);
-    });
-
-    // Mark abandoned cart as converted if exists (non-blocking)
-    AbandonedCartService.markAsConverted(req.user._id, order._id).catch(cartError => {
-      console.error('Error marking cart as converted:', cartError);
-    });
-
-    res.status(201).json({ 
-      message: 'Order placed successfully', 
-      order,
+    // Send immediate response with cleaned order (but preserve internal data in DB)
+    res.status(201).json({
+      message: 'Order placed successfully',
+      order: cleanOrderResponse(order),
+      // Include pricing breakdown in response for order confirmation
       pricingBreakdown: totals
+    });
+
+    // Handle all heavy operations in background (async, non-blocking)
+    setImmediate(async () => {
+      try {
+        // Background stock reservation
+        await reserveStockForOrder(order);
+
+        // Background logging
+        await OrderLogService.logOrderEvent(
+          'order_created',
+          order,
+          {
+            userId: req.user._id,
+            userType: 'customer',
+            userName: req.user.name,
+            userEmail: req.user.email,
+            userPhone: req.user.phone || customerPhone
+          },
+          req,
+          {
+            metadata: {
+              itemCount: orderItems.length,
+              totalWeight: totalWeight,
+              paymentMethod: paymentMethod
+            }
+          }
+        );
+
+        // Background abandoned cart conversion
+        await AbandonedCartService.markAsConverted(req.user._id, order._id);
+      } catch (backgroundError) {
+        console.error('Background operation failed during order creation:', backgroundError);
+      }
     });
   } catch (error) {
     console.error('Place order error:', error);
@@ -168,7 +242,7 @@ router.get('/', verifyToken, async (req, res) => {
     if (req.user.role === 'customer') {
       filter.customerId = req.user._id;
     } else if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
+      const merchant = await Merchant.findById(req.user._id);
       if (merchant) {
         // Only include orders where items are assigned to this merchant
         filter['items.assignedMerchantId'] = merchant._id;
@@ -183,7 +257,8 @@ router.get('/', verifyToken, async (req, res) => {
     const orders = await Order.find(filter)
       .populate('customerId', 'name email')
       .populate('items.productId', 'name images')
-      .populate('items.assignedMerchantId', 'name contact area')
+      .populate('items.assignedMerchantId', 'name businessName contact area')
+      .populate('deliveryAddressId', 'fullName phoneNumber addressLine1 addressLine2 landmark area city state pincode addressType title')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -193,7 +268,7 @@ router.get('/', verifyToken, async (req, res) => {
     // For merchants, only show items assigned to them (filter already applied above)
     let resultOrders = orders;
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
+      const merchant = await Merchant.findById(req.user._id);
       
       resultOrders = orders.map(order => {
         const filteredItems = order.items.filter(item => {
@@ -205,7 +280,7 @@ router.get('/', verifyToken, async (req, res) => {
     }
 
     res.json({
-      orders: resultOrders,
+      orders: cleanOrderResponse(resultOrders),
       totalPages: Math.ceil(total / limit),
       currentPage: parseInt(page),
       total
@@ -227,7 +302,8 @@ router.get('/:id', verifyToken, async (req, res) => {
     const order = await Order.findById(req.params.id)
       .populate('customerId', 'name email phone')
       .populate('items.productId', 'name images')
-      .populate('items.merchantId', 'name contact area');
+      .populate('items.assignedMerchantId', 'name businessName contact area')
+      .populate('deliveryAddressId', 'fullName phoneNumber addressLine1 addressLine2 landmark area city state pincode addressType title');
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
@@ -236,13 +312,13 @@ router.get('/:id', verifyToken, async (req, res) => {
     }
 
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
+      const merchant = await Merchant.findById(req.user._id);
       if (!merchant || !order.items.some(i => i.merchantId?.toString() === merchant._id.toString())) {
         return res.status(403).json({ message: 'Not authorized' });
       }
     }
 
-    res.json({ order });
+    res.json({ order: cleanOrderResponse(order) });
   } catch (error) {
     console.error('Get order error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -264,7 +340,7 @@ router.put('/:orderId/items/:itemId/assign', [
 
     if (req.user.role === 'merchant') {
       // merchant assigns only themselves
-      const merchant = await Merchant.findOne({ userId: req.user._id });
+      const merchant = await Merchant.findById(req.user._id);
       if (!merchant) {
         return res.status(400).json({ message: 'Merchant not found' });
       }
@@ -279,42 +355,45 @@ router.put('/:orderId/items/:itemId/assign', [
 
     const order = await assignMerchantToItem(orderId, itemId, merchantId, { validateMerchant: true });
 
-    // Log merchant assignment
-    try {
-      // Get merchant phone from merchant record if user is a merchant
-      let userPhone = req.user.phone;
-      if (req.user.role === 'merchant') {
-        const merchantUser = await Merchant.findOne({ userId: req.user._id });
-        if (merchantUser && merchantUser.contact?.phone) {
-          userPhone = merchantUser.contact.phone;
-        }
-      }
+    // Send immediate response with cleaned order
+    res.json({ message: "Merchant assigned successfully", order: cleanOrderResponse(order) });
 
-      await OrderLogService.logOrderEvent(
-        'order_assigned',
-        order,
-        {
-          userId: req.user._id,
-          userType: req.user.role,
-          merchantName: req.user.name,
-          merchantEmail: req.user.email,
-          merchantPhone: userPhone
-        },
-        req,
-        {
-          previousStatus: 'pending',
-          metadata: {
-            merchantId: merchantId,
-            itemId: itemId,
-            assignedBy: req.user.role
+    // Handle logging in background (async, non-blocking)
+    setImmediate(async () => {
+      try {
+        // Get merchant phone from merchant record if user is a merchant
+        let userPhone = req.user.phone;
+        if (req.user.role === 'merchant') {
+          const merchantUser = await Merchant.findById(req.user._id);
+          if (merchantUser && merchantUser.contact?.phone) {
+            userPhone = merchantUser.contact.phone;
           }
         }
-      );
-    } catch (logError) {
-      console.error('Error logging merchant assignment:', logError);
-    }
 
-    res.json({ message: "Merchant assigned successfully", order });
+        await OrderLogService.logOrderEvent(
+          'order_assigned',
+          order,
+          {
+            userId: req.user._id,
+            userType: req.user.role,
+            merchantName: req.user.name,
+            merchantEmail: req.user.email,
+            merchantPhone: userPhone
+          },
+          req,
+          {
+            previousStatus: 'pending',
+            metadata: {
+              merchantId: merchantId,
+              itemId: itemId,
+              assignedBy: req.user.role
+            }
+          }
+        );
+      } catch (backgroundError) {
+        console.error('Background operation failed during merchant assignment:', backgroundError);
+      }
+    });
   } catch (error) {
     console.error("Assign item error:", error);
     res.status(500).json({ message: error.message });
@@ -347,7 +426,7 @@ router.put('/:orderId/items/:itemId/status', [
     if (!item) return res.status(404).json({ message: 'Item not found' });
 
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
+      const merchant = await Merchant.findById(req.user._id);
       if (!merchant || item.assignedMerchantId?.toString() !== merchant._id.toString()) {
         return res.status(403).json({ message: 'Not authorized' });
       }
@@ -359,59 +438,67 @@ router.put('/:orderId/items/:itemId/status', [
       order.statusHistory.push({ status, timestamp: new Date(), note });
     }
 
+    // Set delivery date immediately for instant response
     if (status === 'delivered') {
       order.actualDeliveryDate = new Date();
-      // Handle automatic stock reduction on delivery
-      await handleStockReductionOnDelivery(orderId, itemId);
     }
 
+    // Save order immediately and send response with cleaned order
     await order.save();
+    res.json({ message: 'Item status updated successfully', order: cleanOrderResponse(order) });
 
-    // Log status change
-    try {
-      let eventType;
-      switch(status) {
-        case 'processing':
-          eventType = 'order_accepted';
-          break;
-        case 'shipped':
-          eventType = 'order_shipped';
-          break;
-        case 'delivered':
-          eventType = 'order_delivered';
-          break;
-        case 'cancelled':
-          eventType = 'order_cancelled';
-          break;
-        default:
-          eventType = 'order_status_updated';
-      }
-
-      await OrderLogService.logOrderEvent(
-        eventType,
-        order,
-        {
-          userId: req.user._id,
-          userType: req.user.role,
-          userName: req.user.name,
-          userEmail: req.user.email,   //TODO add the phone number for merchant 
-          userPhone: req.user.phone
-        },
-        req,
-        {
-          previousStatus: previousStatus,
-          metadata: {
-            itemId: itemId,
-            note: note,
-            statusChangedBy: req.user.role
-          }
+    // Handle all heavy operations in background (async, non-blocking)
+    setImmediate(async () => {
+      try {
+        // Background stock reduction for delivered items
+        if (status === 'delivered') {
+          await handleStockReductionOnDelivery(orderId, itemId);
         }
-      );
-    } catch (logError) {
-      console.error('Error logging status change:', logError);
-    }
 
-    res.json({ message: 'Item status updated successfully', order });
+        // Background logging
+        let eventType;
+        switch(status) {
+          case 'processing':
+            eventType = 'order_accepted';
+            break;
+          case 'shipped':
+            eventType = 'order_shipped';
+            break;
+          case 'delivered':
+            eventType = 'order_delivered';
+            break;
+          case 'cancelled':
+            eventType = 'order_cancelled';
+            break;
+          default:
+            eventType = 'order_status_updated';
+        }
+
+        await OrderLogService.logOrderEvent(
+          eventType,
+          order,
+          {
+            userId: req.user._id,
+            userType: req.user.role,
+            userName: req.user.name,
+            userEmail: req.user.email,
+            userPhone: req.user.phone
+          },
+          req,
+          {
+            previousStatus: previousStatus,
+            metadata: {
+              itemId: itemId,
+              note: note,
+              statusChangedBy: req.user.role
+            }
+          }
+        );
+      } catch (backgroundError) {
+        console.error('Background operation failed:', backgroundError);
+        // Don't throw - this runs after response is sent
+      }
+    });
   } catch (error) {
     console.error('Update item status error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -432,44 +519,50 @@ router.put('/:id/cancel', [verifyToken, requireCustomer], async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    // Restore stock for all items
+    // Cancel all items immediately
     for (const item of order.items) {
-      const product = await Product.findById(item.productId);
-      if (product) {
-        product.stock += item.quantity;
-        await product.save();
-      }
       item.status = 'cancelled';
     }
 
     await order.save();
+    res.json({ message: 'Order cancelled successfully', order: cleanOrderResponse(order) });
 
-    // Log order cancellation
-    try {
-      await OrderLogService.logOrderEvent(
-        'order_cancelled',
-        order,
-        {
-          userId: req.user._id,
-          userType: 'customer',
-          userName: req.user.name,
-          userEmail: req.user.email,
-          userPhone: req.user.phone
-        },
-        req,
-        {
-          previousStatus: 'pending',
-          metadata: {
-            cancelledBy: 'customer',
-            stockRestored: true
+    // Handle stock restoration and logging in background
+    setImmediate(async () => {
+      try {
+        // Background stock restoration
+        for (const item of order.items) {
+          const product = await Product.findById(item.productId);
+          if (product) {
+            product.stock += item.quantity;
+            await product.save();
           }
         }
-      );
-    } catch (logError) {
-      console.error('Error logging order cancellation:', logError);
-    }
 
-    res.json({ message: 'Order cancelled successfully', order });
+        // Background logging
+        await OrderLogService.logOrderEvent(
+          'order_cancelled',
+          order,
+          {
+            userId: req.user._id,
+            userType: 'customer',
+            userName: req.user.name,
+            userEmail: req.user.email,
+            userPhone: req.user.phone
+          },
+          req,
+          {
+            previousStatus: 'pending',
+            metadata: {
+              cancelledBy: 'customer',
+              stockRestored: true
+            }
+          }
+        );
+      } catch (backgroundError) {
+        console.error('Background operation failed during cancellation:', backgroundError);
+      }
+    });
   } catch (error) {
     console.error('Cancel order error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -772,7 +865,7 @@ router.get('/analytics/summary', [verifyToken, requireAdmin], async (req, res) =
  */
 router.get('/merchant/dashboard', [verifyToken, requireMerchantOrAdmin], async (req, res) => {
   try {
-    const merchant = await Merchant.findOne({ userId: req.user._id });
+    const merchant = await Merchant.findById(req.user._id);
     if (!merchant) return res.status(400).json({ message: 'Merchant not found' });
 
     // Today's dates
@@ -930,7 +1023,7 @@ router.get('/merchant/dashboard', [verifyToken, requireMerchantOrAdmin], async (
  */
 router.get('/merchant/analytics/summary', [verifyToken, requireMerchantOrAdmin], async (req, res) => {
   try {
-    const merchant = await Merchant.findOne({ userId: req.user._id });
+    const merchant = await Merchant.findById(req.user._id);
     if (!merchant) return res.status(400).json({ message: 'Merchant not found' });
 
     // Count actual items, not orders
@@ -1080,7 +1173,7 @@ router.put("/:orderId/assign-merchant", async (req, res) => {
       { validateMerchant: !!merchantId }
     );
 
-    res.json({ success: true, order });
+    res.json({ success: true, order: cleanOrderResponse(order) });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1179,7 +1272,7 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
 // Get unassigned orders (for merchants to claim)
 router.get('/status/unassigned', [verifyToken, requireMerchantOrAdmin], async (req, res) => {
   try {
-  const merchant = await Merchant.findOne({ userId: req.user._id });
+  const merchant = await Merchant.findById(req.user._id);
 if (!merchant) {
   return res.status(400).json({ message: 'Merchant not found' });
 }
@@ -1206,7 +1299,9 @@ const merchantProducts = await MerchantProduct.find({
       'items.itemStatus': 'pending',
       'items.assignedMerchantId': null,
       'items.productId': { $in: merchantProductIds }
-    }).populate('customerId', 'name phone');
+    })
+    .populate('customerId', 'name phone')
+    .populate('deliveryAddressId', 'fullName phoneNumber addressLine1 addressLine2 landmark area city state pincode addressType title');
 
     // ✅ Step 3: Filter to show only unassigned items relevant to this merchant
     const filteredOrders = unassignedOrders.map(order => ({
@@ -1218,7 +1313,7 @@ const merchantProducts = await MerchantProduct.find({
       )
     })).filter(order => order.items.length > 0); // Only return orders that have unassigned items for this merchant
 
-    res.json(filteredOrders);
+    res.json(cleanOrderResponse(filteredOrders));
   } catch (error) {
     console.error('Unassigned order fetch error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -1236,7 +1331,7 @@ router.get("/:id", async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ error: "Order not found" });
-    res.json(order);
+    res.json(cleanOrderResponse(order));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1266,7 +1361,7 @@ router.post('/claim', verifyToken, async (req, res) => {
     }
 
     const { orderId, itemId } = req.body;
-    const merchant = await Merchant.findOne({ userId: req.user._id });
+    const merchant = await Merchant.findById(req.user._id);
 
     if (!merchant) {
       return res.status(400).json({ message: 'Merchant not found' });
@@ -1282,7 +1377,55 @@ router.post('/claim', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'Item already taken by another merchant' });
     }
 
-    res.json({ message: 'Order claimed successfully', order });
+    // Send immediate response with cleaned order
+    res.json({ message: 'Order claimed successfully', order: cleanOrderResponse(order) });
+
+    // Handle stock deduction and logging in background (async, non-blocking)
+    setImmediate(async () => {
+      try {
+        // Background stock deduction
+        const MerchantProduct = require('../models/MerchantProduct');
+        const item = order.items.id(itemId);
+
+        if (item) {
+          const merchantProduct = await MerchantProduct.findOne({
+            productId: item.productId,
+            merchantId: merchant._id,
+            enabled: true
+          });
+
+          if (merchantProduct && merchantProduct.stock >= item.quantity) {
+            merchantProduct.stock -= item.quantity;
+            await merchantProduct.save();
+            console.log(`Stock deducted on claim: ${item.quantity} units of ${item.productName} from merchant ${merchant.name}`);
+          }
+        }
+
+        // Background logging
+        await OrderLogService.logOrderEvent(
+          'order_claimed',
+          order,
+          {
+            userId: req.user._id,
+            userType: 'merchant',
+            merchantName: merchant.name,
+            merchantEmail: merchant.email,
+            merchantPhone: merchant.phone
+          },
+          req,
+          {
+            previousStatus: 'pending',
+            metadata: {
+              merchantId: merchant._id,
+              itemId: itemId,
+              claimMethod: 'self_service'
+            }
+          }
+        );
+      } catch (backgroundError) {
+        console.error('Background operation failed during order claim:', backgroundError);
+      }
+    });
   } catch (error) {
     console.error('Claim order error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -1393,9 +1536,9 @@ async function handleStockReductionOnDelivery(orderId, itemId) {
         customerId: order.customerId,
         customerName: order.customerName,
         orderStatus: order.orderStatus,
-        totalAmount: order.totalAmount
-      },
-      lifecycle: order.lifecycle || []
+        totalAmount: order.totalAmount,
+        lifecycle: order.lifecycle || []
+      }
     });
   } catch (error) {
     console.error('Error fetching order lifecycle:', error);

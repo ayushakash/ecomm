@@ -13,7 +13,7 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
       setLoading(true);
       setError('');
       const response = await orderAPI.getOrderLifecycle(orderId);
-      setLifecycle(response.lifecycle || []);
+      setLifecycle(response.order?.lifecycle || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch order lifecycle');
     } finally {

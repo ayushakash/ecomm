@@ -12,6 +12,7 @@ import MerchantLayout from './components/layout/MerchantLayout';
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import MerchantRegister from './pages/auth/MerchantRegister';
 import PendingApproval from './pages/auth/PendingApproval';
 import ProductList from './pages/products/ProductList';
 import ProductDetail from './pages/products/ProductDetail';
@@ -77,6 +78,7 @@ function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
+        <Route path="merchant-register" element={<MerchantRegister />} />
         <Route path="products" element={<ProductList />} />
         <Route path="products/:id" element={<ProductDetail />} />
         <Route path="cart" element={<Cart />} />

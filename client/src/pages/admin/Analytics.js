@@ -342,8 +342,9 @@ const Analytics = () => {
                       {index + 1}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{merchant.merchantInfo?.name || 'Unknown Merchant'}</p>
-                      <p className="text-sm text-gray-600">{merchant.totalOrders} orders completed</p>
+                      <p className="font-medium text-gray-900">{merchant.merchantInfo?.businessName || merchant.merchantInfo?.name || 'Unknown Merchant'}</p>
+                      <p className="text-sm text-gray-600">{merchant.merchantInfo?.name || 'Unknown Contact'}</p>
+                      <p className="text-xs text-gray-500">{merchant.totalOrders} orders completed</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -438,7 +439,12 @@ const Analytics = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(order.createdAt).toLocaleDateString()}
+                    <div>
+                      <div>{new Date(order.createdAt).toLocaleDateString()}</div>
+                      <div className="text-xs text-gray-400">
+                        {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {order.items?.length || 0} items

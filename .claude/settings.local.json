@@ -115,7 +115,18 @@
       "Read(/E:\\tes\\ecomm\\routes/**)",
       "Read(/E:\\tes\\ecomm\\client\\src\\pages\\merchant/**)",
       "Bash(npm start)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx create-expo-app:*)",
+      "Bash(npx expo install:*)",
+      "Bash(npm run web:*)",
+      "Bash(node:*)",
+      "Bash(npx expo start:*)",
+      "Bash(find:*)",
+      "Bash(netstat:*)",
+      "Bash(curl:*)",
+      "Read(//e/**)",
+      "Bash(ipconfig)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

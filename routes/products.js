@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Product = require('../models/Product');
 const Merchant = require('../models/Merchant');
-const { verifyToken, requireMerchantOrAdmin, requireAdmin } = require('../middleware/auth');
+const { verifyToken, requireMerchantOrAdmin, requireAdmin, optionalAuth } = require('../middleware/auth');
 const MerchantProduct = require('../models/MerchantProduct');
 const Category = require('../models/Category');
 const mongoose = require("mongoose");
@@ -99,7 +99,7 @@ router.post(
           return res.status(404).json({ message: "Product not found in catalog" });
         }
 
-        const merchant = await Merchant.findOne({ userId: req.user._id });
+        const merchant = await Merchant.findById(req.user._id);
         if (!merchant) {
           return res.status(400).json({ message: "Merchant profile not found" });
         }
@@ -148,8 +148,8 @@ router.post(
 
 // @route   GET /api/products
 // @desc    Get products with filtering
-// @access  Public
-router.get('/', async (req, res) => {
+// @access  Public (with optional authentication)
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { page = 1, limit = 12, category, search, minPrice, maxPrice } = req.query;
     const skip = (page - 1) * limit;
@@ -158,7 +158,7 @@ router.get('/', async (req, res) => {
 
     if (role === 'merchant') {
   // Get merchant profile from user
-  const merchant = await Merchant.findOne({ userId: req.user._id });
+  const merchant = await Merchant.findById(req.user._id);
   if (!merchant) {
     return res.status(400).json({ message: "Merchant profile not found" });
   }
@@ -403,7 +403,7 @@ router.put('/:id', [
 
     // ----------------- Permission check -----------------
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
+      const merchant = await Merchant.findById(req.user._id);
       if (!merchant || product.merchantId?.toString() !== merchant._id.toString()) {
         return res.status(403).json({ message: 'Not authorized to update this product' });
       }
@@ -473,7 +473,7 @@ body('stock')
     const { stock, price, enabled } = req.body;
 
     // Find merchant
-    const merchant = await Merchant.findOne({ userId: req.user._id });
+    const merchant = await Merchant.findById(req.user._id);
     if (!merchant) return res.status(400).json({ message: "Merchant profile not found" });
 
     // Find merchant product
@@ -525,7 +525,7 @@ router.put('/:id/enable', [
 
     // Check if user has permission to update this product
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
+      const merchant = await Merchant.findById(req.user._id);
       if (!merchant || product.merchantId.toString() !== merchant._id.toString()) {
         return res.status(403).json({ message: 'Not authorized to update this product' });
       }
@@ -556,7 +556,7 @@ router.delete('/:id', [verifyToken, requireMerchantOrAdmin], async (req, res) =>
 
     // Check if user has permission to delete this product
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
+      const merchant = await Merchant.findById(req.user._id);
       if (!merchant || product.merchantId.toString() !== merchant._id.toString()) {
         return res.status(403).json({ message: 'Not authorized to delete this product' });
       }
@@ -579,7 +579,7 @@ router.get('/merchant/my', [verifyToken, requireMerchantOrAdmin], async (req, re
     let merchantId = req.query.merchantId;
 
     if (req.user.role === 'merchant') {
-      const merchant = await Merchant.findOne({ userId: req.user._id });
+      const merchant = await Merchant.findById(req.user._id);
       if (!merchant) {
         return res.status(400).json({ message: 'Merchant profile not found' });
       }
@@ -603,21 +603,23 @@ router.get('/merchant/my', [verifyToken, requireMerchantOrAdmin], async (req, re
 
     const total = await MerchantProduct.countDocuments(filter);
 
-    // Transform data to match expected frontend format
-    const products = merchantProducts.map(mp => ({
-      _id: mp.productId._id,
-      name: mp.productId.name,
-      description: mp.productId.description,
-      category: mp.productId.category,
-      images: mp.productId.images,
-      specifications: mp.productId.specifications,
-      tags: mp.productId.tags,
-      unit: mp.productId.unit,
-      price: mp.price,              // Merchant's price
-      myStock: mp.stock,            // Merchant's stock
-      enabled: mp.enabled,          // Merchant's enabled status
-      merchantProductId: mp._id     // Reference to MerchantProduct
-    }));
+    // Transform data to match expected frontend format, filtering out null products
+    const products = merchantProducts
+      .filter(mp => mp.productId) // Filter out entries where productId is null
+      .map(mp => ({
+        _id: mp.productId._id,
+        name: mp.productId.name,
+        description: mp.productId.description,
+        category: mp.productId.category,
+        images: mp.productId.images,
+        specifications: mp.productId.specifications,
+        tags: mp.productId.tags,
+        unit: mp.productId.unit,
+        price: mp.price,              // Merchant's price
+        myStock: mp.stock,            // Merchant's stock
+        enabled: mp.enabled,          // Merchant's enabled status
+        merchantProductId: mp._id     // Reference to MerchantProduct
+      }));
 
     res.json({
       products,

@@ -8,7 +8,9 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    contact: { phone: '', email: '' },
+    businessName: '',
+    phone: '',
+    email: '',
     address: '',
     area: '',
     businessType: ''
@@ -24,10 +26,9 @@ const Profile = () => {
     if (merchant?.merchant) {
       setFormData({
         name: merchant.merchant.name || '',
-        contact: {
-          phone: merchant.merchant.contact?.phone || '',
-          email: merchant.merchant.contact?.email || ''
-        },
+        businessName: merchant.merchant.businessName || '',
+        phone: merchant.merchant.phone || '',
+        email: merchant.merchant.email || '',
         address: merchant.merchant.address || '',
         area: merchant.merchant.area || '',
         businessType: merchant.merchant.businessType || ''
@@ -55,21 +56,10 @@ const Profile = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'phone' || name === 'email') {
-      setFormData({
-        ...formData,
-        contact: {
-          ...formData.contact,
-          [name]: value
-        }
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
+    setFormData({
+      ...formData,
+      [name]: value
+    });
   };
 
   if (isLoading) {
@@ -109,7 +99,7 @@ const Profile = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Business Name
+                Contact Person Name
               </label>
               <input
                 type="text"
@@ -123,12 +113,26 @@ const Profile = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Business Name
+              </label>
+              <input
+                type="text"
+                name="businessName"
+                value={formData.businessName}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Contact Number
               </label>
               <input
                 type="tel"
                 name="phone"
-                value={formData.contact?.phone || ''}
+                value={formData.phone || ''}
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
@@ -142,7 +146,7 @@ const Profile = () => {
               <input
                 type="email"
                 name="email"
-                value={formData.contact?.email || ''}
+                value={formData.email || ''}
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"

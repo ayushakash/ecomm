@@ -57,11 +57,21 @@ const Checkout = () => {
        toast.success('Order Successfully Placed!');
 
       clearCart();
-      navigate('/orders');
+      // Navigate to orders if user is logged in, otherwise to home
+      if (user) {
+        navigate('/orders');
+      } else {
+        navigate('/');
+      }
     },
     onError: (err) => {
       console.error("❌ Order creation failed:", err.response?.data || err.message);
-      alert("Failed to place order. Please try again!");
+      if (err.response?.status === 401) {
+        toast.error('Please login to place order');
+        navigate('/login');
+      } else {
+        alert("Failed to place order. Please try again!");
+      }
     }
   });
 
@@ -73,7 +83,20 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    // Check if user is authenticated - if not, prompt for login
+    if (!user) {
+      const shouldLogin = window.confirm(
+        'Please login or register to place your order.\n\nClick OK to login, or Cancel to register.'
+      );
+      if (shouldLogin) {
+        navigate('/login');
+      } else {
+        navigate('/register');
+      }
+      return;
+    }
+
     if (!deliveryLocation) {
       toast.error('Please confirm your delivery location first');
       setShowLocationStep(true);
@@ -86,7 +109,23 @@ const Checkout = () => {
     
     const orderData = {
       ...formData,
-      deliveryLocation: deliveryLocation,
+      deliveryLocation: {
+        ...deliveryLocation
+      },
+      addressId: null, // Will be set by backend when creating address
+      deliveryAddressDetails: {
+        fullName: formData.customerName,
+        phoneNumber: formData.customerPhone,
+        addressLine1: formData.customerAddress,
+        addressLine2: '',
+        landmark: '',
+        area: formData.customerArea,
+        city: '',
+        state: '',
+        pincode: '',
+        addressType: 'other',
+        title: 'Order Address'
+      },
       items: cart.map(item => ({
         productId: item._id,
         productName: item.name,

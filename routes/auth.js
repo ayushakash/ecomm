@@ -24,17 +24,11 @@ const generateTokens = (userId) => {
   return { accessToken, refreshToken };
 };
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
+// @route   POST /api/auth/send-otp
+// @desc    Send OTP to mobile number for login/registration
 // @access  Public
-router.post('/register', [
-  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('area').trim().notEmpty().withMessage('Area is required'),
-  body('phone').optional().trim(),
-  body('address').optional().trim(),
-  body('role').optional().isIn(['customer', 'merchant']).withMessage('Invalid role')
+router.post('/send-otp', [
+  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -42,55 +36,255 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, area, phone, address, role = 'customer', coordinates } = req.body;
+    const { phone } = req.body;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+    // Check if user exists with this phone number
+    let user = await User.findOne({ phone });
+    let merchant = await Merchant.findOne({ phone });
+
+    if (!user && !merchant) {
+      // No user or merchant exists, will need to register
+      return res.json({
+        message: 'OTP sent successfully',
+        userExists: false,
+        phone,
+        otp: '1234' // For demo purposes, sending OTP in response
+      });
     }
 
-    // Create new user
+    if (user) {
+      // User exists, generate and save OTP
+      const otp = user.generateOTP();
+      await user.save();
+
+      return res.json({
+        message: 'OTP sent successfully',
+        userExists: true,
+        userRole: user.role,
+        phone,
+        otp: otp // For demo purposes only
+      });
+    }
+
+    if (merchant) {
+      // Merchant exists, generate and save OTP
+      const otp = merchant.generateOTP();
+      await merchant.save();
+
+      return res.json({
+        message: 'OTP sent successfully',
+        userExists: true,
+        userRole: 'merchant',
+        phone,
+        otp: otp // For demo purposes only
+      });
+    }
+
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/verify-otp-phone
+// @desc    Verify OTP for phone verification only (step 1 of admin 2FA)
+// @access  Public
+router.post('/verify-otp-phone', [
+  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
+  body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { phone, otp } = req.body;
+
+    // Find user by phone
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(400).json({ message: 'User not found. Please register first.' });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(400).json({ message: 'Account is deactivated' });
+    }
+
+    // Verify OTP
+    const isOTPValid = user.verifyOTP(otp);
+    if (!isOTPValid) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Clear OTP and mark phone as verified
+    user.clearOTP();
+    user.isPhoneVerified = true;
+    await user.save();
+
+    // Return user info without tokens (phone verification only)
+    res.json({
+      message: 'Phone verification successful',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isPhoneVerified: true
+      }
+    });
+
+  } catch (error) {
+    console.error('OTP phone verification error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/verify-otp-login
+// @desc    Verify OTP and login existing user or merchant
+// @access  Public
+router.post('/verify-otp-login', [
+  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
+  body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { phone, otp } = req.body;
+
+    // Find user or merchant by phone
+    const user = await User.findOne({ phone });
+    const merchant = await Merchant.findOne({ phone });
+
+    if (!user && !merchant) {
+      return res.status(400).json({ message: 'User not found. Please register first.' });
+    }
+
+    // Handle merchant login
+    if (merchant) {
+      // Check if merchant is active
+      if (!merchant.isActive) {
+        return res.status(400).json({ message: 'Account is deactivated' });
+      }
+
+      // Verify OTP
+      const isOTPValid = merchant.verifyOTP(otp);
+      if (!isOTPValid) {
+        return res.status(400).json({ message: 'Invalid or expired OTP' });
+      }
+
+      // Clear OTP and mark phone as verified
+      merchant.clearOTP();
+      merchant.isPhoneVerified = true;
+      await merchant.save();
+
+      // Check approval status
+      if (merchant.activeStatus !== 'approved') {
+        return res.status(403).json({
+          message: `Your merchant account is ${merchant.activeStatus}. Please wait for admin approval.`,
+          status: merchant.activeStatus,
+          canLogin: false
+        });
+      }
+
+      // Generate tokens
+      const { accessToken, refreshToken } = generateTokens(merchant._id);
+
+      // Save refresh token to merchant
+      merchant.refreshToken = refreshToken;
+      await merchant.save();
+
+      return res.json({
+        message: 'Login successful',
+        user: merchant.toJSON(),
+        merchantStatus: merchant.activeStatus,
+        accessToken,
+        refreshToken
+      });
+    }
+
+    // Handle regular user login
+    if (user) {
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(400).json({ message: 'Account is deactivated' });
+      }
+
+      // Verify OTP
+      const isOTPValid = user.verifyOTP(otp);
+      if (!isOTPValid) {
+        return res.status(400).json({ message: 'Invalid or expired OTP' });
+      }
+
+      // Clear OTP and mark phone as verified
+      user.clearOTP();
+      user.isPhoneVerified = true;
+      await user.save();
+
+      // Generate tokens
+      const { accessToken, refreshToken } = generateTokens(user._id);
+
+      // Save refresh token to user
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      return res.json({
+        message: 'Login successful',
+        user: user.toJSON(),
+        merchantStatus: null,
+        accessToken,
+        refreshToken
+      });
+    }
+
+  } catch (error) {
+    console.error('OTP login error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/verify-otp-register
+// @desc    Verify OTP and register new user
+// @access  Public
+router.post('/verify-otp-register', [
+  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
+  body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { name, phone, otp } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ phone });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists with this phone number' });
+    }
+
+    // For demo purposes, verify static OTP
+    if (otp !== '1234') {
+      return res.status(400).json({ message: 'Invalid OTP. Please enter 1234' });
+    }
+
+    // Create new user with phone as primary identifier
     const user = new User({
       name,
-      email,
-      password,
-      area,
       phone,
-      address,
-      role
+      email: undefined, // Don't set temporary email, leave as undefined
+      password: 'temp123456', // Temporary password, can be updated later
+      role: 'customer',
+      isPhoneVerified: true
     });
 
     await user.save();
-
-    // If user is registering as merchant, create pending merchant profile
-    if (role === 'merchant') {
-      const merchantData = {
-        userId: user._id,
-        name,
-        contact: {
-          phone,
-          email
-        },
-        area,
-        address,
-        businessType: 'General', // Default value, can be updated later
-        activeStatus: 'pending' // Requires admin approval
-      };
-
-      // Add location coordinates if provided
-      if (coordinates && Array.isArray(coordinates) && coordinates.length === 2) {
-        merchantData.location = {
-          type: 'Point',
-          coordinates: coordinates, // [longitude, latitude]
-          address: address,
-          area: area
-        };
-      }
-
-      const merchant = new Merchant(merchantData);
-      await merchant.save();
-    }
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user._id);
@@ -100,9 +294,74 @@ router.post('/register', [
     await user.save();
 
     res.status(201).json({
-      message: role === 'merchant' 
-        ? 'Merchant registration successful! Please wait for admin approval.' 
-        : 'User registered successfully',
+      message: 'Registration successful',
+      user: user.toJSON(),
+      accessToken,
+      refreshToken
+    });
+
+  } catch (error) {
+    console.error('OTP registration error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/register
+// @desc    Register a new user (legacy email-based)
+// @access  Public
+router.post('/register', [
+  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+  body('email').optional().isEmail().normalizeEmail().withMessage('Please enter a valid email'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('phone').optional().trim(),
+  body('role').optional().isIn(['customer', 'merchant', 'admin']).withMessage('Invalid role')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { name, email, password, phone, role = 'customer' } = req.body;
+
+    // Check if user already exists by email (if email provided)
+    if (email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: 'User already exists with this email' });
+      }
+    }
+
+    // Check if phone is provided and already exists
+    if (phone) {
+      const existingPhoneUser = await User.findOne({ phone });
+      if (existingPhoneUser) {
+        return res.status(400).json({ message: 'User already exists with this phone number' });
+      }
+    }
+
+    // Create new user - set email to undefined if empty string to avoid null issues
+    const user = new User({
+      name,
+      email: email || undefined, // Use undefined instead of empty string to avoid null issues
+      password,
+      phone,
+      role
+    });
+
+    await user.save();
+
+    // Note: Merchant registration will be handled by separate endpoint with complete form
+
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user._id);
+
+    // Save refresh token to user
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.status(201).json({
+      message: 'User registered successfully',
       user: user.toJSON(),
       accessToken,
       refreshToken
@@ -255,6 +514,100 @@ router.get('/me', verifyToken, async (req, res) => {
     res.json({ user: req.user });
   } catch (error) {
     console.error('Get user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/register-merchant
+// @desc    Register a new merchant with complete business details
+// @access  Public
+router.post('/register-merchant', [
+  body('contactName').trim().isLength({ min: 2 }).withMessage('Contact name must be at least 2 characters'),
+  body('contactPhone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
+  body('contactEmail').optional().isEmail().normalizeEmail().withMessage('Please enter a valid email'),
+  body('name').trim().isLength({ min: 2 }).withMessage('Business name must be at least 2 characters'),
+  body('businessType').notEmpty().withMessage('Business type is required'),
+  body('gstNumber').optional().trim(),
+  body('panNumber').optional().trim(),
+  body('address').trim().notEmpty().withMessage('Address is required'),
+  body('area').trim().notEmpty().withMessage('Area is required'),
+  body('city').trim().notEmpty().withMessage('City is required'),
+  body('state').trim().notEmpty().withMessage('State is required'),
+  body('pincode').matches(/^\d{6}$/).withMessage('Please enter a valid 6-digit pincode'),
+  body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+  body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
+  body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { contactName, contactPhone, contactEmail, name, businessType, gstNumber, panNumber, address, area, city, state, pincode, latitude, longitude, otp } = req.body;
+
+    // Verify OTP (for demo purposes)
+    if (otp !== '1234') {
+      return res.status(400).json({ message: 'Invalid OTP. Please enter 1234' });
+    }
+
+    // Check if merchant already exists with this phone number
+    const existingMerchant = await Merchant.findOne({ phone: contactPhone });
+    if (existingMerchant) {
+      return res.status(400).json({ message: 'Merchant already exists with this phone number' });
+    }
+
+    // Create new merchant directly (no separate User model needed)
+    const merchant = new Merchant({
+      name: contactName,
+      phone: contactPhone,
+      email: contactEmail || undefined, // Use undefined instead of empty string
+      password: 'temp123456', // Temporary password
+      isPhoneVerified: true,
+
+      // Merchant-specific fields
+      businessName: name,
+      contactPersonName: contactName,
+      area: area,
+      address: address,
+      city: city,
+      state: state,
+      pincode: pincode,
+      businessType: businessType,
+      documents: {
+        gstNumber: gstNumber || '',
+        panNumber: panNumber || ''
+      },
+      location: {
+        type: 'Point',
+        coordinates: [longitude, latitude]
+      },
+      activeStatus: 'pending' // Will need admin approval
+    });
+
+    await merchant.save();
+
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(merchant._id);
+
+    // Save refresh token to merchant
+    merchant.refreshToken = refreshToken;
+    await merchant.save();
+
+    res.status(201).json({
+      message: 'Merchant registration successful. Your account is pending admin approval.',
+      user: merchant.toJSON(),
+      merchant: {
+        businessName: merchant.businessName,
+        businessType: merchant.businessType,
+        activeStatus: merchant.activeStatus
+      },
+      accessToken,
+      refreshToken
+    });
+
+  } catch (error) {
+    console.error('Merchant registration error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

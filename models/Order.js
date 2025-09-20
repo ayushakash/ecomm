@@ -78,6 +78,10 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  deliveryAddressId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Address'
+  },
   // Delivery location with GPS coordinates
   deliveryLocation: {
     type: { type: String, enum: ['Point'], default: 'Point' },
@@ -87,7 +91,9 @@ const orderSchema = new mongoose.Schema({
     pincode: String,
     city: String,
     state: String,
-    isCurrentLocation: { type: Boolean, default: false }
+    isCurrentLocation: { type: Boolean, default: false },
+    receiverName: String, // Name of the person receiving the delivery
+    receiverPhone: String // Phone number of the receiver
   },
   items: [orderItemSchema], // 👈 each item has its own merchant assignment
   subtotal: {

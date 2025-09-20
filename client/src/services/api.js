@@ -2,7 +2,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
+  baseURL: process.env.REACT_APP_API_URL || 'http://192.168.1.5:5000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -140,6 +140,16 @@ export const settingsAPI = {
   updateSettings: (settings) => api.put('/api/settings', settings).then(res => res.data),
   calculatePricing: (items, customerData) => api.post('/api/settings/calculate-pricing', { items, customerData }).then(res => res.data),
   getDeliveryPreview: () => api.get('/api/settings/delivery-preview').then(res => res.data)
+};
+
+export const addressAPI = {
+  getAllAddresses: () => api.get('/api/addresses').then(res => res.data),
+  getAddress: (id) => api.get(`/api/addresses/${id}`).then(res => res.data),
+  createAddress: (addressData) => api.post('/api/addresses', addressData).then(res => res.data),
+  updateAddress: (id, addressData) => api.put(`/api/addresses/${id}`, addressData).then(res => res.data),
+  deleteAddress: (id) => api.delete(`/api/addresses/${id}`).then(res => res.data),
+  setDefaultAddress: (id) => api.put(`/api/addresses/${id}/default`).then(res => res.data),
+  getDefaultAddress: () => api.get('/api/addresses/default/get').then(res => res.data)
 };
 
 export default api;

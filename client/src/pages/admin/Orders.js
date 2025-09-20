@@ -91,6 +91,32 @@ const Orders = () => {
   if (isLoading) return <div className="text-center py-12">Loading orders...</div>;
   if (error) return <div className="text-red-600 text-center py-12">{error.message}</div>;
 
+  // Helper function to check if all items are assigned to the same merchant
+  const getOrderMerchantInfo = (order) => {
+    const assignedItems = order.items.filter(item => item.assignedMerchantId);
+
+    if (assignedItems.length === 0) {
+      return { type: 'unassigned', count: order.items.length };
+    }
+
+    if (assignedItems.length === order.items.length) {
+      // All items are assigned, check if to same merchant
+      const firstMerchantId = assignedItems[0].assignedMerchantId._id;
+      const allSameMerchant = assignedItems.every(item =>
+        item.assignedMerchantId._id === firstMerchantId
+      );
+
+      if (allSameMerchant) {
+        return {
+          type: 'single_merchant',
+          merchant: assignedItems[0].assignedMerchantId
+        };
+      }
+    }
+
+    return { type: 'mixed' };
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 pl-8">
       <div className="max-w-7xl mx-auto px-8 space-y-6">
@@ -107,6 +133,7 @@ const Orders = () => {
               <th className="px-4 py-2 text-left">Customer</th>
               <th className="px-4 py-2 text-left">Amount</th>
               <th className="px-4 py-2 text-left">Status</th>
+              <th className="px-4 py-2 text-left">Merchant</th>
               <th className="px-4 py-2 text-left">Date</th>
               <th className="px-4 py-2 text-left">Actions</th>
             </tr>
@@ -147,7 +174,43 @@ const Orders = () => {
                     </span>
                   </td>
                   <td className="px-4 py-2">
-                    {new Date(order.createdAt).toLocaleDateString()}
+                    {(() => {
+                      const merchantInfo = getOrderMerchantInfo(order);
+                      if (merchantInfo.type === 'single_merchant') {
+                        return (
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {merchantInfo.merchant.businessName || merchantInfo.merchant.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {merchantInfo.merchant.name}
+                            </div>
+                          </div>
+                        );
+                      } else if (merchantInfo.type === 'unassigned') {
+                        return (
+                          <span className="text-sm text-red-600">
+                            {merchantInfo.count} items unassigned
+                          </span>
+                        );
+                      } else {
+                        return (
+                          <span className="text-sm text-blue-600">
+                            Multiple merchants
+                          </span>
+                        );
+                      }
+                    })()}
+                  </td>
+                  <td className="px-4 py-2">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex space-x-2">
@@ -169,7 +232,7 @@ const Orders = () => {
 
                 {expandedOrders[order._id] && (
                   <tr>
-                    <td colSpan={6} className="bg-gray-50 px-4 py-2">
+                    <td colSpan={7} className="bg-gray-50 px-4 py-2">
                       <div className="space-y-2">
                         {order.items.map((item) => (
                           <div
@@ -189,9 +252,16 @@ const Orders = () => {
                                     item.itemStatus.slice(1)
                                   : "Pending"}
                               </span>
-                              <span className="text-sm text-gray-600">
-                                {item.assignedMerchantName || "Unassigned"}
-                              </span>
+                              <div className="text-sm text-gray-600">
+                                {item.assignedMerchantId ? (
+                                  <div>
+                                    <div className="font-medium">{item.assignedMerchantId.businessName || item.assignedMerchantId.name}</div>
+                                    <div className="text-xs text-gray-500">{item.assignedMerchantId.name}</div>
+                                  </div>
+                                ) : (
+                                  "Unassigned"
+                                )}
+                              </div>
                             </div>
 
                             <div className="flex items-center space-x-2">

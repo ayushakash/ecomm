@@ -9,15 +9,15 @@ const mongoose = require('mongoose');
 const router = express.Router();
 
 // @route   POST /api/merchants/onboard
-// @desc    Onboard a new merchant
+// @desc    Onboard a new merchant (legacy route - prefer /api/auth/register-merchant)
 // @access  Private (Admin only)
 router.post('/onboard', [
   verifyToken,
   requireAdmin,
-  body('userId').isMongoId().withMessage('Valid user ID is required'),
-  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('contact.phone').trim().notEmpty().withMessage('Phone number is required'),
-  body('contact.email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('name').trim().isLength({ min: 2 }).withMessage('Contact name must be at least 2 characters'),
+  body('businessName').trim().isLength({ min: 2 }).withMessage('Business name must be at least 2 characters'),
+  body('phone').trim().notEmpty().withMessage('Phone number is required'),
+  body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
   body('area').trim().notEmpty().withMessage('Area is required'),
   body('address').trim().notEmpty().withMessage('Address is required'),
   body('businessType').trim().notEmpty().withMessage('Business type is required'),
@@ -32,41 +32,49 @@ router.post('/onboard', [
     }
 
     const {
-      userId,
       name,
-      contact,
+      businessName,
+      phone,
+      email,
       area,
       address,
-      businessType,
-      documents
-    } = req.body;
-
-    // Check if user exists and is a merchant
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (user.role !== 'merchant') {
-      return res.status(400).json({ message: 'User must have merchant role' });
-    }
-
-    // Check if merchant already exists for this user
-    const existingMerchant = await Merchant.findOne({ userId });
-    if (existingMerchant) {
-      return res.status(400).json({ message: 'Merchant already exists for this user' });
-    }
-
-    // Create new merchant
-    const merchant = new Merchant({
-      userId,
-      name,
-      contact,
-      area,
-      address,
+      city,
+      state,
+      pincode,
       businessType,
       documents,
-      activeStatus: 'approved'
+      latitude,
+      longitude
+    } = req.body;
+
+    // Check if merchant already exists with this phone
+    const existingMerchant = await Merchant.findOne({ phone });
+    if (existingMerchant) {
+      return res.status(400).json({ message: 'Merchant already exists with this phone number' });
+    }
+
+    // Create new merchant using unified schema
+    const merchant = new Merchant({
+      name,
+      businessName,
+      contactPersonName: name,
+      phone,
+      email: email || undefined,
+      password: 'temp123456',
+      role: 'merchant',
+      isPhoneVerified: true,
+      area,
+      address,
+      city: city || '',
+      state: state || '',
+      pincode: pincode || '',
+      businessType,
+      documents: documents || {},
+      location: {
+        type: 'Point',
+        coordinates: [longitude || 0, latitude || 0]
+      },
+      activeStatus: 'approved' // Admin is directly onboarding, so approve
     });
 
     await merchant.save();
@@ -93,7 +101,6 @@ router.get('/', [verifyToken, requireAdmin], async (req, res) => {
     if (status) filter.activeStatus = status;
 
     const merchants = await Merchant.find(filter)
-      .populate('userId', 'name email phone')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
@@ -123,7 +130,7 @@ router.get('/area/:area', async (req, res) => {
     const merchants = await Merchant.find({
       area: { $regex: area, $options: 'i' },
       activeStatus: 'approved'
-    }).populate('userId', 'name email phone');
+    });
 
     res.json({ merchants });
   } catch (error) {
@@ -137,8 +144,7 @@ router.get('/area/:area', async (req, res) => {
 // @access  Private
 router.get('/:id', verifyToken, async (req, res) => {
   try {
-    const merchant = await Merchant.findById(req.params.id)
-      .populate('userId', 'name email phone');
+    const merchant = await Merchant.findById(req.params.id);
 
     if (!merchant) {
       return res.status(404).json({ message: 'Merchant not found' });
@@ -191,10 +197,10 @@ router.put('/:id/status', [
 // @access  Private (Merchant only)
 router.put('/profile', [
   verifyToken,
-  requireApprovedMerchant,
+  requireMerchant,
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('contact.phone').optional().trim().notEmpty().withMessage('Phone number cannot be empty'),
-  body('contact.email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('phone').optional().trim().notEmpty().withMessage('Phone number cannot be empty'),
+  body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
   body('address').optional().trim().notEmpty().withMessage('Address cannot be empty'),
   body('businessType').optional().trim().notEmpty().withMessage('Business type cannot be empty')
 ], async (req, res) => {
@@ -204,13 +210,13 @@ router.put('/profile', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const merchant = await Merchant.findOne({ userId: req.user._id });
+    const merchant = await Merchant.findById(req.user._id);
     if (!merchant) {
       return res.status(404).json({ message: 'Merchant profile not found' });
     }
 
     // Update allowed fields
-    const allowedUpdates = ['name', 'contact', 'address', 'businessType'];
+    const allowedUpdates = ['name', 'phone', 'email', 'address', 'businessType', 'businessName'];
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
         merchant[field] = req.body[field];
@@ -232,10 +238,9 @@ router.put('/profile', [
 // @route   GET /api/merchants/profile/me
 // @desc    Get current merchant profile
 // @access  Private (Merchant only)
-router.get('/profile/me', [verifyToken, requireApprovedMerchant], async (req, res) => {
+router.get('/profile/me', [verifyToken, requireMerchant], async (req, res) => {
   try {
-    const merchant = await Merchant.findOne({ userId: req.user._id })
-      .populate('userId', 'name email phone');
+    const merchant = await Merchant.findById(req.user._id);
 
     if (!merchant) {
       return res.status(404).json({ message: 'Merchant profile not found' });

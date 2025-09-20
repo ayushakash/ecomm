@@ -54,10 +54,19 @@ const PendingApproval = () => {
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-900 mb-2">Account Details</h4>
               <div className="text-sm text-gray-600 space-y-1">
-                <p><strong>Name:</strong> {user?.name}</p>
-                <p><strong>Email:</strong> {user?.email}</p>
+                <p><strong>Contact Name:</strong> {user?.name}</p>
+                {user?.businessName && (
+                  <p><strong>Business Name:</strong> {user?.businessName}</p>
+                )}
+                {user?.businessType && (
+                  <p><strong>Business Type:</strong> {user?.businessType}</p>
+                )}
+                <p><strong>Phone:</strong> {user?.phone}</p>
+                {user?.email && (
+                  <p><strong>Email:</strong> {user?.email}</p>
+                )}
                 <p><strong>Role:</strong> {user?.role}</p>
-                <p><strong>Status:</strong> <span className="text-yellow-600 font-medium">Pending Approval</span></p>
+                <p><strong>Status:</strong> <span className="text-yellow-600 font-medium">{user?.activeStatus || 'Pending Approval'}</span></p>
               </div>
             </div>
           </div>

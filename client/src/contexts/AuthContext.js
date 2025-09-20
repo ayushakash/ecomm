@@ -156,12 +156,55 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const sendOTP = async (phone) => {
+    try {
+      const response = await api.post('/api/auth/send-otp', { phone });
+      return { success: true, ...response.data };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to send OTP';
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  };
+
+  const loginWithOTP = async (phone, otp) => {
+    try {
+      const response = await api.post('/api/auth/verify-otp-login', { phone, otp });
+      const { user: userData, accessToken, refreshToken: refreshTokenValue } = response.data;
+
+      setUser(userData);
+      setToken(accessToken);
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshTokenValue);
+
+      toast.success('Login successful!');
+
+      // Redirect based on role
+      if (userData.role === 'admin') {
+        navigate('/admin');
+      } else if (userData.role === 'merchant') {
+        navigate('/merchant');
+      } else {
+        navigate('/');
+      }
+
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || 'OTP verification failed';
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  };
+
   const value = {
     user,
     loading,
     token,
+    setUser,
     login,
     register,
+    sendOTP,
+    loginWithOTP,
     logout,
     refreshToken,
     updateProfile,
