@@ -18,6 +18,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import ProductCard from '../../components/customer/ProductCard';
 import CustomHeader from '../../components/navigation/CustomHeader';
+import HeaderMenu from '../../components/navigation/HeaderMenu';
 import CustomLoader from '../../components/ui/CustomLoader';
 
 interface HomeScreenProps {
@@ -30,6 +31,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const {
     data: productsResponse,
@@ -60,7 +62,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const renderWelcomeSection = () => (
     <View style={styles.welcomeSection}>
-      <Text style={styles.welcomeText}>Welcome back, <Text style={styles.userName}>{user?.name}!</Text></Text>
+      <Text style={styles.welcomeText}>
+        {user ? (
+          <>Welcome back, <Text style={styles.userName}>{user.name}!</Text></>
+        ) : (
+          <>Welcome to <Text style={styles.userName}>ConstructMart!</Text></>
+        )}
+      </Text>
     </View>
   );
 
@@ -179,11 +187,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         showCart={true}
         showProfile={true}
         showSearch={true}
+        showMenu={true}
         onCartPress={() => navigation.navigate('Cart')}
         onProfilePress={() => navigation.navigate('Profile')}
         onSearchPress={() => navigation.navigate('Products')}
+        onMenuPress={() => setMenuVisible(true)}
       />
-      
+
+      <HeaderMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}

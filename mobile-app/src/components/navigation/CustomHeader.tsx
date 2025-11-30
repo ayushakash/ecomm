@@ -20,11 +20,13 @@ interface CustomHeaderProps {
   showCart?: boolean;
   showProfile?: boolean;
   showSearch?: boolean;
+  showMenu?: boolean;
   onBackPress?: () => void;
   onCartPress?: () => void;
   onProfilePress?: () => void;
   onSearchPress?: () => void;
   onHomePress?: () => void;
+  onMenuPress?: () => void;
   rightComponent?: React.ReactNode;
   transparent?: boolean;
   elevation?: boolean;
@@ -37,11 +39,13 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
   showCart = true,
   showProfile = true,
   showSearch = false,
+  showMenu = false,
   onBackPress,
   onCartPress,
   onProfilePress,
   onSearchPress,
   onHomePress,
+  onMenuPress,
   rightComponent,
   transparent = false,
   elevation = true,
@@ -153,6 +157,16 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
                     ) : (
                       <Ionicons name="person-outline" size={24} color={THEME.background} />
                     )}
+                  </TouchableOpacity>
+                )}
+
+                {showMenu && (
+                  <TouchableOpacity
+                    style={styles.headerButton}
+                    onPress={onMenuPress}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="ellipsis-vertical" size={24} color={THEME.background} />
                   </TouchableOpacity>
                 )}
               </>
