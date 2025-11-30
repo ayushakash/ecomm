@@ -22,7 +22,7 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">C</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">ConstructMart</span>
+            <span className="text-xl font-bold text-gray-900">Chardeevari</span>
           </div>
           <button
             onClick={() => setOpen(false)}
@@ -33,19 +33,32 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Navigation Links */}
+          {/* Quick Links - Only About and Contact */}
           <nav className="px-6 py-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">More</p>
             <div className="space-y-2">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => setOpen(false)}
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md"
-                >
-                  {item.name}
-                </Link>
-              ))}
+              {/* About */}
+              <Link
+                to="/about"
+                onClick={() => setOpen(false)}
+                className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                <svg className="h-5 w-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                About Us
+              </Link>
+              {/* Contact */}
+              <Link
+                to="/contact"
+                onClick={() => setOpen(false)}
+                className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                <svg className="h-5 w-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Contact Us
+              </Link>
             </div>
           </nav>
 
