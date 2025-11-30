@@ -76,8 +76,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) => {
           <Text style={styles.unit}>/{product.unit}</Text>
         </View>
 
-        <View style={styles.categoryContainer}>
-          <Text style={styles.category}>{product.category?.name}</Text>
+        <View style={styles.infoRow}>
+          <View style={styles.categoryContainer}>
+            <Text style={styles.category}>{product.category?.name}</Text>
+          </View>
+          <View style={styles.stockContainer}>
+            <Text
+              style={[
+                styles.stockText,
+                availableStock <= 5 && availableStock > 0 && styles.stockTextLow,
+                availableStock === 0 && styles.stockTextOut,
+              ]}
+            >
+              {availableStock} in stock
+            </Text>
+          </View>
         </View>
 
         <View style={styles.actionContainer}>
@@ -128,6 +141,7 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: SIZES.xs,
     padding: 0,
+    minHeight: 340,
   },
   imageContainer: {
     position: 'relative',
@@ -135,6 +149,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: SIZES.md,
     borderTopRightRadius: SIZES.md,
     overflow: 'hidden',
+    zIndex: 1,
   },
   image: {
     width: '100%',
@@ -201,8 +216,15 @@ const styles = StyleSheet.create({
     color: THEME.textSecondary,
     marginLeft: SIZES.xs,
   },
-  categoryContainer: {
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: SIZES.sm,
+    gap: SIZES.xs,
+  },
+  categoryContainer: {
+    flex: 1,
   },
   category: {
     fontSize: 12,
@@ -212,6 +234,26 @@ const styles = StyleSheet.create({
     paddingVertical: SIZES.xs,
     borderRadius: SIZES.xs,
     alignSelf: 'flex-start',
+  },
+  stockContainer: {
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: SIZES.xs,
+    borderRadius: SIZES.xs,
+  },
+  stockText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: THEME.success,
+  },
+  stockTextLow: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: THEME.warning,
+  },
+  stockTextOut: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: THEME.error,
   },
   actionContainer: {
     marginTop: 'auto',
