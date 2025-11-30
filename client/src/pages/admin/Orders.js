@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { orderAPI, merchantAPI } from "../../services/api";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import OrderLifecycleModal from "../../components/orders/OrderLifecycleModal";
+import ResponsiveTable from "../../components/ui/ResponsiveTable";
+import OrderCard from "../../components/ui/OrderCard";
 
 const Orders = () => {
   const queryClient = useQueryClient();
@@ -125,209 +127,322 @@ const Orders = () => {
           <p className="text-gray-600">Manage all orders in the system</p>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200 divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-2 text-left">Order #</th>
-              <th className="px-4 py-2 text-left">Customer</th>
-              <th className="px-4 py-2 text-left">Amount</th>
-              <th className="px-4 py-2 text-left">Status</th>
-              <th className="px-4 py-2 text-left">Merchant</th>
-              <th className="px-4 py-2 text-left">Date</th>
-              <th className="px-4 py-2 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {orderList?.orders?.map((order) => (
-              <React.Fragment key={order._id}>
-                <tr>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center justify-between">
-                      <span>#{order.orderNumber}</span>
-                      <button
-                        onClick={() => toggleExpand(order._id)}
-                        className="p-1 rounded hover:bg-gray-100"
+        <ResponsiveTable
+          data={orderList?.orders || []}
+          loading={isLoading}
+          emptyMessage="No orders found"
+          tableHeaders={["Order #", "Customer", "Amount", "Status", "Merchant", "Date", "Actions"]}
+          renderCard={(order) => (
+            <OrderCard
+              order={order}
+              onShowLifecycle={handleShowLifecycle}
+              getStatusColor={getStatusColor}
+              getOrderMerchantInfo={getOrderMerchantInfo}
+              expandedOrders={expandedOrders}
+              toggleExpand={toggleExpand}
+            >
+              {/* Expanded content for mobile cards */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 mb-3">Order Items</h4>
+                {order.items.map((item) => (
+                  <div
+                    key={item._id}
+                    className="bg-white p-3 rounded-lg border border-gray-200 space-y-2"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="font-medium text-gray-900">{item.productName}</div>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
+                          item.itemStatus || "pending"
+                        )}`}
                       >
-                        {expandedOrders[order._id] ? (
-                          <ChevronUpIcon className="w-5 h-5" />
-                        ) : (
-                          <ChevronDownIcon className="w-5 h-5" />
-                        )}
-                      </button>
+                        {item.itemStatus
+                          ? item.itemStatus.charAt(0).toUpperCase() +
+                            item.itemStatus.slice(1)
+                          : "Pending"}
+                      </span>
                     </div>
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex flex-col">
-                      <span>{order.customerName}</span>
-                      <span className="text-sm text-gray-500">{order.customerPhone}</span>
+
+                    <div className="text-sm text-gray-600">
+                      {item.assignedMerchantId ? (
+                        <div>
+                          <div className="font-medium">{item.assignedMerchantId.businessName || item.assignedMerchantId.name}</div>
+                          <div className="text-xs text-gray-500">{item.assignedMerchantId.name}</div>
+                        </div>
+                      ) : (
+                        "Unassigned"
+                      )}
                     </div>
-                  </td>
-                  <td className="px-4 py-2">₹{order.totalAmount}</td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        order.orderStatus || 'pending'
-                      )}`}
+
+                    <div className="flex items-center space-x-2 pt-2">
+                      <input
+                        type="checkbox"
+                        checked={autoAssign[item._id] || false}
+                        onChange={(e) =>
+                          setAutoAssign((prev) => ({
+                            ...prev,
+                            [item._id]: e.target.checked,
+                          }))
+                        }
+                      />
+                      <span className="text-sm">Auto Assign</span>
+
+                      {!autoAssign[item._id] && (
+                        <>
+                          <select
+                            className="border rounded p-1 text-sm flex-1"
+                            value={selectedMerchant[item._id] || ""}
+                            onFocus={() => fetchMerchantsForItem(item)}
+                            onChange={(e) =>
+                              setSelectedMerchant((prev) => ({
+                                ...prev,
+                                [item._id]: e.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">Select Merchant</option>
+                            {(availableMerchants[item._id] || []).map((m) => (
+                              <option key={m._id} value={m._id}>
+                                {m.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                            onClick={() =>
+                              handleManualAssign(order._id, item._id)
+                            }
+                          >
+                            Assign
+                          </button>
+                        </>
+                      )}
+
+                      {autoAssign[item._id] && (
+                        <button
+                          className="bg-green-600 text-white px-3 py-1 rounded text-sm"
+                          onClick={() => handleAutoAssign(order._id, item._id)}
+                        >
+                          Auto Assign
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </OrderCard>
+          )}
+          renderTableRow={(order) => (
+            <React.Fragment key={order._id}>
+              <tr>
+                <td className="px-4 py-2">
+                  <div className="flex items-center justify-between">
+                    <span>#{order.orderNumber}</span>
+                    <button
+                      onClick={() => toggleExpand(order._id)}
+                      className="p-1 rounded hover:bg-gray-100"
                     >
-                      {(order.orderStatus || 'pending').charAt(0).toUpperCase() + (order.orderStatus || 'pending').slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2">
-                    {(() => {
-                      const merchantInfo = getOrderMerchantInfo(order);
-                      if (merchantInfo.type === 'single_merchant') {
-                        return (
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {merchantInfo.merchant.businessName || merchantInfo.merchant.name}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {merchantInfo.merchant.name}
-                            </div>
+                      {expandedOrders[order._id] ? (
+                        <ChevronUpIcon className="w-5 h-5" />
+                      ) : (
+                        <ChevronDownIcon className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </td>
+                <td className="px-4 py-2">
+                  <div className="flex flex-col">
+                    <span>{order.customerName}</span>
+                    <span className="text-sm text-gray-500">{order.customerPhone}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2">₹{order.totalAmount}</td>
+                <td className="px-4 py-2">
+                  <span
+                    className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      order.orderStatus || 'pending'
+                    )}`}
+                  >
+                    {(order.orderStatus || 'pending').charAt(0).toUpperCase() + (order.orderStatus || 'pending').slice(1)}
+                  </span>
+                </td>
+                <td className="px-4 py-2">
+                  {(() => {
+                    const merchantInfo = getOrderMerchantInfo(order);
+                    if (merchantInfo.type === 'single_merchant') {
+                      return (
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {merchantInfo.merchant.businessName || merchantInfo.merchant.name}
                           </div>
-                        );
-                      } else if (merchantInfo.type === 'unassigned') {
-                        return (
-                          <span className="text-sm text-red-600">
-                            {merchantInfo.count} items unassigned
-                          </span>
-                        );
-                      } else {
-                        return (
-                          <span className="text-sm text-blue-600">
-                            Multiple merchants
-                          </span>
-                        );
-                      }
-                    })()}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
+                          <div className="text-xs text-gray-500">
+                            {merchantInfo.merchant.name}
+                          </div>
+                        </div>
+                      );
+                    } else if (merchantInfo.type === 'unassigned') {
+                      return (
+                        <span className="text-sm text-red-600">
+                          {merchantInfo.count} items unassigned
+                        </span>
+                      );
+                    } else {
+                      return (
+                        <span className="text-sm text-blue-600">
+                          Multiple merchants
+                        </span>
+                      );
+                    }
+                  })()}
+                </td>
+                <td className="px-4 py-2">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {new Date(order.createdAt).toLocaleDateString()}
                     </div>
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => toggleExpand(order._id)}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      >
-                        {expandedOrders[order._id] ? 'Collapse' : 'Manage'}
-                      </button>
-                      <button
-                        onClick={() => handleShowLifecycle(order)}
-                        className="text-green-600 hover:text-green-800 text-sm font-medium"
-                      >
-                        📋 Lifecycle
-                      </button>
+                    <div className="text-xs text-gray-500">
+                      {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-2">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => toggleExpand(order._id)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      {expandedOrders[order._id] ? 'Collapse' : 'Manage'}
+                    </button>
+                    <button
+                      onClick={() => handleShowLifecycle(order)}
+                      className="text-green-600 hover:text-green-800 text-sm font-medium"
+                    >
+                      📋 Lifecycle
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              {expandedOrders[order._id] && (
+                <tr>
+                  <td colSpan={7} className="bg-gray-50 px-4 py-4">
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">Order Items</h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-100 border-b border-gray-200">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-medium text-gray-700">Product</th>
+                              <th className="px-3 py-2 text-left font-medium text-gray-700">Unit</th>
+                              <th className="px-3 py-2 text-center font-medium text-gray-700">Quantity</th>
+                              <th className="px-3 py-2 text-right font-medium text-gray-700">Unit Price</th>
+                              <th className="px-3 py-2 text-right font-medium text-gray-700">Total</th>
+                              <th className="px-3 py-2 text-center font-medium text-gray-700">Status</th>
+                              <th className="px-3 py-2 text-left font-medium text-gray-700">Merchant</th>
+                              <th className="px-3 py-2 text-left font-medium text-gray-700">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {order.items?.map((item) => (
+                              <tr key={item._id} className="hover:bg-gray-100">
+                                <td className="px-3 py-2 font-medium text-gray-900">
+                                  {item.productName}
+                                </td>
+                                <td className="px-3 py-2 text-gray-600">
+                                  {item.unit || 'unit'}
+                                </td>
+                                <td className="px-3 py-2 text-center">
+                                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
+                                    {item.quantity}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-right text-gray-600">
+                                  ₹{(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="px-3 py-2 text-right font-medium text-gray-900">
+                                  ₹{((item.unitPrice || 0) * (item.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="px-3 py-2 text-center">
+                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.itemStatus)}`}>
+                                    {item.itemStatus?.charAt(0).toUpperCase() + item.itemStatus?.slice(1) || 'Pending'}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-sm">
+                                  {item.assignedMerchantId ? (
+                                    <div>
+                                      <div className="font-medium">{item.assignedMerchantId.businessName || item.assignedMerchantId.name}</div>
+                                      <div className="text-xs text-gray-500">{item.assignedMerchantId.name}</div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-red-600 font-medium">Unassigned</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2 text-sm">
+                                  <div className="flex items-center space-x-2 flex-wrap">
+                                    <input
+                                      type="checkbox"
+                                      checked={autoAssign[item._id] || false}
+                                      onChange={(e) =>
+                                        setAutoAssign((prev) => ({
+                                          ...prev,
+                                          [item._id]: e.target.checked,
+                                        }))
+                                      }
+                                      title="Auto Assign"
+                                    />
+                                    {!autoAssign[item._id] && (
+                                      <>
+                                        <select
+                                          className="border rounded p-1 text-xs flex-1 min-w-32"
+                                          value={selectedMerchant[item._id] || ""}
+                                          onFocus={() => fetchMerchantsForItem(item)}
+                                          onChange={(e) =>
+                                            setSelectedMerchant((prev) => ({
+                                              ...prev,
+                                              [item._id]: e.target.value,
+                                            }))
+                                          }
+                                        >
+                                          <option value="">Select</option>
+                                          {(availableMerchants[item._id] || []).map((m) => (
+                                            <option key={m._id} value={m._id}>
+                                              {m.businessName}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <button
+                                          className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                                          onClick={() =>
+                                            handleManualAssign(order._id, item._id)
+                                          }
+                                        >
+                                          Assign
+                                        </button>
+                                      </>
+                                    )}
+
+                                    {autoAssign[item._id] && (
+                                      <button
+                                        className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                                        onClick={() => handleAutoAssign(order._id, item._id)}
+                                      >
+                                        Auto
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </td>
                 </tr>
-
-                {expandedOrders[order._id] && (
-                  <tr>
-                    <td colSpan={7} className="bg-gray-50 px-4 py-2">
-                      <div className="space-y-2">
-                        {order.items.map((item) => (
-                          <div
-                            key={item._id}
-                            className="flex items-center justify-between bg-white p-2 rounded shadow-sm"
-                          >
-                            <div className="w-32 font-medium">{item.productName}</div>
-
-                            <div className="flex items-center space-x-2">
-                              <span
-                                className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                                  item.itemStatus || "pending"
-                                )}`}
-                              >
-                                {item.itemStatus
-                                  ? item.itemStatus.charAt(0).toUpperCase() +
-                                    item.itemStatus.slice(1)
-                                  : "Pending"}
-                              </span>
-                              <div className="text-sm text-gray-600">
-                                {item.assignedMerchantId ? (
-                                  <div>
-                                    <div className="font-medium">{item.assignedMerchantId.businessName || item.assignedMerchantId.name}</div>
-                                    <div className="text-xs text-gray-500">{item.assignedMerchantId.name}</div>
-                                  </div>
-                                ) : (
-                                  "Unassigned"
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={autoAssign[item._id] || false}
-                                onChange={(e) =>
-                                  setAutoAssign((prev) => ({
-                                    ...prev,
-                                    [item._id]: e.target.checked,
-                                  }))
-                                }
-                              />
-                              <span className="text-sm">Auto</span>
-
-                              {!autoAssign[item._id] && (
-                                <>
-                                  <select
-                                    className="border rounded p-1 text-sm"
-                                    value={selectedMerchant[item._id] || ""}
-                                    onFocus={() => fetchMerchantsForItem(item)}
-                                    onChange={(e) =>
-                                      setSelectedMerchant((prev) => ({
-                                        ...prev,
-                                        [item._id]: e.target.value,
-                                      }))
-                                    }
-                                  >
-                                    <option value="">Select Merchant</option>
-                                    {(availableMerchants[item._id] || []).map((m) => (
-                                      <option key={m._id} value={m._id}>
-                                        {m.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <button
-                                    className="bg-blue-600 text-white px-2 py-1 rounded text-sm"
-                                    onClick={() =>
-                                      handleManualAssign(order._id, item._id)
-                                    }
-                                  >
-                                    Assign
-                                  </button>
-                                </>
-                              )}
-
-                              {autoAssign[item._id] && (
-                                <button
-                                  className="bg-green-600 text-white px-2 py-1 rounded text-sm"
-                                  onClick={() => handleAutoAssign(order._id, item._id)}
-                                >
-                                  Assign Auto
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-          </table>
-        </div>
+              )}
+            </React.Fragment>
+          )}
+        />
       </div>
       
       {/* Order Lifecycle Modal - Temporarily commented out */}

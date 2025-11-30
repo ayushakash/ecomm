@@ -4,6 +4,7 @@ const Merchant = require('../models/Merchant');
 const User = require('../models/User');
 const { verifyToken, requireAdmin, requireMerchant, requireApprovedMerchant } = require('../middleware/auth');
 const Product = require('../models/Product');
+const MerchantProduct = require('../models/MerchantProduct');
 const mongoose = require('mongoose');
 
 const router = express.Router();
@@ -262,17 +263,15 @@ router.get('/product/:productId', async (req, res) => {
       return res.status(400).json({ message: 'Invalid product ID' });
     }
 
-    const product = await Product.findById(productId)
-      .populate('merchantId', 'name contact area activeStatus');
+    // Find all merchants selling this product through MerchantProduct junction table
+    const merchantProducts = await MerchantProduct.find({ productId })
+      .populate('merchantId', 'businessName contact area activeStatus')
+      .exec();
 
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    // Only approved merchants
-    const merchants = product.merchantId && product.merchantId.activeStatus === 'approved'
-      ? [product.merchantId]
-      : [];
+    // Filter for only approved merchants
+    const merchants = merchantProducts
+      .filter(mp => mp.merchantId && mp.merchantId.activeStatus === 'approved')
+      .map(mp => mp.merchantId);
 
     res.json(merchants);
   } catch (err) {
