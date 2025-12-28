@@ -1,0 +1,55 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+# package-lock.json - allow this for reproducible builds
+yarn.lock
+
+# Build output (will be created during build)
+build
+dist
+
+# Environment files
+# .env - commented out to allow build-time variables
+.env.local
+.env.development
+.env.test
+# .env.production - will be used in build
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+src/**/*.test.js
+src/**/*.test.jsx
+src/**/*.test.ts
+src/**/*.test.tsx
+src/**/*.spec.js
+coverage
+
+# Documentation
+*.md
+!README.md
+
+# Logs
+logs
+*.log
+
+# Cache
+.cache
+.eslintcache
+
+# Docker
+Dockerfile
+.dockerignore

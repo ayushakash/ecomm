@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const responseTime = require('response-time');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
