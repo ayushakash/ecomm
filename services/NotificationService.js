@@ -93,7 +93,7 @@ class NotificationService {
           timeout: this.config.n8n.timeout,
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'ConstructMart-Webhook/1.0'
+            'User-Agent': 'Chardeevari-Webhook/1.0'
           }
         });
 
@@ -379,14 +379,15 @@ class NotificationService {
     const eventConfig = this.config.orderEvents[eventType];
     if (!eventConfig) return [];
 
-    console.log("EVENT DATA", eventData);
+    // console.log("EVENT DATA", eventData);
 
     const notifications = [];
 
-    // For order_created events, use smart merchant selection
+    // For order_created events, use sequential smart merchant selection
     if (eventType === 'order_created' && eventData.orderData?.deliveryLocation?.coordinates) {
-      const smartNotifications = await this.processSmartOrderCreated(eventData);
-      notifications.push(...smartNotifications);
+      const SequentialNotificationService = require('./SequentialNotificationService');
+      const sequentialNotifications = await SequentialNotificationService.processSmartOrderSequential(eventData);
+      notifications.push(...sequentialNotifications);
     }
 
     // For order_assigned events, get assigned merchant details
@@ -441,7 +442,8 @@ class NotificationService {
           productId: item.productId,
           customerLocation: eventData.orderData.deliveryLocation,
           maxDistance: 15,
-          maxMerchants: 3
+          maxMerchants: 3,
+          requiredQuantity: item.quantity || 1
         });
 
         if (!smartMerchantResult.success) {

@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { getBackendUrlSync } from '../utils/getBackendUrl';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://192.168.1.5:5000',
+  baseURL: getBackendUrlSync(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -39,7 +40,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
           const response = await axios.post(
-            `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/refresh`,
+            `${getBackendUrlSync()}/api/auth/refresh`,
             { refreshToken }
           );
 
@@ -99,6 +100,8 @@ export const merchantAPI = {
   updateProfile: (profileData) => api.put('/api/merchants/profile', profileData).then(res => res.data),
   getProfile: () => api.get('/api/merchants/profile/me').then(res => res.data),
   getMerchantsByProduct: (productId) => api.get(`/api/merchants/product/${productId}`).then(res => res.data),
+  getNearbyMerchants: (locationData) => api.post('/api/merchants/nearby', locationData).then(res => res.data),
+  getAvailableCities: () => api.get('/api/merchants/available-cities').then(res => res.data),
 };
 
 export const productAPI = {
@@ -122,12 +125,15 @@ export const orderAPI = {
   getOrder: (id) => api.get(`/api/orders/${id}`),
   updateOrderStatus: (id, status, note) => api.put(`/api/orders/${id}/status`, { status, note }),
   updateOrderItemStatus: (orderId, itemId, status, note) => api.put(`/api/orders/${orderId}/items/${itemId}/status`, { status, note }),
+  bulkUpdateOrderItemsStatus: (orderId, itemIds, status, note = '') => api.put(`/api/orders/${orderId}/items/bulk-status`, { itemIds, status, note }),
   cancelOrder: (id) => api.put(`/api/orders/${id}/cancel`),
+  adminCancelOrder: (id) => api.put(`/api/orders/admin/${id}/cancel`),
   getAnalytics: () => api.get('/api/orders/analytics/summary').then(res => res.data),
   getAdminDashboard: () => api.get('/api/orders/admin/dashboard').then(res => res.data),
   getMerchantDashboard: () => api.get('/api/orders/merchant/dashboard').then(res => res.data),
   getMerchantAnalytics: () => api.get('/api/orders/merchant/analytics/summary').then(res => res.data),
   assignItem: (orderId, itemId) =>api.put(`/api/orders/${orderId}/items/${itemId}/assign`),
+  bulkAssignItems: (orderId, itemIds) => api.put(`/api/orders/${orderId}/items/bulk-assign`, { itemIds }),
   autoAssignItem: (orderId, itemId, merchantId) =>api.put(`/api/orders/${orderId}/assign-merchant`, { itemId, merchantId }),
   getUnassignedOrders: () =>api.get(`/api/orders/status/unassigned`).then(res => res.data),
   respondToOrder: (orderId, itemId, action) =>api.post('/api/orders/respond', { orderId, itemId, action }).then(res => res.data),
@@ -143,13 +149,34 @@ export const settingsAPI = {
 };
 
 export const addressAPI = {
-  getAllAddresses: () => api.get('/api/addresses').then(res => res.data),
-  getAddress: (id) => api.get(`/api/addresses/${id}`).then(res => res.data),
-  createAddress: (addressData) => api.post('/api/addresses', addressData).then(res => res.data),
-  updateAddress: (id, addressData) => api.put(`/api/addresses/${id}`, addressData).then(res => res.data),
+  getAllAddresses: () => api.get('/api/addresses').then(res => ({ addresses: res.data.data })),
+  getAddress: (id) => api.get(`/api/addresses/${id}`).then(res => res.data.data),
+  createAddress: (addressData) => api.post('/api/addresses', addressData).then(res => res.data.data),
+  updateAddress: (id, addressData) => api.put(`/api/addresses/${id}`, addressData).then(res => res.data.data),
   deleteAddress: (id) => api.delete(`/api/addresses/${id}`).then(res => res.data),
-  setDefaultAddress: (id) => api.put(`/api/addresses/${id}/default`).then(res => res.data),
-  getDefaultAddress: () => api.get('/api/addresses/default/get').then(res => res.data)
+  setDefaultAddress: (id) => api.put(`/api/addresses/${id}/default`).then(res => res.data.data),
+  getDefaultAddress: () => api.get('/api/addresses/default/get').then(res => res.data.data)
+};
+
+export const reviewAPI = {
+  getProductReviews: (productId, params = {}) => api.get(`/api/reviews/product/${productId}`, { params }).then(res => res.data),
+  createReview: (reviewData) => api.post('/api/reviews', reviewData).then(res => res.data),
+  updateReview: (reviewId, reviewData) => api.put(`/api/reviews/${reviewId}`, reviewData).then(res => res.data),
+  deleteReview: (reviewId) => api.delete(`/api/reviews/${reviewId}`).then(res => res.data),
+  markHelpful: (reviewId) => api.post(`/api/reviews/${reviewId}/helpful`).then(res => res.data),
+  markUnhelpful: (reviewId) => api.post(`/api/reviews/${reviewId}/unhelpful`).then(res => res.data),
+  getPendingReviews: (params = {}) => api.get('/api/reviews/admin/pending', { params }).then(res => res.data),
+  approveReview: (reviewId) => api.put(`/api/reviews/admin/${reviewId}/approve`).then(res => res.data),
+  rejectReview: (reviewId) => api.put(`/api/reviews/admin/${reviewId}/reject`).then(res => res.data)
+};
+
+export const cityAPI = {
+  getAllCities: (params = {}) => api.get('/api/cities', { params }).then(res => res.data),
+  getCity: (id) => api.get(`/api/cities/${id}`).then(res => res.data),
+  createCity: (cityData) => api.post('/api/cities', cityData).then(res => res.data),
+  updateCity: (id, cityData) => api.put(`/api/cities/${id}`, cityData).then(res => res.data),
+  deleteCity: (id) => api.delete(`/api/cities/${id}`).then(res => res.data),
+  bulkCreateCities: (cities) => api.post('/api/cities/bulk', { cities }).then(res => res.data)
 };
 
 export default api;

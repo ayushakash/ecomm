@@ -24,25 +24,20 @@ class ApiService {
       async (config) => {
         try {
           const token = await AsyncStorage.getItem('accessToken');
-          console.log('API Request interceptor - Token:', token ? 'Present' : 'Missing');
-          console.log('API Request URL:', config.url);
-          console.log('API Request Method:', config.method);
-          
-          // Check if this is an auth endpoint that doesn't need a token
-          const isAuthEndpoint = config.url?.includes('/auth/login') ||
-                                 config.url?.includes('/auth/register') ||
-                                 config.url?.includes('/auth/refresh') ||
-                                 config.url?.includes('/auth/send-otp') ||
-                                 config.url?.includes('/auth/verify-otp');
-          
+
+          // Check if this is a public endpoint that doesn't need a token
+          const isPublicEndpoint = config.url?.includes('/auth/') ||
+                                   config.url?.includes('/products') ||
+                                   config.url?.includes('/settings') ||
+                                   config.url?.includes('/categories');
+
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('Authorization header set');
-          } else if (!isAuthEndpoint) {
-            console.warn('No access token found for API request');
+          } else if (!isPublicEndpoint) {
+            console.warn('No access token found for protected API request');
             delete config.headers.Authorization;
           }
-          
+
           return config;
         } catch (error) {
           console.error('Error in request interceptor:', error);
@@ -121,8 +116,8 @@ class ApiService {
     return this.api.put(url, data);
   }
 
-  async delete<T>(url: string): Promise<AxiosResponse<T>> {
-    return this.api.delete(url);
+  async delete<T>(url: string, config?: any): Promise<AxiosResponse<T>> {
+    return this.api.delete(url, config);
   }
 
   // Auth API
@@ -180,10 +175,12 @@ class ApiService {
     createOrder: (orderData: any) => this.post('/api/orders', orderData),
     getOrders: (params?: any) => this.get('/api/orders', params),
     getOrder: (id: string) => this.get(`/api/orders/${id}`),
-    updateOrderStatus: (id: string, status: string, note?: string) => 
+    updateOrderStatus: (id: string, status: string, note?: string) =>
       this.put(`/api/orders/${id}/status`, { status, note }),
-    updateOrderItemStatus: (orderId: string, itemId: string, status: string, note?: string) => 
+    updateOrderItemStatus: (orderId: string, itemId: string, status: string, note?: string) =>
       this.put(`/api/orders/${orderId}/items/${itemId}/status`, { status, note }),
+    bulkUpdateOrderItemsStatus: (orderId: string, itemIds: string[], status: string, note?: string) =>
+      this.put(`/api/orders/${orderId}/items/bulk-status`, { itemIds, status, note }),
     cancelOrder: (id: string) => this.put(`/api/orders/${id}/cancel`),
     getAnalytics: () => this.get('/api/orders/analytics/summary'),
     getAdminDashboard: () => this.get('/api/orders/admin/dashboard'),
@@ -191,6 +188,8 @@ class ApiService {
     getMerchantAnalytics: () => this.get('/api/orders/merchant/analytics/summary'),
     assignItem: (orderId: string, itemId: string) =>
       this.put(`/api/orders/${orderId}/items/${itemId}/assign`),
+    bulkAssignItems: (orderId: string, itemIds: string[]) =>
+      this.put(`/api/orders/${orderId}/items/bulk-assign`, { itemIds }),
     autoAssignItem: (orderId: string, itemId: string, merchantId: string) =>
       this.put(`/api/orders/${orderId}/assign-merchant`, { itemId, merchantId }),
     getUnassignedOrders: () => this.get('/api/orders/status/unassigned'),
@@ -222,4 +221,6 @@ class ApiService {
   };
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+export default apiService;
+export const api = apiService;

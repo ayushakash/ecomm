@@ -22,13 +22,47 @@ const productSchema = new mongoose.Schema({
   sku: { type: String, unique: true, index: true },
 
   // ✅ Master catalog fields
-  price: { type: Number, default: 0 }, // master price
+  price: { type: Number, default: 0 }, // base/fallback price
   unit: {
     type: String,
     enum: ["kg", "ton", "bag", "piece", "cubic-meter", "sq-ft"],
     default: "piece"
   },
-  weight: { type: Number, default: 0, min: 0 } // weight in kg for delivery calculations
+  weight: { type: Number, default: 0, min: 0 }, // weight in kg for delivery calculations
+
+  // 🌍 City-specific pricing
+  cityPricing: [{
+    cityId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CityMaster',
+      required: true
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    isAvailable: {
+      type: Boolean,
+      default: true
+    }
+  }],
+
+  // GST rate for this product (in percentage)
+  gstRate: {
+    type: Number,
+    default: 18, // Default 18% GST
+    enum: [0, 5, 12, 18, 28], // Valid GST rates in India
+    required: true
+  },
+
+  // GST type - how GST is applied to the price
+  gstType: {
+    type: String,
+    enum: ['inclusive', 'exclusive', 'no-gst'],
+    default: 'exclusive',
+    required: true
+  }
 
 }, { timestamps: true });
 

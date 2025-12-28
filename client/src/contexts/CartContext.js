@@ -12,18 +12,24 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
+  const [cartCity, setCartCity] = useState(null); // Track which city the cart items are from
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
+    const savedCartCity = localStorage.getItem('cartCity');
     if (savedCart) {
       try {
         setCart(JSON.parse(savedCart));
+        if (savedCartCity) {
+          setCartCity(savedCartCity);
+        }
       } catch (error) {
         console.error('Error loading cart from localStorage:', error);
         setCart([]);
+        setCartCity(null);
       }
     }
     setIsInitialized(true);
@@ -33,13 +39,18 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     if (isInitialized) {
       localStorage.setItem('cart', JSON.stringify(cart));
+      if (cartCity) {
+        localStorage.setItem('cartCity', cartCity);
+      } else {
+        localStorage.removeItem('cartCity');
+      }
     }
-  }, [cart, isInitialized]);
+  }, [cart, cartCity, isInitialized]);
 
-  const addToCart = (product, quantity = 1) => {
+  const addToCart = (product, quantity = 1, city = null) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item._id === product._id);
-      
+
       if (existingItem) {
         // Update quantity if item already exists
         return prevCart.map(item =>
@@ -62,6 +73,17 @@ export const CartProvider = ({ children }) => {
         }];
       }
     });
+
+    // Set cart city if provided and not already set
+    if (city && !cartCity) {
+      setCartCity(city);
+    }
+  };
+
+  const setCartCityIfEmpty = (city) => {
+    if (!cartCity && city) {
+      setCartCity(city);
+    }
   };
 
   const removeFromCart = (productId) => {
@@ -85,6 +107,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCart([]);
+    setCartCity(null);
   };
 
   const getCartTotal = () => {
@@ -105,6 +128,8 @@ export const CartProvider = ({ children }) => {
 
   const value = {
     cart,
+    cartCity,
+    setCartCityIfEmpty,
     loading,
     setLoading,
     addToCart,

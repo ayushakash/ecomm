@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { orderAPI, merchantAPI } from "../../services/api";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import OrderLifecycleModal from "../../components/orders/OrderLifecycleModal";
 import ResponsiveTable from "../../components/ui/ResponsiveTable";
 import OrderCard from "../../components/ui/OrderCard";
+import { toast } from 'react-hot-toast';
 
 const Orders = () => {
   const queryClient = useQueryClient();
@@ -88,6 +89,30 @@ const Orders = () => {
       console.error(err);
       alert("Failed to auto-assign merchant: " + (err.response?.data?.message || err.message));
     }
+  };
+
+  // Mutation for admin canceling order
+  const cancelOrderMutation = useMutation({
+    mutationFn: (orderId) => orderAPI.adminCancelOrder(orderId),
+    onSuccess: () => {
+      toast.success('Order cancelled successfully');
+      queryClient.invalidateQueries(['orders']);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to cancel order');
+    }
+  });
+
+  // Handle cancel order with confirmation
+  const handleCancelOrder = (orderId, orderNumber) => {
+    if (window.confirm(`Are you sure you want to cancel order #${orderNumber}? This action cannot be undone.`)) {
+      cancelOrderMutation.mutate(orderId);
+    }
+  };
+
+  // Check if order can be cancelled (not delivered or already cancelled)
+  const canCancelOrder = (status) => {
+    return status !== 'delivered' && status !== 'cancelled';
   };
 
   if (isLoading) return <div className="text-center py-12">Loading orders...</div>;
@@ -436,6 +461,25 @@ const Orders = () => {
                           </tbody>
                         </table>
                       </div>
+
+                      {/* Cancel Order Button */}
+                      {canCancelOrder(order.orderStatus) && (
+                        <div className="mt-6 pt-4 border-t border-gray-300">
+                          <button
+                            onClick={() => handleCancelOrder(order._id, order.orderNumber)}
+                            disabled={cancelOrderMutation.isLoading}
+                            className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:from-red-700 hover:to-red-800 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            {cancelOrderMutation.isLoading ? 'Cancelling...' : 'Cancel Order (Admin)'}
+                          </button>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Note: Orders that have been delivered cannot be cancelled
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>

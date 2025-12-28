@@ -117,21 +117,17 @@ const MerchantAnalytics = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Header Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                📊 Analytics Dashboard
-              </h1>
-              <p className="text-gray-600 text-lg mt-2">Track your business performance and growth</p>
-            </div>
-            <div className="flex items-center space-x-3 bg-gradient-to-r from-green-50 to-blue-50 px-6 py-3 rounded-full border border-green-200">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-green-700 font-semibold">Live Data</span>
-            </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-8 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+            <p className="text-gray-600">Track your business performance and growth</p>
+          </div>
+          <div className="flex items-center space-x-2 bg-green-100 px-4 py-2 rounded-lg">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-green-700 font-medium">Live Data</span>
           </div>
         </div>
 

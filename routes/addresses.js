@@ -3,6 +3,7 @@ const router = express.Router();
 const Address = require('../models/Address');
 const { verifyToken } = require('../middleware/auth');
 const mongoose = require('mongoose');
+const GeocodingService = require('../services/GeocodingService');
 
 // @desc    Get all addresses for a user
 // @route   GET /api/addresses
@@ -89,6 +90,25 @@ router.post('/', verifyToken, async (req, res) => {
       deliveryInstructions
     } = req.body;
 
+    // Auto-geocode if coordinates not provided
+    let finalCoordinates = coordinates;
+    if (!coordinates || !coordinates.latitude || !coordinates.longitude) {
+      console.log('🗺️ Auto-geocoding address...');
+      const fullAddress = `${addressLine1}, ${addressLine2 || ''}, ${landmark || ''}, ${area}, ${city}, ${state} - ${pincode}`;
+      const geocodeResult = await GeocodingService.addressToCoordinates(fullAddress);
+
+      if (geocodeResult.success) {
+        finalCoordinates = {
+          latitude: geocodeResult.coordinates[1],
+          longitude: geocodeResult.coordinates[0]
+        };
+        console.log(`✅ Geocoded to: ${finalCoordinates.latitude}, ${finalCoordinates.longitude}`);
+      } else {
+        console.log('⚠️ Geocoding failed, using default coordinates');
+        finalCoordinates = { latitude: 0, longitude: 0 };
+      }
+    }
+
     // Create new address
     const address = new Address({
       user: req.user._id,
@@ -102,18 +122,18 @@ router.post('/', verifyToken, async (req, res) => {
       city,
       state,
       pincode,
-      coordinates,
+      coordinates: finalCoordinates,
       isDefault: isDefault || false,
       addressType,
       deliveryInstructions
     });
 
     // If this is the user's first address, make it default
-    const addressCount = await Address.countDocuments({ 
-      user: req.user._id, 
-      isActive: true 
+    const addressCount = await Address.countDocuments({
+      user: req.user._id,
+      isActive: true
     });
-    
+
     if (addressCount === 0) {
       address.isDefault = true;
     }
@@ -379,6 +399,126 @@ router.get('/default/get', verifyToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while fetching default address'
+    });
+  }
+});
+
+// @desc    Geocode an address to get coordinates
+// @route   POST /api/addresses/geocode
+// @access  Private
+router.post('/geocode', verifyToken, async (req, res) => {
+  try {
+    const { address } = req.body;
+
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Address is required'
+      });
+    }
+
+    const result = await GeocodingService.addressToCoordinates(address);
+
+    res.json({
+      success: result.success,
+      data: result.success ? {
+        coordinates: {
+          latitude: result.coordinates[1],
+          longitude: result.coordinates[0]
+        },
+        formatted_address: result.formatted_address,
+        confidence: result.confidence
+      } : null,
+      message: result.error || 'Address geocoded successfully'
+    });
+
+  } catch (error) {
+    console.error('Geocode error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during geocoding'
+    });
+  }
+});
+
+// @desc    Reverse geocode coordinates to get address
+// @route   POST /api/addresses/reverse-geocode
+// @access  Private
+router.post('/reverse-geocode', verifyToken, async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude and longitude are required'
+      });
+    }
+
+    const result = await GeocodingService.coordinatesToAddress(longitude, latitude);
+
+    res.json({
+      success: result.success,
+      data: result.success ? {
+        address: result.address,
+        components: result.components
+      } : null,
+      message: result.error || 'Coordinates reverse geocoded successfully'
+    });
+
+  } catch (error) {
+    console.error('Reverse geocode error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during reverse geocoding'
+    });
+  }
+});
+
+// @desc    Get current location from device
+// @route   POST /api/addresses/current-location
+// @access  Private
+router.post('/current-location', verifyToken, async (req, res) => {
+  try {
+    const { latitude, longitude, accuracy } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Location coordinates are required'
+      });
+    }
+
+    // Validate coordinates are within service area
+    const isValidLocation = GeocodingService.isWithinDeliveryArea([longitude, latitude]);
+
+    if (!isValidLocation) {
+      return res.status(400).json({
+        success: false,
+        message: 'Location is outside our delivery area'
+      });
+    }
+
+    // Get address from coordinates
+    const addressResult = await GeocodingService.coordinatesToAddress(longitude, latitude);
+
+    res.json({
+      success: true,
+      data: {
+        coordinates: { latitude, longitude },
+        accuracy: accuracy || null,
+        address: addressResult.success ? addressResult.address : null,
+        components: addressResult.success ? addressResult.components : null,
+        isWithinDeliveryArea: isValidLocation
+      },
+      message: 'Current location processed successfully'
+    });
+
+  } catch (error) {
+    console.error('Current location error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error processing current location'
     });
   }
 });

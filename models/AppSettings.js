@@ -1,10 +1,17 @@
 const mongoose = require('mongoose');
 
 const AppSettingsSchema = new mongoose.Schema({
+  // GST Configuration (Application-wide)
+  gstEnabled: {
+    type: Boolean,
+    default: true, // Enable GST by default
+    required: true
+  },
+
   // Pricing Configuration
   taxRate: {
     type: Number,
-    default: 0.18, // 18% GST
+    default: 0.18, // 18% GST (DEPRECATED - use per-product gstRate instead)
     min: 0,
     max: 1
   },
@@ -51,6 +58,29 @@ const AppSettingsSchema = new mongoose.Schema({
     freeWeightLimit: {
       type: Number,
       default: 50 // Free delivery under 50kg
+    },
+
+    // Location-based delivery filtering
+    maxDeliveryRadius: {
+      type: Number,
+      default: 10 // Primary delivery radius in km
+    },
+    maxExpandedRadius: {
+      type: Number,
+      default: 25 // Maximum expanded radius for sparse areas in km
+    },
+    minimumMerchantsBeforeExpand: {
+      type: Number,
+      default: 3 // Expand search if fewer merchants found
+    },
+    fallbackStrategy: {
+      type: String,
+      enum: ['expand', 'city-wide', 'none'],
+      default: 'expand' // expand: expand radius, city-wide: show all city merchants, none: show no products
+    },
+    enablePincodeGrouping: {
+      type: Boolean,
+      default: true // Group nearby pincodes as same delivery zone
     }
   },
   
@@ -59,6 +89,13 @@ const AppSettingsSchema = new mongoose.Schema({
     type: String,
     enum: ['admin', 'merchant', 'lowest'], // admin: show admin price, merchant: show merchant price, lowest: show lowest available price
     default: 'admin'
+  },
+
+  // GST Display Configuration (platform-wide)
+  gstDisplayMode: {
+    type: String,
+    enum: ['inclusive', 'exclusive', 'no-display'], // inclusive: prices include GST, exclusive: GST added at checkout, no-display: show base price without GST
+    default: 'exclusive'
   },
   
   // Stock Configuration

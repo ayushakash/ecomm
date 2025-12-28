@@ -57,7 +57,8 @@ router.put('/profile', [
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('phone').optional().trim(),
   body('address').optional().trim(),
-  body('area').optional().trim().notEmpty().withMessage('Area cannot be empty')
+  body('area').optional().trim(),
+  body('email').optional().trim().isEmail().withMessage('Invalid email format')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -65,13 +66,14 @@ router.put('/profile', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, phone, address, area } = req.body;
+    const { name, phone, address, area, email } = req.body;
 
     // Update allowed fields
     if (name) req.user.name = name;
     if (phone) req.user.phone = phone;
     if (address) req.user.address = address;
     if (area) req.user.area = area;
+    if (email) req.user.email = email;
 
     await req.user.save();
 

@@ -303,7 +303,7 @@ router.post('/test/n8n', adminAuth, async (req, res) => {
     const testData = {
       eventType: 'test_notification',
       timestamp: new Date(),
-      message: 'Test notification from ConstructMart',
+      message: 'Test notification from Chardeevari',
       ...req.body
     };
 

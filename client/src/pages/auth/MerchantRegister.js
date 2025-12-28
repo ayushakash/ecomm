@@ -178,8 +178,15 @@ const MerchantRegister = () => {
       const data = await response.json();
 
       if (response.ok) {
+        // Save tokens and user data to localStorage
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
         toast.success('Merchant registration successful! Please wait for admin approval.');
-        navigate('/pending-approval');
+
+        // Navigate to pending approval with user data
+        navigate('/pending-approval', { state: { user: data.user } });
       } else {
         throw new Error(data.message || 'Registration failed');
       }

@@ -105,7 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AsyncStorage.setItem('refreshToken', refreshTokenValue);
       await AsyncStorage.setItem('user', JSON.stringify(newUser));
 
-      notificationService.success('Welcome!', 'Registration successful!');
+      // notificationService.success('Welcome!', 'Registration successful!');
 
       return { success: true, user: newUser, accessToken, refreshToken: refreshTokenValue };
     } catch (error: any) {
@@ -142,7 +142,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AsyncStorage.setItem('refreshToken', refreshTokenValue);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
 
-      notificationService.success('Welcome back!', 'Login successful!');
+      // notificationService.success('Welcome back!', 'Login successful!');
 
       return { success: true, user: userData, accessToken, refreshToken: refreshTokenValue };
     } catch (error: any) {

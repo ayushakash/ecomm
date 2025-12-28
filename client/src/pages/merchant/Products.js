@@ -153,16 +153,19 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-8">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold">My Products</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          + Add Product
-        </button>
-      </div>
+      <div className="max-w-7xl mx-auto px-8 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">My Products</h1>
+            <p className="text-gray-600">Manage your product inventory and pricing</p>
+          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            + Add Product
+          </button>
+        </div>
 
       {/* Popup to edit stock, price, and enable */}
       {stockPopup.open && (
@@ -271,6 +274,80 @@ const Products = () => {
         data={merchantProducts?.products || []}
         columns={columns}
         isLoading={isLoading}
+        renderCard={(product) => (
+          <div key={product._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            {/* Header with Image */}
+            <div className="relative">
+              <img
+                className="w-full h-48 object-cover"
+                src={product.images?.[0] || "https://picsum.photos/200/300"}
+                alt={product.name}
+              />
+              <div className="absolute top-2 right-2">
+                <span
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    product.enabled
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {product.enabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-3">
+              {/* Product Name */}
+              <div>
+                <h3 className="font-semibold text-gray-900 text-lg">{product.name}</h3>
+                <p className="text-sm text-gray-500">Category: {product.category?.name}</p>
+              </div>
+
+              {/* Price */}
+              <div className="flex items-center space-x-2">
+                <div>
+                  <span className="font-semibold text-gray-900">₹{product.price}</span>
+                  <span className="text-sm text-gray-500 ml-1">per unit</span>
+                </div>
+              </div>
+
+              {/* Stock */}
+              <div className="flex items-center space-x-2">
+                <div>
+                  <span className={`font-medium ${
+                    product.myStock > 10 ? 'text-green-600' :
+                    product.myStock > 0 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {product.myStock} units
+                  </span>
+                  <span className="text-sm text-gray-500 ml-1">in stock</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+              <button
+                className="w-full inline-flex items-center justify-center px-3 py-2 border border-yellow-300 text-sm font-medium rounded-lg text-yellow-700 bg-yellow-50 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
+                onClick={() => {
+                  setStockPopup({
+                    open: true,
+                    productId: product._id,
+                    currentStock: product.myStock,
+                    currentPrice: product.price,
+                    currentEnabled: product.enabled,
+                  });
+                  setNewStock(product.myStock);
+                  setNewPrice(product.price);
+                  setNewEnabled(product.enabled);
+                }}
+              >
+                Edit Product
+              </button>
+            </div>
+          </div>
+        )}
       />
 
       {/* Modal for adding product */}

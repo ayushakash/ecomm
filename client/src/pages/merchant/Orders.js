@@ -2,11 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderAPI } from "../../services/api";
 import { useLocation } from 'react-router-dom';
+import ResponsiveTable from "../../components/ui/ResponsiveTable";
+import MerchantOrderCard from "../../components/ui/MerchantOrderCard";
 
 const Orders = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [tab, setTab] = useState("new"); // "new" or "my" - default to new orders
+  const [expandedOrder, setExpandedOrder] = useState(null); // Track which order is expanded
 
   // Set tab based on URL query parameter
   useEffect(() => {
@@ -28,6 +31,8 @@ const Orders = () => {
     enabled: tab === "my",
   });
 
+  console.log(orderList)
+
   // Fetch unassigned orders
   const {
     data: unassignedList,
@@ -40,14 +45,22 @@ const Orders = () => {
   });
   // Mutation: accept or reject an unassigned order item with optimistic updates
   const respondMutation = useMutation({
-    mutationFn: ({ orderId, itemId, action }) => {
+    mutationFn: ({ orderId, itemIds, action }) => {
       if (action === "accept") {
-        return orderAPI.assignItem(orderId, itemId);
+        // Use bulk assign if multiple items, otherwise single assign
+        if (Array.isArray(itemIds) && itemIds.length > 1) {
+          return orderAPI.bulkAssignItems(orderId, itemIds);
+        } else {
+          const itemId = Array.isArray(itemIds) ? itemIds[0] : itemIds;
+          return orderAPI.assignItem(orderId, itemId);
+        }
       } else {
+        // Reject single item (bulk reject not needed for MVP)
+        const itemId = Array.isArray(itemIds) ? itemIds[0] : itemIds;
         return orderAPI.rejectItem(orderId, itemId);
       }
     },
-    onMutate: async ({ orderId, itemId, action }) => {
+    onMutate: async ({ orderId, itemIds, action }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries(["unassigned-orders"]);
       await queryClient.cancelQueries(["merchant-orders"]);
@@ -56,8 +69,11 @@ const Orders = () => {
       const previousUnassigned = queryClient.getQueryData(["unassigned-orders"]);
       const previousMerchant = queryClient.getQueryData(["merchant-orders"]);
 
+      // Convert itemIds to array if it's a single item
+      const itemIdArray = Array.isArray(itemIds) ? itemIds : [itemIds];
+
       if (action === "accept") {
-        // Optimistically move item from unassigned to merchant orders
+        // Optimistically move items from unassigned to merchant orders
         queryClient.setQueryData(["unassigned-orders"], (old) => {
           if (!Array.isArray(old)) return old;
 
@@ -65,7 +81,7 @@ const Orders = () => {
             if (order._id === orderId) {
               return {
                 ...order,
-                items: order.items.filter(item => item._id !== itemId)
+                items: order.items.filter(item => !itemIdArray.includes(item._id))
               };
             }
             return order;
@@ -76,34 +92,34 @@ const Orders = () => {
         queryClient.setQueryData(["merchant-orders"], (old) => {
           if (!old?.orders) return old;
 
-          // Find the accepted item from unassigned orders
+          // Find the accepted items from unassigned orders
           const unassignedOrder = previousUnassigned?.find(order => order._id === orderId);
-          const acceptedItem = unassignedOrder?.items?.find(item => item._id === itemId);
+          const acceptedItems = unassignedOrder?.items?.filter(item => itemIdArray.includes(item._id));
 
-          if (!acceptedItem) return old;
+          if (!acceptedItems || acceptedItems.length === 0) return old;
 
           // Check if order already exists in merchant orders
           const existingOrderIndex = old.orders.findIndex(order => order._id === orderId);
 
           if (existingOrderIndex !== -1) {
-            // Add item to existing order
+            // Add items to existing order
             const updatedOrders = [...old.orders];
             updatedOrders[existingOrderIndex] = {
               ...updatedOrders[existingOrderIndex],
-              items: [...updatedOrders[existingOrderIndex].items, { ...acceptedItem, itemStatus: 'assigned' }]
+              items: [...updatedOrders[existingOrderIndex].items, ...acceptedItems.map(item => ({ ...item, itemStatus: 'assigned' }))]
             };
             return { ...old, orders: updatedOrders };
           } else {
-            // Add new order with the accepted item
+            // Add new order with the accepted items
             const newOrder = {
               ...unassignedOrder,
-              items: [{ ...acceptedItem, itemStatus: 'assigned' }]
+              items: acceptedItems.map(item => ({ ...item, itemStatus: 'assigned' }))
             };
             return { ...old, orders: [newOrder, ...old.orders] };
           }
         });
       } else {
-        // For reject, just remove the item from unassigned orders
+        // For reject, just remove the items from unassigned orders
         queryClient.setQueryData(["unassigned-orders"], (old) => {
           if (!Array.isArray(old)) return old;
 
@@ -111,7 +127,7 @@ const Orders = () => {
             if (order._id === orderId) {
               return {
                 ...order,
-                items: order.items.filter(item => item._id !== itemId)
+                items: order.items.filter(item => !itemIdArray.includes(item._id))
               };
             }
             return order;
@@ -132,6 +148,13 @@ const Orders = () => {
       }
       alert("Failed to respond. Changes have been reverted.");
     },
+    onSuccess: (data) => {
+      // Show warning if some items failed
+      if (data?.failedItems && data.failedItems.length > 0) {
+        console.warn('Some items failed to assign:', data.failedItems);
+        alert(`Warning: ${data.assignedItemsCount} items assigned successfully, but ${data.failedItems.length} items failed (you may not sell those products)`);
+      }
+    },
     onSettled: () => {
       // Always refetch after error or success to ensure consistency
       queryClient.invalidateQueries(["unassigned-orders"]);
@@ -141,14 +164,24 @@ const Orders = () => {
 
   // Mutation: update status of an item in my orders with optimistic updates
   const updateStatusMutation = useMutation({
-    mutationFn: ({ orderId, itemId, status }) =>
-      orderAPI.updateOrderItemStatus(orderId, itemId, status),
-    onMutate: async ({ orderId, itemId, status }) => {
+    mutationFn: ({ orderId, itemIds, status }) => {
+      // Use bulk update if multiple items, otherwise single update
+      if (Array.isArray(itemIds) && itemIds.length > 1) {
+        return orderAPI.bulkUpdateOrderItemsStatus(orderId, itemIds, status);
+      } else {
+        const itemId = Array.isArray(itemIds) ? itemIds[0] : itemIds;
+        return orderAPI.updateOrderItemStatus(orderId, itemId, status);
+      }
+    },
+    onMutate: async ({ orderId, itemIds, status }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries(["merchant-orders"]);
 
       // Snapshot the previous value
       const previousOrders = queryClient.getQueryData(["merchant-orders"]);
+
+      // Convert itemIds to array if it's a single item
+      const itemIdArray = Array.isArray(itemIds) ? itemIds : [itemIds];
 
       // Optimistically update the cache
       queryClient.setQueryData(["merchant-orders"], (old) => {
@@ -161,7 +194,7 @@ const Orders = () => {
               return {
                 ...order,
                 items: order.items.map(item => {
-                  if (item._id === itemId) {
+                  if (itemIdArray.includes(item._id)) {
                     return { ...item, itemStatus: status };
                   }
                   return item;
@@ -216,219 +249,22 @@ const Orders = () => {
     return statuses.length > 1;
   };
 
-  // Common order card renderer
-  const renderOrderCard = (order, isNew = false) => (
-    <div
-      key={order._id}
-      className="bg-white shadow rounded-lg p-4 flex flex-col"
-    >
-      {/* Header */}
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex items-center gap-2">
-          <div className="font-semibold text-gray-900">
-            #{order.orderNumber || order._id.slice(-6)}
-          </div>
-          {!isNew && hasMixedStatuses(order) && (
-            <span className="bg-orange-100 text-orange-800 px-2 py-1 text-xs rounded-full">
-              Partial
-            </span>
-          )}
-        </div>
-        <div className="text-sm text-gray-500">
-          <div>{new Date(order.createdAt).toLocaleDateString()}</div>
-          <div className="text-xs">
-            {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
-        </div>
-      </div>
+  // Helper to handle respond mutation (accepts single itemId or array of itemIds)
+  const handleRespond = (orderId, itemIds, action) => {
+    respondMutation.mutate({ orderId, itemIds, action });
+  };
 
-      {/* Customer */}
-      <div className="mb-2 text-sm text-gray-700">
-        <div>{order.customerName}</div>
-        <div>{order.customerPhone}</div>
-      </div>
-
-      {/* Items */}
-      <div className="mb-3">
-        {order.items?.map((item) => (
-          <div
-            key={item._id}
-            className="flex justify-between items-center bg-gray-50 p-2 rounded mb-1"
-          >
-            <div className="flex-1">
-              <div className="font-medium">{item.productName}</div>
-              <div className="text-xs text-gray-500">
-                Qty: {item.quantity} | ₹{item.totalPrice}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={`px-2 py-1 text-xs rounded-full font-semibold ${getStatusColor(
-                  item.itemStatus
-                )}`}
-              >
-                {item.itemStatus?.charAt(0).toUpperCase() +
-                  item.itemStatus?.slice(1)}
-              </span>
-              {/* Action buttons for both new orders and unassigned items in my orders */}
-              {((isNew && item.itemStatus === 'pending') || (!isNew && !item.assignedMerchantId && item.itemStatus === 'pending')) && (
-                <div className="flex gap-1">
-                  <button
-                    className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={respondMutation.isLoading}
-                    onClick={() =>
-                      respondMutation.mutate({
-                        orderId: order._id,
-                        itemId: item._id,
-                        action: "accept",
-                      })
-                    }
-                  >
-                    {respondMutation.isLoading ? '...' : (isNew ? 'Accept' : 'Claim')}
-                  </button>
-                  <button
-                    className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={respondMutation.isLoading}
-                    onClick={() =>
-                      respondMutation.mutate({
-                        orderId: order._id,
-                        itemId: item._id,
-                        action: "reject",
-                      })
-                    }
-                  >
-                    {respondMutation.isLoading ? '...' : 'Reject'}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Delivery Address */}
-      <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="font-medium text-gray-900 mb-2 flex items-center">
-          <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Delivery Address
-        </h4>
-        <div className="space-y-1">
-          <div className="flex items-center text-sm">
-            <svg className="w-3 h-3 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="font-medium text-gray-900">
-              {order.deliveryAddressId?.fullName || order.customerName}
-            </span>
-            <span className="ml-2 text-gray-600">
-              📞 {order.deliveryAddressId?.phoneNumber || order.customerPhone}
-            </span>
-          </div>
-          <div className="flex items-start text-sm">
-            <svg className="w-3 h-3 mr-2 mt-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="text-gray-700">
-              {order.deliveryAddressId ?
-                `${order.deliveryAddressId.addressLine1}${order.deliveryAddressId.addressLine2 ? `, ${order.deliveryAddressId.addressLine2}` : ''}${order.deliveryAddressId.landmark ? `, ${order.deliveryAddressId.landmark}` : ''}, ${order.deliveryAddressId.area}, ${order.deliveryAddressId.city}, ${order.deliveryAddressId.state} - ${order.deliveryAddressId.pincode}`
-                : order.customerAddress}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Actions for My Orders */}
-      {!isNew && (
-        <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-200">
-          {order.items
-            ?.filter((item) => 
-              item.assignedMerchantId && 
-              item.itemStatus !== 'delivered' && 
-              item.itemStatus !== 'cancelled'
-            ) // only show actions for assigned items that aren't already completed/cancelled
-            .map((item) => (
-              <div key={item._id} className="flex flex-wrap items-center gap-1 bg-gray-50 rounded-lg p-2">
-                <span className="text-xs font-medium text-gray-700 mr-2">{item.productName}:</span>
-                {item.itemStatus === 'assigned' && (
-                  <button
-                    className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={updateStatusMutation.isLoading}
-                    onClick={() =>
-                      updateStatusMutation.mutate({
-                        orderId: order._id,
-                        itemId: item._id,
-                        status: "processing",
-                      })
-                    }
-                  >
-                    {updateStatusMutation.isLoading ? '...' : 'Start Processing'}
-                  </button>
-                )}
-
-                {item.itemStatus === 'processing' && (
-                  <button
-                    className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={updateStatusMutation.isLoading}
-                    onClick={() =>
-                      updateStatusMutation.mutate({
-                        orderId: order._id,
-                        itemId: item._id,
-                        status: "shipped",
-                      })
-                    }
-                  >
-                    {updateStatusMutation.isLoading ? '...' : 'Mark Shipped'}
-                  </button>
-                )}
-
-                {(item.itemStatus === 'shipped' || item.itemStatus === 'processing') && (
-                  <button
-                    className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={updateStatusMutation.isLoading}
-                    onClick={() =>
-                      updateStatusMutation.mutate({
-                        orderId: order._id,
-                        itemId: item._id,
-                        status: "delivered",
-                      })
-                    }
-                  >
-                    {updateStatusMutation.isLoading ? '...' : 'Mark Delivered'}
-                  </button>
-                )}
-
-                {(item.itemStatus === 'assigned' || item.itemStatus === 'processing') && (
-                  <button
-                    className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={updateStatusMutation.isLoading}
-                    onClick={() =>
-                      updateStatusMutation.mutate({
-                        orderId: order._id,
-                        itemId: item._id,
-                        status: "cancelled",
-                      })
-                    }
-                  >
-                    {updateStatusMutation.isLoading ? '...' : 'Cancel'}
-                  </button>
-                )}
-              </div>
-            ))}
-        </div>
-      )}
-    </div>
-  );
+  // Helper to handle status update mutation (accepts single itemId or array of itemIds)
+  const handleUpdateStatus = (orderId, itemIds, status) => {
+    updateStatusMutation.mutate({ orderId, itemIds, status });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
           <p className="text-gray-600">Manage incoming and assigned orders</p>
         </div>
 
@@ -454,25 +290,347 @@ const Orders = () => {
       </div>
 
       {/* Content */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tab === "new" ? (
-          isLoadingNew ? (
-            <p>Loading new orders...</p>
-          ) : errorNew ? (
-            <p className="text-red-600">Error loading new orders</p>
-          ) : (
-            unassignedList?.map((order) =>
-              renderOrderCard(order, true)
-            )
-          )
-        ) : isLoadingMy ? (
-          <p>Loading my orders...</p>
-        ) : errorMy ? (
-          <p className="text-red-600">Error loading my orders</p>
-        ) : (
-          orderList?.orders?.map((order) => renderOrderCard(order, false))
-        )}
-      </div>
+      {tab === "new" ? (
+        <ResponsiveTable
+          data={unassignedList || []}
+          loading={isLoadingNew}
+          emptyMessage="No new orders available"
+          tableHeaders={["Order #", "Customer", "Items", "Address", "Amount", "Date", "Actions"]}
+          renderCard={(order) => (
+            <MerchantOrderCard
+              order={order}
+              tab={tab}
+              getStatusColor={getStatusColor}
+              onRespond={handleRespond}
+            />
+          )}
+          renderTableRow={(order) => (
+            <>
+              <tr
+                key={order._id}
+                onClick={() => setExpandedOrder(expandedOrder === order._id ? null : order._id)}
+                className="cursor-pointer hover:bg-gray-50"
+              >
+                <td className="px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <span>{expandedOrder === order._id ? '▼' : '▶'}</span>
+                    <span>#{order.orderNumber || order._id.slice(-6)}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2">
+                  <div>
+                    <div className="font-medium">{order.customerName}</div>
+                    <div className="text-sm text-gray-500">{order.customerPhone}</div>
+                  </div>
+                </td>
+                <td className="px-4 py-2">
+                  <div>
+                    <div className="font-medium">{order.items?.length || 0} items</div>
+                    <div className="text-sm text-gray-500">
+                      {order.items?.map(item => item.productName).join(", ").slice(0, 30)}...
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-2">
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      {order.shippingAddress?.addressLine1 ||
+                       order.shippingAddress?.street ||
+                       order.customerAddress || 'Address not available'}
+                    </div>
+                    <div className="text-gray-500">
+                      {order.shippingAddress?.city || order.customerArea || ''} {order.shippingAddress?.pincode || ''}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-2">₹{order.totalAmount?.toLocaleString()}</td>
+                <td className="px-4 py-2">
+                  <div className="text-sm">
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </div>
+                </td>
+                <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex space-x-1">
+                    <button
+                      onClick={() =>
+                        handleRespond(
+                          order._id,
+                          order.items.map(item => item._id),
+                          "accept"
+                        )
+                      }
+                      className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                      disabled={respondMutation.isLoading}
+                    >
+                      Accept All ({order.items?.length || 0})
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleRespond(
+                          order._id,
+                          order.items.map(item => item._id),
+                          "reject"
+                        )
+                      }
+                      className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                      disabled={respondMutation.isLoading}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {/* Expanded Row - Item Details */}
+              {expandedOrder === order._id && (
+                <tr className="bg-gray-50 border-t-2 border-gray-200">
+                  <td colSpan="7" className="px-4 py-4">
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">Order Items</h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-100 border-b border-gray-200">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-medium text-gray-700">Product</th>
+                              <th className="px-3 py-2 text-left font-medium text-gray-700">Unit</th>
+                              <th className="px-3 py-2 text-center font-medium text-gray-700">Quantity</th>
+                              <th className="px-3 py-2 text-right font-medium text-gray-700">Unit Price</th>
+                              <th className="px-3 py-2 text-right font-medium text-gray-700">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {order.items?.map((item) => (
+                              <tr key={item._id} className="hover:bg-gray-100">
+                                <td className="px-3 py-2 font-medium text-gray-900">
+                                  {item.productName}
+                                </td>
+                                <td className="px-3 py-2 text-gray-600">
+                                  {item.unit || 'unit'}
+                                </td>
+                                <td className="px-3 py-2 text-center">
+                                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
+                                    {item.quantity}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-right text-gray-600">
+                                  ₹{(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="px-3 py-2 text-right font-medium text-gray-900">
+                                  ₹{((item.unitPrice || 0) * (item.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </>
+          )}
+        />
+      ) : (
+        <ResponsiveTable
+          data={orderList?.orders || []}
+          loading={isLoadingMy}
+          emptyMessage="No assigned orders found"
+          tableHeaders={["Order #", "Customer", "Items", "Status", "Address", "Amount", "Date", "Actions"]}
+          renderCard={(order) => (
+            <MerchantOrderCard
+              order={order}
+              tab={tab}
+              getStatusColor={getStatusColor}
+              onUpdateStatus={handleUpdateStatus}
+            />
+          )}
+          renderTableRow={(order) => (
+            <>
+              <tr
+                key={order._id}
+                onClick={() => setExpandedOrder(expandedOrder === order._id ? null : order._id)}
+                className="cursor-pointer hover:bg-gray-50"
+              >
+                <td className="px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <span>{expandedOrder === order._id ? '▼' : '▶'}</span>
+                    <span>#{order.orderNumber || order._id.slice(-6)}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2">
+                  <div>
+                    <div className="font-medium">{order.customerName}</div>
+                    <div className="text-sm text-gray-500">{order.customerPhone}</div>
+                  </div>
+                </td>
+                <td className="px-4 py-2">
+                  <div>
+                    <div className="font-medium">{order.items?.length || 0} items</div>
+                    <div className="text-sm text-gray-500">
+                      {order.items?.map(item => item.productName).join(", ").slice(0, 30)}...
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-2">
+                  <span
+                    className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                      order.orderStatus || 'pending'
+                    )}`}
+                  >
+                    {(order.orderStatus || 'pending').charAt(0).toUpperCase() +
+                     (order.orderStatus || 'pending').slice(1)}
+                  </span>
+                </td>
+                <td className="px-4 py-2">
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      {order.shippingAddress?.addressLine1 ||
+                       order.shippingAddress?.street ||
+                       order.customerAddress || 'Address not available'}
+                    </div>
+                    <div className="text-gray-500">
+                      {order.shippingAddress?.city || order.customerArea || ''} {order.shippingAddress?.pincode || ''}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-2">
+                  {order.merchantPayout ? (
+                    <div className="text-sm">
+                      <div className="font-semibold text-green-600">
+                        ₹{order.merchantPayout.codCollectionAmount?.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        COD Collection
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm">₹{order.totalAmount?.toLocaleString()}</div>
+                  )}
+                </td>
+                <td className="px-4 py-2">
+                  <div className="text-sm">
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </div>
+                </td>
+                <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex space-x-1">
+                    {(() => {
+                      // Check item statuses (for merchant, all their items should have same status)
+                      const allItemIds = order.items.map(item => item._id);
+                      const status = order.items.length > 0 ? order.items[0].itemStatus : 'assigned';
+
+                      if (status === 'assigned' || status === 'pending') {
+                        return (
+                          <button
+                            onClick={() =>
+                              handleUpdateStatus(
+                                order._id,
+                                allItemIds,
+                                "processing"
+                              )
+                            }
+                            className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                            disabled={updateStatusMutation.isLoading}
+                          >
+                            Start Processing ({order.items?.length || 0})
+                          </button>
+                        );
+                      } else if (status === 'processing') {
+                        return (
+                          <button
+                            onClick={() =>
+                              handleUpdateStatus(
+                                order._id,
+                                allItemIds,
+                                "shipped"
+                              )
+                            }
+                            className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
+                            disabled={updateStatusMutation.isLoading}
+                          >
+                            Mark as Shipped ({order.items?.length || 0})
+                          </button>
+                        );
+                      } else if (status === 'shipped') {
+                        return (
+                          <button
+                            onClick={() =>
+                              handleUpdateStatus(
+                                order._id,
+                                allItemIds,
+                                "delivered"
+                              )
+                            }
+                            className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                            disabled={updateStatusMutation.isLoading}
+                          >
+                            Mark as Delivered ({order.items?.length || 0})
+                          </button>
+                        );
+                      } else if (status === 'delivered') {
+                        return (
+                          <span className="text-green-600 text-xs font-medium">Completed</span>
+                        );
+                      }
+                    })()}
+                  </div>
+                </td>
+              </tr>
+              {/* Expanded Row - Item Details */}
+              {expandedOrder === order._id && (
+                <tr className="bg-gray-50 border-t-2 border-gray-200">
+                  <td colSpan="8" className="px-4 py-4">
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">Order Items</h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-100 border-b border-gray-200">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-medium text-gray-700">Product</th>
+                              <th className="px-3 py-2 text-left font-medium text-gray-700">Unit</th>
+                              <th className="px-3 py-2 text-center font-medium text-gray-700">Quantity</th>
+                              <th className="px-3 py-2 text-right font-medium text-gray-700">Unit Price</th>
+                              <th className="px-3 py-2 text-right font-medium text-gray-700">Total</th>
+                              <th className="px-3 py-2 text-center font-medium text-gray-700">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {order.items?.map((item) => (
+                              <tr key={item._id} className="hover:bg-gray-100">
+                                <td className="px-3 py-2 font-medium text-gray-900">
+                                  {item.productName}
+                                </td>
+                                <td className="px-3 py-2 text-gray-600">
+                                  {item.unit || 'unit'}
+                                </td>
+                                <td className="px-3 py-2 text-center">
+                                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
+                                    {item.quantity}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-right text-gray-600">
+                                  ₹{(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="px-3 py-2 text-right font-medium text-gray-900">
+                                  ₹{((item.unitPrice || 0) * (item.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="px-3 py-2 text-center">
+                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.itemStatus)}`}>
+                                    {item.itemStatus?.charAt(0).toUpperCase() + item.itemStatus?.slice(1) || 'Pending'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </>
+          )}
+        />
+      )}
       </div>
     </div>
   );

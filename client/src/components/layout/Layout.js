@@ -1,29 +1,24 @@
 import React, { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
+import { useLocation } from '../../contexts/LocationContext';
 import Header from './Header';
 import Footer from './Footer';
 import MobileMenu from './MobileMenu';
+import LocationPermissionModal from '../location/LocationPermissionModal';
 
 const Layout = () => {
   const { user, isAuthenticated } = useAuth();
   const { getCartCount } = useCart();
+  const { showLocationModal, requestLocationPermission, skipLocationPermission } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const location = useLocation();
-
 
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Products', href: '/products' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
-  ];
-
-  const userNavigation = [
-    { name: 'Profile', href: '/profile' },
-    { name: 'Orders', href: '/profile/orders' },
-    { name: 'Logout', href: '#', onClick: () => {} },
   ];
 
   return (
@@ -47,12 +42,20 @@ const Layout = () => {
       />
 
       {/* Main content */}
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         <Outlet />
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer cartCount={getCartCount()} />
+
+      {/* Location Permission Modal (for guest users) */}
+      <LocationPermissionModal
+        isOpen={showLocationModal}
+        onClose={skipLocationPermission}
+        onEnableLocation={requestLocationPermission}
+        onSkip={skipLocationPermission}
+      />
     </div>
   );
 };

@@ -30,7 +30,6 @@ const OrderSuccessScreen: React.FC<OrderSuccessScreenProps> = ({ navigation, rou
 
   // Animation values
   const checkmarkScale = new Animated.Value(0);
-  const confettiOpacity = new Animated.Value(0);
   const contentOpacity = new Animated.Value(0);
 
   useEffect(() => {
@@ -43,19 +42,12 @@ const OrderSuccessScreen: React.FC<OrderSuccessScreenProps> = ({ navigation, rou
         friction: 5,
         useNativeDriver: true,
       }),
-      // Confetti and content fade in
-      Animated.parallel([
-        Animated.timing(confettiOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(contentOpacity, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
+      // Content fade in
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
     ]);
 
     animationSequence.start();
@@ -69,47 +61,9 @@ const OrderSuccessScreen: React.FC<OrderSuccessScreenProps> = ({ navigation, rou
     navigation.navigate('GuestMain', { screen: 'Orders' });
   };
 
-  const renderConfetti = () => {
-    const confettiElements = [];
-    for (let i = 0; i < 20; i++) {
-      confettiElements.push(
-        <Animated.View
-          key={i}
-          style={[
-            styles.confetti,
-            {
-              left: Math.random() * width,
-              backgroundColor: i % 3 === 0 ? THEME.primary : i % 3 === 1 ? THEME.success : THEME.warning,
-              opacity: confettiOpacity,
-              transform: [
-                {
-                  translateY: confettiOpacity.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-50, 600],
-                  }),
-                },
-                {
-                  rotate: confettiOpacity.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '360deg'],
-                  }),
-                },
-              ],
-            },
-          ]}
-        />
-      );
-    }
-    return confettiElements;
-  };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Confetti Animation */}
-      <View style={styles.confettiContainer}>
-        {renderConfetti()}
-      </View>
-
       <View style={styles.content}>
         {/* Success Icon */}
         <View style={styles.iconContainer}>
@@ -190,20 +144,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: THEME.background,
-  },
-  confettiContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
-  },
-  confetti: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
   },
   content: {
     flex: 1,

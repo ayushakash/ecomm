@@ -1,9 +1,33 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const PendingApproval = () => {
-  const { user, logout } = useAuth();
+  const { user: authUser, logout } = useAuth();
+  const location = useLocation();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Try to get user from AuthContext first
+    if (authUser) {
+      setUser(authUser);
+    }
+    // Fallback to location state (passed during navigation)
+    else if (location.state?.user) {
+      setUser(location.state.user);
+    }
+    // Fallback to localStorage
+    else {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error('Failed to parse stored user', e);
+        }
+      }
+    }
+  }, [authUser, location.state]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -54,18 +78,18 @@ const PendingApproval = () => {
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-900 mb-2">Account Details</h4>
               <div className="text-sm text-gray-600 space-y-1">
-                <p><strong>Contact Name:</strong> {user?.name}</p>
+                <p><strong>Contact Name:</strong> {user?.name || user?.contactPersonName || 'N/A'}</p>
                 {user?.businessName && (
                   <p><strong>Business Name:</strong> {user?.businessName}</p>
                 )}
                 {user?.businessType && (
                   <p><strong>Business Type:</strong> {user?.businessType}</p>
                 )}
-                <p><strong>Phone:</strong> {user?.phone}</p>
+                <p><strong>Phone:</strong> {user?.phone || 'N/A'}</p>
                 {user?.email && (
                   <p><strong>Email:</strong> {user?.email}</p>
                 )}
-                <p><strong>Role:</strong> {user?.role}</p>
+                <p><strong>Role:</strong> {user?.role || 'merchant'}</p>
                 <p><strong>Status:</strong> <span className="text-yellow-600 font-medium">{user?.activeStatus || 'Pending Approval'}</span></p>
               </div>
             </div>

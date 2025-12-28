@@ -140,6 +140,24 @@ const merchantSchema = new mongoose.Schema({
       end: { type: String, default: "18:00" },
       days: { type: [String], default: ["mon", "tue", "wed", "thu", "fri", "sat"] }
     }
+  },
+
+  // Push notification settings
+  deviceTokens: [{
+    token: { type: String, required: true },
+    deviceId: { type: String, required: true },
+    platform: { type: String, enum: ['ios', 'android'], required: true },
+    isActive: { type: Boolean, default: true },
+    lastUsed: { type: Date, default: Date.now }
+  }],
+
+  notificationSettings: {
+    pushEnabled: { type: Boolean, default: true },
+    newOrders: { type: Boolean, default: true },
+    orderUpdates: { type: Boolean, default: true },
+    quietHoursStart: { type: String, default: "22:00" },
+    quietHoursEnd: { type: String, default: "08:00" },
+    quietHoursEnabled: { type: Boolean, default: false }
   }
 }, {
   timestamps: true

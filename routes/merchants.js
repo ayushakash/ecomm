@@ -5,6 +5,8 @@ const User = require('../models/User');
 const { verifyToken, requireAdmin, requireMerchant, requireApprovedMerchant } = require('../middleware/auth');
 const Product = require('../models/Product');
 const MerchantProduct = require('../models/MerchantProduct');
+const AppSettings = require('../models/AppSettings');
+const { findNearbyMerchants } = require('../utils/locationUtils');
 const mongoose = require('mongoose');
 
 const router = express.Router();
@@ -90,21 +92,151 @@ router.post('/onboard', [
   }
 });
 
-// @route   GET /api/merchants
-// @desc    Get all merchants with filtering
-// @access  Private (Admin only)
-router.get('/', [verifyToken, requireAdmin], async (req, res) => {
+// @route   GET /api/merchants/available-cities
+// @desc    Get list of unique cities where approved merchants are available
+// @access  Public
+router.get('/available-cities', async (req, res) => {
   try {
-    const { area, status, page = 1, limit = 10 } = req.query;
-    
+    // Get distinct cities from approved merchants
+    const cities = await Merchant.aggregate([
+      {
+        $match: {
+          activeStatus: 'approved',
+          'availability.isActive': true,
+          city: { $exists: true, $ne: '' }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            city: { $toLower: '$city' },
+            state: { $toLower: '$state' }
+          },
+          cityName: { $first: '$city' },
+          stateName: { $first: '$state' },
+          merchantCount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          city: '$cityName',
+          state: '$stateName',
+          merchantCount: 1
+        }
+      },
+      {
+        $sort: { merchantCount: -1, city: 1 }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      cities,
+      count: cities.length
+    });
+  } catch (error) {
+    console.error('Get available cities error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/merchants/nearby
+// @desc    Get merchants near a given address with smart fallbacks
+// @access  Public
+router.post('/nearby', [
+  body('addressId').optional().isMongoId().withMessage('Invalid address ID'),
+  body('coordinates.latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+  body('coordinates.longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
+  body('city').trim().notEmpty().withMessage('City is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { addressId, coordinates, city, area, pincode } = req.body;
+
+    // If addressId provided, fetch the full address
+    let address;
+    if (addressId) {
+      const Address = require('../models/Address');
+      address = await Address.findById(addressId);
+      if (!address) {
+        return res.status(404).json({ message: 'Address not found' });
+      }
+    } else {
+      // Use provided coordinates and location data
+      // Coordinates are now OPTIONAL - will fall back to city-wide search
+      address = {
+        coordinates: coordinates || {}, // Can be empty
+        city,
+        area: area || '',
+        pincode: pincode || ''
+      };
+    }
+
+    // Get app settings
+    const settings = await AppSettings.getSettings();
+
+    // Find nearby merchants with smart fallbacks
+    const merchants = await findNearbyMerchants(address, settings, Merchant);
+
+    const hasCoordinates = address.coordinates && address.coordinates.latitude && address.coordinates.longitude;
+    const nearbyCount = merchants.filter(m => m.isNearby).length;
+
+    res.json({
+      merchants,
+      count: merchants.length,
+      searchRadius: hasCoordinates ? settings.deliveryConfig.maxDeliveryRadius : 'city-wide',
+      fallbackApplied: hasCoordinates && nearbyCount < settings.deliveryConfig.minimumMerchantsBeforeExpand,
+      searchType: hasCoordinates ? 'radius-based' : 'city-wide',
+      nearbyCount: nearbyCount,
+      cityWideCount: merchants.length - nearbyCount
+    });
+  } catch (error) {
+    console.error('Get nearby merchants error:', error);
+    res.status(500).json({ message: error.message || 'Server error' });
+  }
+});
+
+// @route   GET /api/merchants
+// @desc    Get all merchants with filtering (admin) or public filtered by city
+// @access  Private (Admin only) OR Public (when filtering by city with activeStatus=approved)
+router.get('/', async (req, res) => {
+  try {
+    const { area, status, city, state, activeStatus, page = 1, limit = 100 } = req.query;
+
+    // If requesting city-specific approved merchants, allow public access
+    const isPublicCityQuery = city && (activeStatus === 'approved' || (!activeStatus && !status));
+
+    // For non-city queries or admin queries, require authentication
+    if (!isPublicCityQuery) {
+      // Check if user is admin
+      const token = req.header('Authorization')?.replace('Bearer ', '');
+      if (!token) {
+        return res.status(401).json({ message: 'Access denied. Admin only.' });
+      }
+    }
+
     const filter = {};
     if (area) filter.area = { $regex: area, $options: 'i' };
+    if (city) filter.city = { $regex: new RegExp(`^${city}$`, 'i') };
+    if (state) filter.state = { $regex: new RegExp(`^${state}$`, 'i') };
     if (status) filter.activeStatus = status;
+    if (activeStatus) filter.activeStatus = activeStatus;
+
+    // Default to approved for public queries
+    if (isPublicCityQuery && !filter.activeStatus) {
+      filter.activeStatus = 'approved';
+    }
 
     const merchants = await Merchant.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
+      .select('-password -refreshToken -otp -otpExpiry') // Exclude sensitive fields
       .exec();
 
     const total = await Merchant.countDocuments(filter);

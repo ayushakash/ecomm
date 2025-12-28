@@ -38,20 +38,44 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/construct
 .then(() => console.log('MongoDB connected'))
 .catch(err => console.log('MongoDB connection error:', err));
 
+// Health check endpoint (for frontend IP detection)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend is running' });
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', require('./routes/testMsg91')); // MSG91 test route
 app.use('/api/merchants', require('./routes/merchants'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/platform-earnings', require('./routes/platformEarnings'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/addresses', require('./routes/addresses'));
+app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/cities', require('./routes/cities'));
 
 // New routes for logging and notifications
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/smart-notifications', require('./routes/smartNotifications'));
 app.use('/api/order-logs', require('./routes/orderLogs'));
 app.use('/api/abandoned-carts', require('./routes/abandonedCarts'));
+
+// Device token routes for push notifications
+app.use('/api/merchants/device-token', require('./routes/deviceToken'));
+
+// Sequential notification routes
+app.use('/api/sequential-notifications', require('./routes/sequentialNotifications'));
+
+// Test notification routes
+app.use('/api/test', require('./routes/testNotifications'));
+
+// MSG91 OTP Test routes
+app.use('/api/test/msg91', require('./routes/testMsg91OTP'));
+
+// Serve static files from client/public (for test pages)
+app.use(express.static('client/public'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

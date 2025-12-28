@@ -25,6 +25,15 @@ const orderItemSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  // Merchant pricing (base cost)
+  merchantUnitPrice: {
+    type: Number,
+    min: 0
+  },
+  merchantTotalPrice: {
+    type: Number,
+    min: 0
+  },
   unit: {
     type: String,
     required: true
@@ -198,6 +207,30 @@ const orderSchema = new mongoose.Schema({
       }
     },
     eventDescription: String
+  }],
+  // Merchant payout tracking for multi-merchant orders
+  merchantPayouts: [{
+    merchantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Merchant',
+      required: true
+    },
+    merchantName: String,
+    itemsBaseValue: Number,        // What merchant gets (base price)
+    itemsCustomerValue: Number,    // What customer pays for these items
+    itemsCount: Number,
+    deliveryShare: Number,         // Merchant's share of delivery fee
+    platformFeeShare: Number,      // Merchant's share of platform fee
+    platformCommission: Number,    // Markup/commission (itemsCustomerValue - itemsBaseValue)
+    codCollectionAmount: Number,   // Total COD merchant collects
+    netPayout: Number,             // Final amount merchant gets
+    settlementStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'settled', 'failed'],
+      default: 'pending'
+    },
+    settlementDate: Date,
+    settlementNotes: String
   }],
   notes: {
     type: String,

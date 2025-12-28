@@ -25,13 +25,17 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
-  const { loginWithOTP, sendOTP } = useAuth();
-  const [step, setStep] = useState(1); // 1: Enter mobile, 2: Enter OTP
+  const { loginWithOTP, sendOTP, login } = useAuth();
+  const [step, setStep] = useState(1); // 1: Enter mobile, 2: Enter OTP, 3: Admin email/password
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ mobile?: string; otp?: string }>({});
+  const [errors, setErrors] = useState<{ mobile?: string; otp?: string; email?: string; password?: string }>({});
   const [userExists, setUserExists] = useState<boolean | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [showOtpSentMessage, setShowOtpSentMessage] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     title: '',
@@ -66,6 +70,25 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const validateEmailPassword = () => {
+    const newErrors: { email?: string; password?: string } = {};
+
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!password.trim()) {
+      newErrors.password = 'Password is required';
+    } else if (password.trim().length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSendOTP = async () => {
     if (!validateMobile()) return;
 
@@ -74,14 +97,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
       const result = await sendOTP(mobile.trim());
       if (result.success) {
         setUserExists(result.userExists);
+        // Note: We'll need to enhance the sendOTP API to return userRole
         setStep(2);
-        setModalConfig({
-          title: 'OTP Sent! 📱',
-          message: `OTP has been sent to +91${mobile}.\n\nFor demo purposes, please enter: 1234`,
-          type: 'success',
-          buttons: [{ text: 'Got it!', onPress: () => setModalVisible(false) }]
-        });
-        setModalVisible(true);
+        setShowOtpSentMessage(true);
+
+        // Auto hide message after 3 seconds
+        setTimeout(() => {
+          setShowOtpSentMessage(false);
+        }, 3000);
       }
     } catch (error) {
       console.error('Send OTP error:', error);
@@ -125,29 +148,57 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
     try {
       const result = await loginWithOTP(mobile.trim(), otp.trim());
       if (result.success) {
-        // Handle navigation based on where user came from
-        const fromCheckout = route?.params?.fromCheckout;
+        // Check if user is admin to decide next step
+        if (result.user?.role === 'admin') {
+          // For admin users, move to step 3 for email/password verification
+          setUserRole('admin');
+          setStep(3);
+          setModalConfig({
+            title: 'Phone Verified! ✅',
+            message: 'Please enter your email and password to complete admin authentication.',
+            type: 'success',
+            buttons: [{ text: 'Continue', onPress: () => setModalVisible(false) }]
+          });
+          setModalVisible(true);
+        } else {
+          // For non-admin users, complete login and directly navigate
+          const fromCheckout = route?.params?.fromCheckout;
 
+          if (result.user?.role === 'merchant') {
+            // Redirect merchants to their orders page
+            navigation.navigate('MerchantMain', { screen: 'Orders' });
+          } else if (fromCheckout) {
+            navigation.navigate('GuestMain', { screen: 'Cart' });
+          } else {
+            navigation.navigate('GuestMain', { screen: 'Home' });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminEmailPasswordVerification = async () => {
+    if (!validateEmailPassword()) return;
+
+    setLoading(true);
+    try {
+      const result = await login({ email: email.trim(), password: password.trim() });
+      if (result.success) {
         setModalConfig({
-          title: 'Welcome Back! 🎉',
-          message: 'Login successful! Redirecting you now...',
+          title: 'Admin Login Complete! 🎉',
+          message: 'Authentication successful! Redirecting to admin panel...',
           type: 'success',
           buttons: [
             {
               text: 'Continue',
               onPress: () => {
                 setModalVisible(false);
-                if (fromCheckout) {
-                  // If coming from checkout, redirect to Cart tab
-                  navigation.navigate('GuestMain', {
-                    screen: 'Cart'
-                  });
-                } else {
-                  // Normal login, redirect to Home tab
-                  navigation.navigate('GuestMain', {
-                    screen: 'Home'
-                  });
-                }
+                // Navigate to admin panel - we'll need to handle this in the navigation
+                navigation.navigate('AdminMain');
               }
             }
           ]
@@ -155,7 +206,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
         setModalVisible(true);
       }
     } catch (error) {
-      console.error('OTP verification error:', error);
+      console.error('Admin email/password verification error:', error);
+      setModalConfig({
+        title: 'Authentication Failed',
+        message: 'Invalid email or password. Please try again.',
+        type: 'error',
+        buttons: [{ text: 'Try Again', onPress: () => setModalVisible(false) }]
+      });
+      setModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -169,12 +227,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
             <Ionicons name="call" size={40} color={THEME.primary} />
           </View>
           <Text style={styles.title}>
-            {step === 1 ? 'Welcome Back' : 'Verify Mobile'}
+            {step === 1 ? 'Welcome Back' : step === 2 ? 'Verify Mobile' : 'Complete Authentication'}
           </Text>
           <Text style={styles.subtitle}>
             {step === 1
               ? 'Enter your mobile number to login'
-              : `Enter OTP sent to +91${mobile}`
+              : step === 2
+              ? `Enter OTP sent to +91${mobile}`
+              : 'Enter your email and password to complete login'
             }
           </Text>
         </View>
@@ -188,6 +248,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
           <View style={[styles.stepDot, step >= 2 && styles.stepDotActive]}>
             <Text style={[styles.stepDotText, step >= 2 && styles.stepDotTextActive]}>2</Text>
           </View>
+          {userRole === 'admin' && (
+            <>
+              <View style={[styles.stepLine, step >= 3 && styles.stepLineActive]} />
+              <View style={[styles.stepDot, step >= 3 && styles.stepDotActive]}>
+                <Text style={[styles.stepDotText, step >= 3 && styles.stepDotTextActive]}>3</Text>
+              </View>
+            </>
+          )}
         </View>
 
         <Card style={styles.formCard}>
@@ -212,9 +280,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
                 style={styles.loginButton}
               />
             </>
-          ) : (
+          ) : step === 2 ? (
             // Step 2: Enter OTP
             <>
+              {showOtpSentMessage && (
+                <View style={styles.otpSentMessage}>
+                  <Ionicons name="checkmark-circle-outline" size={20} color={THEME.success} />
+                  <Text style={styles.otpSentText}>
+                    OTP sent to +91{mobile} successfully! 📱
+                  </Text>
+                </View>
+              )}
+
               <View style={styles.otpInfo}>
                 <Ionicons name="information-circle-outline" size={20} color={THEME.info} />
                 <Text style={styles.otpInfoText}>
@@ -255,6 +332,54 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
               <Button
                 title="Verify & Login"
                 onPress={handleVerifyOTP}
+                loading={loading}
+                style={styles.loginButton}
+              />
+            </>
+          ) : (
+            // Step 3: Admin Email/Password
+            <>
+              <View style={styles.adminInfo}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={THEME.success} />
+                <Text style={styles.adminInfoText}>
+                  Phone verified! Please enter your admin credentials.
+                </Text>
+              </View>
+
+              <Input
+                label="Email Address"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email address"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={errors.email}
+                leftIcon="mail-outline"
+              />
+
+              <Input
+                label="Password"
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter your password"
+                secureTextEntry
+                error={errors.password}
+                leftIcon="lock-closed-outline"
+              />
+
+              <View style={styles.adminActions}>
+                <TouchableOpacity
+                  onPress={() => setStep(2)}
+                  style={styles.backButton}
+                >
+                  <Ionicons name="arrow-back" size={20} color={THEME.primary} />
+                  <Text style={styles.backButtonText}>Back to OTP</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Button
+                title="Complete Login"
+                onPress={handleAdminEmailPasswordVerification}
                 loading={loading}
                 style={styles.loginButton}
               />
@@ -360,6 +485,21 @@ const styles = StyleSheet.create({
   formCard: {
     marginBottom: SIZES.xl,
   },
+  otpSentMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.success + '15',
+    padding: SIZES.md,
+    borderRadius: SIZES.md,
+    marginBottom: SIZES.md,
+  },
+  otpSentText: {
+    fontSize: 14,
+    color: THEME.success,
+    marginLeft: SIZES.sm,
+    flex: 1,
+    fontWeight: '500',
+  },
   otpInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -383,6 +523,26 @@ const styles = StyleSheet.create({
   otpActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: SIZES.lg,
+  },
+  adminInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.success + '15',
+    padding: SIZES.md,
+    borderRadius: SIZES.md,
+    marginBottom: SIZES.lg,
+  },
+  adminInfoText: {
+    fontSize: 14,
+    color: THEME.success,
+    marginLeft: SIZES.sm,
+    flex: 1,
+  },
+  adminActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginVertical: SIZES.lg,
   },

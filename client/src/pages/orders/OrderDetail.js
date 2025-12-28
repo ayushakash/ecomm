@@ -57,13 +57,60 @@ const OrderDetail = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {/* Order Header */}
         <div className="flex justify-between items-start mb-6">
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900">
               Order #{order.orderNumber}
             </h1>
             <p className="text-gray-600">
               Placed on {new Date(order.createdAt).toLocaleDateString()}
             </p>
+
+            {/* Expected Delivery Time */}
+            {order.expectedDeliveryDate && order.status !== 'delivered' && order.status !== 'cancelled' && (
+              <div className="mt-4">
+                {(() => {
+                  const now = new Date();
+                  const expectedDate = new Date(order.expectedDeliveryDate);
+                  const diffMs = expectedDate - now;
+                  const diffMins = Math.round(diffMs / (1000 * 60));
+
+                  if (diffMins > 0 && diffMins <= 120) {
+                    return (
+                      <div className="inline-flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 shadow-sm">
+                        <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                          <p className="text-xs font-medium text-green-600">Expected Delivery</p>
+                          <p className="text-base font-bold text-green-700">
+                            Arriving in {diffMins} minutes
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  } else if (diffMins > 0) {
+                    return (
+                      <div className="inline-flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-stone-50 to-orange-50 border-2 border-orange-200 shadow-sm">
+                        <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                          <p className="text-xs font-medium text-orange-600">Expected Delivery</p>
+                          <p className="text-base font-bold text-blue-700">
+                            {expectedDate.toLocaleString('en-IN', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
+            )}
           </div>
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}

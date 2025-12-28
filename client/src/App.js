@@ -2,6 +2,8 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { LocationProvider, useLocation } from './contexts/LocationContext';
+import LocationPermissionModal from './components/location/LocationPermissionModal';
 
 // Layout Components
 import Layout from './components/layout/Layout';
@@ -18,11 +20,14 @@ import ProductList from './pages/products/ProductList';
 import ProductDetail from './pages/products/ProductDetail';
 import Cart from './pages/cart/Cart';
 import Checkout from './pages/cart/Checkout';
+import Contact from './pages/Contact';
 
 // Protected Pages
 import Profile from './pages/profile/Profile';
+import Addresses from './pages/profile/Addresses';
 import OrderHistory from './pages/orders/OrderHistory';
 import OrderDetail from './pages/orders/OrderDetail';
+import OrderSuccess from './pages/orders/OrderSuccess';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -32,6 +37,7 @@ import AdminProducts from './pages/admin/Products';
 import AdminOrders from './pages/admin/Orders';
 import AdminAnalytics from './pages/admin/Analytics';
 import AdminSettings from './pages/admin/Settings';
+import AdminEarnings from './pages/admin/Earnings';
 
 // Merchant Pages
 import MerchantDashboard from './pages/merchant/Dashboard';
@@ -39,6 +45,7 @@ import MerchantProducts from './pages/merchant/Products';
 import MerchantOrders from './pages/merchant/Orders';
 import MerchantProfile from './pages/merchant/Profile';
 import MerchantAnalytics from './pages/merchant/Analytics';
+import MerchantPayouts from './pages/merchant/Payouts';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -83,6 +90,8 @@ function AppRoutes() {
         <Route path="products/:id" element={<ProductDetail />} />
         <Route path="cart" element={<Cart />} />
         <Route path="checkout" element={<Checkout />} />
+        <Route path="order-success" element={<OrderSuccess />} />
+        <Route path="contact" element={<Contact />} />
       </Route>
 
       {/* Auth-related Routes (outside main layout) */}
@@ -98,6 +107,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<Profile />} />
+        <Route path="addresses" element={<Addresses />} />
         <Route path="orders" element={<OrderHistory />} />
         <Route path="orders/:id" element={<OrderDetail />} />
       </Route>
@@ -114,6 +124,7 @@ function AppRoutes() {
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="earnings" element={<AdminEarnings />} />
         <Route path="merchants" element={<AdminMerchants />} />
         <Route path="products" element={<AdminProducts />} />
         <Route path="orders" element={<AdminOrders />} />
@@ -132,6 +143,7 @@ function AppRoutes() {
         <Route index element={<MerchantDashboard />} />
   <Route path="products" element={<MerchantProducts />} />
   <Route path="orders" element={<MerchantOrders />} />
+  <Route path="payouts" element={<MerchantPayouts />} />
   <Route path="profile" element={<MerchantProfile />} />
   <Route path="analytics" element={<MerchantAnalytics />} />
       </Route>
@@ -142,12 +154,31 @@ function AppRoutes() {
   );
 }
 
+// Wrapper component to access LocationContext
+function AppContent() {
+  const { showLocationModal, requestLocationPermission, skipLocationPermission } = useLocation();
+
+  return (
+    <>
+      <AppRoutes />
+      <LocationPermissionModal
+        isOpen={showLocationModal}
+        onEnableLocation={requestLocationPermission}
+        onSkip={skipLocationPermission}
+        onClose={skipLocationPermission}
+      />
+    </>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <AppRoutes />
-      </CartProvider>
+      <LocationProvider>
+        <CartProvider>
+          <AppContent />
+        </CartProvider>
+      </LocationProvider>
     </AuthProvider>
   );
 }

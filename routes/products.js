@@ -48,7 +48,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { category, name, description, images, specifications, tags, price, unit } = req.body;
+      const { category, name, description, images, specifications, tags, price, unit, gstRate, gstType } = req.body;
 
       // ---------------- Admin Flow ----------------
       if (req.user.role === "admin") {
@@ -67,6 +67,8 @@ router.post(
           tags: tags || [],
           price: price || 0,   // Admin-defined selling price
           unit: unit || "",     // Admin-defined unit
+          gstRate: gstRate !== undefined ? gstRate : 18,  // Default 18% if not provided
+          gstType: gstType || 'exclusive',  // Default exclusive if not provided
           enabled: true,
         });
 
@@ -151,7 +153,7 @@ router.post(
 // @access  Public (with optional authentication)
 router.get('/', optionalAuth, async (req, res) => {
   try {
-    const { page = 1, limit = 12, category, search, minPrice, maxPrice } = req.query;
+    const { page = 1, limit = 12, category, search, minPrice, maxPrice, merchantIds, cityId } = req.query;
     const skip = (page - 1) * limit;
 
     const role = req.user?.role || 'guest';
@@ -239,20 +241,53 @@ router.get('/', optionalAuth, async (req, res) => {
         .lean();
 
       // For customers and guests, filter out products that don't have any enabled merchant variants
+      let totalProducts;
       if (role === 'customer' || role === 'guest') {
         const productIds = products.map(p => p._id);
+
+        // Get all active (non-suspended) merchants
+        let activeMerchants;
+
+        // If merchantIds filter is provided (location-based filtering)
+        if (merchantIds) {
+          const merchantIdsArray = Array.isArray(merchantIds) ? merchantIds : merchantIds.split(',');
+          activeMerchants = await Merchant.find({
+            _id: { $in: merchantIdsArray },
+            activeStatus: { $in: ['approved', 'active'] },
+            isActive: true
+          }).distinct('_id');
+        } else {
+          // Get all active merchants
+          activeMerchants = await Merchant.find({
+            activeStatus: { $in: ['approved', 'active'] },
+            isActive: true
+          }).distinct('_id');
+        }
+
         const enabledMerchantProducts = await MerchantProduct.find({
           productId: { $in: productIds },
+          merchantId: { $in: activeMerchants }, // Only products from active merchants
           enabled: true,
           stock: { $gt: 0 } // Also ensure there's stock available
         }).distinct('productId');
-        
-        products = products.filter(product => 
+
+        products = products.filter(product =>
           enabledMerchantProducts.some(id => id.toString() === product._id.toString())
         );
-      }
 
-      const totalProducts = await Product.countDocuments(productFilter);
+        // For customers/guests, totalProducts should reflect the actual filtered count
+        // Get total count of products that have enabled merchant variants
+        const allMatchingProductIds = await Product.find(productFilter).distinct('_id');
+        const allEnabledMerchantProducts = await MerchantProduct.find({
+          productId: { $in: allMatchingProductIds },
+          merchantId: { $in: activeMerchants },
+          enabled: true,
+          stock: { $gt: 0 }
+        }).distinct('productId');
+        totalProducts = allEnabledMerchantProducts.length;
+      } else {
+        totalProducts = await Product.countDocuments(productFilter);
+      }
 
       // Get pricing calculator for centralized pricing logic
       const pricingCalculator = await getPricingCalculator();
@@ -264,7 +299,7 @@ router.get('/', optionalAuth, async (req, res) => {
           
           // Use centralized price display logic
           if (role === 'customer' || role === 'guest') {
-            product.price = await pricingCalculator.getDisplayPrice(product);
+            product.price = await pricingCalculator.getDisplayPrice(product, cityId);
           }
         }
       }
@@ -338,13 +373,36 @@ router.get('/master-products', verifyToken, async (req, res) => {
 // @route   GET /api/products/:id
 // @desc    Get product by ID
 // @access  Public
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate('category', 'name');
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const role = req.user?.role || 'guest';
+
+    // For customers and guests, verify that at least one active merchant has this product
+    if (role === 'customer' || role === 'guest') {
+      // Get all active merchants
+      const activeMerchants = await Merchant.find({
+        activeStatus: { $in: ['approved', 'active'] },
+        isActive: true
+      }).distinct('_id');
+
+      // Check if this product is available from any active merchant
+      const hasAvailableProduct = await MerchantProduct.findOne({
+        productId: product._id,
+        merchantId: { $in: activeMerchants },
+        enabled: true,
+        stock: { $gt: 0 }
+      });
+
+      if (!hasAvailableProduct) {
+        return res.status(404).json({ message: 'Product not available' });
+      }
     }
 
     // Get pricing calculator for centralized pricing logic
@@ -413,7 +471,8 @@ router.put('/:id', [
     // ----------------- Update allowed fields -----------------
     const allowedUpdates = [
       'name', 'description', 'category', 'price', 'unit', 'stock',
-      'enabled', 'images', 'specifications', 'tags', 'minOrderQuantity', 'deliveryTime'
+      'enabled', 'images', 'specifications', 'tags', 'minOrderQuantity', 'deliveryTime',
+      'gstRate', 'gstType'
     ];
 
     allowedUpdates.forEach(field => {

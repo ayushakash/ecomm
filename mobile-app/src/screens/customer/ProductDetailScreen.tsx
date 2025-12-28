@@ -198,13 +198,13 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ navigation, r
       {product?.description && (
         <View style={styles.descriptionContainer}>
           <Text style={styles.descriptionTitle}>Description</Text>
-          <Text style={styles.description}>{product.description}</Text>
+          <Text style={styles.description}>{product?.description || ''}</Text>
         </View>
       )}
 
-      <View style={styles.productDetails}>
+      <Text style={styles.productDetails}>
         <Text style={styles.detailsTitle}>Product Details</Text>
-        
+
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>SKU:</Text>
           <Text style={styles.detailValue}>{product?.sku || 'N/A'}</Text>
@@ -221,7 +221,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ navigation, r
           <Text style={styles.detailLabel}>Category:</Text>
           <Text style={styles.detailValue}>{product?.category?.name || 'N/A'}</Text>
         </View>
-      </View>
+      </Text>
     </View>
     );
   };

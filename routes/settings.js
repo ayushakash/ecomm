@@ -20,7 +20,8 @@ router.get('/', verifyToken, async (req, res) => {
         taxRate: settings.taxRate,
         deliveryConfig: settings.deliveryConfig,
         minimumOrderValue: settings.minimumOrderValue,
-        priceDisplayMode: settings.priceDisplayMode
+        priceDisplayMode: settings.priceDisplayMode,
+        gstDisplayMode: settings.gstDisplayMode
       });
     }
     
@@ -44,6 +45,7 @@ router.put('/', [
   body('deliveryConfig.freeDeliveryThreshold').optional().isFloat({ min: 0 }).withMessage('Free delivery threshold must be positive'),
   body('deliveryConfig.chargeForBelowThreshold').optional().isFloat({ min: 0 }).withMessage('Below threshold charge must be positive'),
   body('priceDisplayMode').optional().isIn(['admin', 'merchant', 'lowest']).withMessage('Invalid price display mode'),
+  body('gstDisplayMode').optional().isIn(['inclusive', 'exclusive', 'no-display']).withMessage('Invalid GST display mode'),
   body('stockValidationMode').optional().isIn(['admin', 'merchant']).withMessage('Invalid stock validation mode'),
   body('minimumOrderValue').optional().isFloat({ min: 0 }).withMessage('Minimum order value must be positive'),
 ], async (req, res) => {
@@ -68,8 +70,10 @@ router.put('/', [
 router.post('/calculate-pricing', [
   verifyToken,
   body('items').isArray({ min: 1 }).withMessage('Items array is required'),
-  body('items.*.totalPrice').isFloat({ min: 0 }).withMessage('Total price must be positive'),
+  body('items.*.price').isFloat({ min: 0 }).withMessage('Price must be positive'),
   body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be positive'),
+  body('items.*.gstRate').optional().isInt({ min: 0, max: 100 }).withMessage('GST rate must be between 0 and 100'),
+  body('items.*.gstType').optional().isIn(['inclusive', 'exclusive', 'no-gst']).withMessage('Invalid GST type'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -79,8 +83,9 @@ router.post('/calculate-pricing', [
 
     const { items, customerData } = req.body;
     const pricingCalculator = await getPricingCalculator();
-    
+
     const totals = pricingCalculator.calculateOrderTotals(items, customerData);
+    console.log("PRICING DESC",totals);
     res.json(totals);
   } catch (error) {
     console.error('Calculate pricing error:', error);

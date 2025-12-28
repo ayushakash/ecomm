@@ -21,14 +21,21 @@ class OrderLogService {
         }
       };
 
-      // Add to lifecycle array
-      order.lifecycle.push(lifecycleEvent);
-      await order.save();
+      // Add to lifecycle array using atomic operation to prevent version conflicts
+      const updatedOrder = await Order.findByIdAndUpdate(
+        order._id,
+        { $push: { lifecycle: lifecycleEvent } },
+        { new: true }
+      );
+
+      if (!updatedOrder) {
+        throw new Error('Order not found');
+      }
 
       // Send notifications
       const eventData = {
-        orderId: order._id,
-        orderData: order,
+        orderId: updatedOrder._id,
+        orderData: updatedOrder,
         timestamp: lifecycleEvent.timestamp,
         triggeredBy,
         metadata
@@ -36,22 +43,30 @@ class OrderLogService {
 
       const notifications = await NotificationService.processOrderEvent(eventType, eventData);
 
-      // Update notification status in the lifecycle event
-      const lastEvent = order.lifecycle[order.lifecycle.length - 1];
+      // Update notification status in the lifecycle event using atomic operation
       if (notifications.length > 0) {
         const n8nNotification = notifications.find(n => n.channel === 'n8n');
         if (n8nNotification) {
-          lastEvent.notificationSent.n8n = {
+          const notificationUpdate = {
             sent: n8nNotification.success,
             sentAt: n8nNotification.success ? new Date() : undefined,
             response: n8nNotification.response,
             error: n8nNotification.success ? undefined : n8nNotification.error
           };
+
+          // Atomic update for notification status
+          await Order.findOneAndUpdate(
+            { _id: updatedOrder._id },
+            { $set: { 'lifecycle.$[elem].notificationSent.n8n': notificationUpdate } },
+            {
+              arrayFilters: [{ 'elem.timestamp': lifecycleEvent.timestamp }],
+              new: true
+            }
+          );
         }
       }
 
-      await order.save();
-      return lastEvent;
+      return lifecycleEvent;
     } catch (error) {
       console.error('Error adding lifecycle event:', error);
       throw error;

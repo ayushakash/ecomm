@@ -33,11 +33,37 @@ router.post('/', [
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { items, customerPhone, customerAddress, paymentMethod = 'cod', deliveryInstructions, deliveryLocation, addressId, deliveryAddressDetails } = req.body;
+    const { items, customerPhone, customerAddress, customerArea, paymentMethod = 'cod', deliveryInstructions, deliveryLocation, addressId, deliveryAddressDetails } = req.body;
+
+    console.log('Received order data:', {
+      customerPhone,
+      customerAddress,
+      customerArea,
+      paymentMethod,
+      deliveryInstructions,
+      addressId,
+      deliveryLocation
+    });
 
     // Get pricing calculator with current settings
     const pricingCalculator = await getPricingCalculator();
-    
+
+    // Get cityId from address for city-specific pricing
+    let cityId = null;
+    if (addressId) {
+      const address = await Address.findById(addressId);
+      if (address && address.city) {
+        // Try to find matching city in CityMaster
+        const CityMaster = require('../models/CityMaster');
+        const cityMaster = await CityMaster.findOne({
+          cityName: { $regex: new RegExp(`^${address.city}$`, 'i') }
+        });
+        if (cityMaster) {
+          cityId = cityMaster._id.toString();
+        }
+      }
+    }
+
     const orderItems = [];
     let totalWeight = 0;
 
@@ -50,13 +76,13 @@ router.post('/', [
       // Check total available stock using centralized validation
       const totalStock = await pricingCalculator.getTotalStock(item.productId);
       if (totalStock < item.quantity) {
-        return res.status(400).json({ 
-          message: `Insufficient stock for ${product.name}. Available: ${totalStock}, Requested: ${item.quantity}` 
+        return res.status(400).json({
+          message: `Insufficient stock for ${product.name}. Available: ${totalStock}, Requested: ${item.quantity}`
         });
       }
 
-      // Get display price based on current settings
-      const displayPrice = await pricingCalculator.getDisplayPrice(product);
+      // Get display price based on current settings (with city-specific pricing if available)
+      const displayPrice = await pricingCalculator.getDisplayPrice(product, cityId);
       const totalPrice = displayPrice * item.quantity;
 
       orderItems.push({
@@ -68,6 +94,9 @@ router.post('/', [
         sku: product.sku,
         unit: product.unit,
         weight: product.weight || 0,
+        price: displayPrice, // Add for pricing calculator
+        gstRate: product.gstRate || 18, // Add GST rate
+        gstType: product.gstType || 'exclusive', // Add GST type
         assignedMerchantId: null, // assigned later
         itemStatus: 'pending'
       });
@@ -78,7 +107,7 @@ router.post('/', [
     // Calculate totals using centralized pricing
     const customerData = {
       distance: req.user.distance || 0, // This could come from user profile or be calculated
-      area: deliveryLocation?.area || req.user.area // Use delivery area if provided, fallback to user area
+      area: customerArea || deliveryLocation?.area || req.user.area // Use customerArea from request, fallback to delivery area or user area
     };
     
     const totals = pricingCalculator.calculateOrderTotals(orderItems, customerData);
@@ -151,12 +180,54 @@ router.post('/', [
     const orderCount = await Order.countDocuments() + 1;
     const orderNumber = `ORD${String(orderCount).padStart(6, '0')}`;
 
-    // Get area from address for customerArea (we'll populate it later)
-    let customerArea = req.user.area;
+    // Use customerArea from request body, fallback to other sources
+    let finalCustomerArea = customerArea || req.user.area;
     if (deliveryLocation?.area) {
-      customerArea = deliveryLocation.area;
+      finalCustomerArea = deliveryLocation.area;
     } else if (deliveryAddressDetails?.area) {
-      customerArea = deliveryAddressDetails.area;
+      finalCustomerArea = deliveryAddressDetails.area;
+    }
+
+    console.log('Creating order with customerArea:', finalCustomerArea);
+
+    // Fetch address details to get coordinates
+    let finalDeliveryLocation;
+    if (finalAddressId) {
+      const address = await Address.findById(finalAddressId);
+      if (address) {
+        // Convert coordinates from {latitude, longitude} to [longitude, latitude] GeoJSON format
+        let coordinates = [0, 0];
+        if (address.coordinates && address.coordinates.longitude && address.coordinates.latitude) {
+          coordinates = [address.coordinates.longitude, address.coordinates.latitude];
+        }
+
+        finalDeliveryLocation = {
+          type: 'Point',
+          coordinates: coordinates,
+          address: `${address.addressLine1}, ${address.addressLine2 || ''}, ${address.landmark || ''}, ${address.area}, ${address.city}, ${address.state} - ${address.pincode}`.replace(/,\s*,/g, ',').replace(/^,|,$/g, ''),
+          area: address.area,
+          pincode: address.pincode,
+          city: address.city,
+          state: address.state,
+          isCurrentLocation: deliveryLocation?.isCurrentLocation || false,
+          receiverName: address.fullName,
+          receiverPhone: address.phoneNumber
+        };
+      }
+    } else if (deliveryLocation && deliveryLocation.coordinates) {
+      // Fallback to deliveryLocation if provided
+      finalDeliveryLocation = {
+        type: 'Point',
+        coordinates: Array.isArray(deliveryLocation.coordinates) ? deliveryLocation.coordinates : [0, 0],
+        address: deliveryLocation.address || customerAddress,
+        area: deliveryLocation.area || customerArea,
+        pincode: deliveryLocation.pincode || '',
+        city: deliveryLocation.city || '',
+        state: deliveryLocation.state || '',
+        isCurrentLocation: deliveryLocation.isCurrentLocation || false,
+        receiverName: deliveryLocation.receiverName || req.user.name,
+        receiverPhone: deliveryLocation.receiverPhone || customerPhone
+      };
     }
 
     const order = new Order({
@@ -165,8 +236,9 @@ router.post('/', [
       customerName: req.user.name,
       customerPhone,
       customerAddress,
-      customerArea: customerArea,
+      customerArea: finalCustomerArea,
       deliveryAddressId: finalAddressId, // Always have an address ID now
+      deliveryLocation: finalDeliveryLocation,
       items: orderItems,
       subtotal: totals.subtotal,
       tax: totals.tax,
@@ -245,7 +317,19 @@ router.get('/', verifyToken, async (req, res) => {
       const merchant = await Merchant.findById(req.user._id);
       if (merchant) {
         // Only include orders where items are assigned to this merchant
+        // AND the delivery address is in the same city as the merchant
         filter['items.assignedMerchantId'] = merchant._id;
+
+        // CRITICAL FIX: Also filter by merchant's city to prevent cross-city orders
+        if (merchant.city) {
+          // Get all addresses in the same city as the merchant
+          const cityAddresses = await Address.find({
+            city: { $regex: new RegExp(`^${merchant.city}$`, 'i') }
+          }).distinct('_id');
+
+          // Only show orders with delivery addresses in the same city
+          filter.deliveryAddressId = { $in: cityAddresses };
+        }
       }
     }
 
@@ -269,18 +353,37 @@ router.get('/', verifyToken, async (req, res) => {
     let resultOrders = orders;
     if (req.user.role === 'merchant') {
       const merchant = await Merchant.findById(req.user._id);
-      
-      resultOrders = orders.map(order => {
-        const filteredItems = order.items.filter(item => {
-          // Only show items assigned to this merchant
-          return item.assignedMerchantId?._id.equals(merchant._id);
-        });
-        return { ...order.toObject(), items: filteredItems };
-      }).filter(order => order.items.length > 0); // Only return orders with relevant items
+      const { calculateMerchantPayout } = require('../utils/merchantPayoutUtils');
+
+      // Use Promise.all to await async payout calculations
+      const ordersWithPayouts = await Promise.all(
+        orders.map(async (order) => {
+          const filteredItems = order.items.filter(item => {
+            // Only show items assigned to this merchant
+            return item.assignedMerchantId?._id.equals(merchant._id);
+          });
+
+          const orderObj = { ...order.toObject(), items: filteredItems };
+
+          // Add merchant payout calculation (await async function)
+          const payout = await calculateMerchantPayout(order, merchant._id);
+          console.log(`💰 Payout for order ${order.orderNumber}:`, JSON.stringify(payout, null, 2));
+          if (payout) {
+            orderObj.merchantPayout = payout;
+          }
+
+          return orderObj;
+        })
+      );
+
+      resultOrders = ordersWithPayouts.filter(order => order.items.length > 0); // Only return orders with relevant items
     }
 
+    const cleanedOrders = cleanOrderResponse(resultOrders);
+    console.log('📤 Sending', cleanedOrders.length, 'orders. First order merchantPayout:', cleanedOrders[0]?.merchantPayout ? 'EXISTS ✅' : 'MISSING ❌');
+
     res.json({
-      orders: cleanOrderResponse(resultOrders),
+      orders: cleanedOrders,
       totalPages: Math.ceil(total / limit),
       currentPage: parseInt(page),
       total
@@ -400,6 +503,119 @@ router.put('/:orderId/items/:itemId/assign', [
   }
 });
 
+/**
+ * ---------------------------
+ * BULK ASSIGN MERCHANT TO ITEMS
+ * ---------------------------
+ */
+router.put('/:orderId/items/bulk-assign', [
+  verifyToken,
+  requireMerchantOrAdmin,
+  body('itemIds').isArray({ min: 1 }).withMessage('At least one item ID is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { orderId } = req.params;
+    const { itemIds } = req.body;
+
+    console.log(`\n🔵 BULK ASSIGN REQUEST:`, JSON.stringify({
+      orderId,
+      itemIds,
+      merchantRole: req.user.role,
+      merchantId: req.user._id
+    }, null, 2));
+
+    let merchantId;
+
+    if (req.user.role === 'merchant') {
+      const merchant = await Merchant.findById(req.user._id);
+      if (!merchant) {
+        return res.status(400).json({ message: 'Merchant not found' });
+      }
+      merchantId = merchant._id;
+    } else if (req.user.role === 'admin') {
+      if (!req.body.merchantId) {
+        return res.status(400).json({ message: 'merchantId is required for admin assignment' });
+      }
+      merchantId = req.body.merchantId;
+    }
+
+    let order;
+    const assignedItems = [];
+    const failedItems = [];
+
+    // Assign all items
+    for (const itemId of itemIds) {
+      try {
+        order = await assignMerchantToItem(orderId, itemId, merchantId, { validateMerchant: true });
+        assignedItems.push(itemId);
+      } catch (error) {
+        console.error(`Failed to assign item ${itemId}:`, error.message);
+        failedItems.push({ itemId, error: error.message });
+        // Continue with other items even if one fails
+      }
+    }
+
+    if (assignedItems.length === 0) {
+      return res.status(400).json({
+        message: 'Failed to assign any items',
+        failedItems
+      });
+    }
+
+    // Send immediate response with cleaned order
+    res.json({
+      message: `${assignedItems.length} item(s) assigned successfully${failedItems.length > 0 ? `, ${failedItems.length} failed` : ''}`,
+      order: cleanOrderResponse(order),
+      assignedItemsCount: assignedItems.length,
+      totalItemsCount: itemIds.length,
+      failedItems: failedItems.length > 0 ? failedItems : undefined
+    });
+
+    // Handle logging in background
+    setImmediate(async () => {
+      try {
+        let userPhone = req.user.phone;
+        if (req.user.role === 'merchant') {
+          const merchantUser = await Merchant.findById(req.user._id);
+          if (merchantUser && merchantUser.contact?.phone) {
+            userPhone = merchantUser.contact.phone;
+          }
+        }
+
+        await OrderLogService.logOrderEvent(
+          'order_assigned',
+          order,
+          {
+            userId: req.user._id,
+            userType: req.user.role,
+            merchantName: req.user.name,
+            merchantEmail: req.user.email,
+            merchantPhone: userPhone
+          },
+          req,
+          {
+            previousStatus: 'pending',
+            metadata: {
+              merchantId: merchantId,
+              itemIds: assignedItems,
+              bulkAssignment: true,
+              assignedBy: req.user.role
+            }
+          }
+        );
+      } catch (backgroundError) {
+        console.error('Background operation failed during bulk assignment:', backgroundError);
+      }
+    });
+  } catch (error) {
+    console.error("Bulk assign items error:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 /**
  * ---------------------------
@@ -436,6 +652,20 @@ router.put('/:orderId/items/:itemId/status', [
     item.itemStatus = status;
     if (note) {
       order.statusHistory.push({ status, timestamp: new Date(), note });
+    }
+
+    // Set expected delivery time when merchant confirms order (90 minutes from confirmation)
+    if (status === 'processing' && previousStatus !== 'processing') {
+      const confirmationTime = new Date();
+      const expectedDeliveryTime = new Date(confirmationTime.getTime() + 90 * 60 * 1000); // 90 minutes
+      order.expectedDeliveryDate = expectedDeliveryTime;
+      console.log('⏰ Setting Expected Delivery Time:', {
+        orderNumber: order.orderNumber,
+        itemId: itemId,
+        confirmationTime: confirmationTime.toISOString(),
+        expectedDeliveryTime: expectedDeliveryTime.toISOString(),
+        minutesAdded: 90
+      });
     }
 
     // Set delivery date immediately for instant response
@@ -507,6 +737,133 @@ router.put('/:orderId/items/:itemId/status', [
 
 /**
  * ---------------------------
+ * BULK UPDATE ITEM STATUS
+ * ---------------------------
+ */
+router.put('/:orderId/items/bulk-status', [
+  verifyToken,
+  requireMerchantOrAdmin,
+  body('itemIds').isArray({ min: 1 }).withMessage('At least one item ID is required'),
+  body('status').isIn(['pending', 'assigned', 'processing', 'shipped', 'delivered', 'cancelled']).withMessage('Invalid status'),
+  body('note').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { orderId } = req.params;
+    const { itemIds, status, note } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    const merchant = req.user.role === 'merchant' ? await Merchant.findById(req.user._id) : null;
+    const updatedItems = [];
+
+    // Update all items
+    for (const itemId of itemIds) {
+      const item = order.items.id(itemId);
+      if (!item) {
+        console.warn(`Item ${itemId} not found in order ${orderId}`);
+        continue;
+      }
+
+      // Verify merchant authorization
+      if (req.user.role === 'merchant') {
+        if (!merchant || item.assignedMerchantId?.toString() !== merchant._id.toString()) {
+          console.warn(`Merchant not authorized for item ${itemId}`);
+          continue;
+        }
+      }
+
+      item.itemStatus = status;
+      updatedItems.push(itemId);
+    }
+
+    if (updatedItems.length === 0) {
+      return res.status(400).json({ message: 'No items were updated' });
+    }
+
+    if (note) {
+      order.statusHistory.push({ status, timestamp: new Date(), note });
+    }
+
+    // Set delivery date if all items are delivered
+    if (status === 'delivered' && order.items.every(i => i.itemStatus === 'delivered')) {
+      order.actualDeliveryDate = new Date();
+    }
+
+    // Save order immediately and send response with cleaned order
+    await order.save();
+    res.json({
+      message: `${updatedItems.length} item(s) updated successfully`,
+      order: cleanOrderResponse(order),
+      updatedItemsCount: updatedItems.length,
+      totalItemsCount: itemIds.length
+    });
+
+    // Handle all heavy operations in background (async, non-blocking)
+    setImmediate(async () => {
+      try {
+        // Background stock reduction for delivered items
+        if (status === 'delivered') {
+          for (const itemId of updatedItems) {
+            await handleStockReductionOnDelivery(orderId, itemId);
+          }
+        }
+
+        // Background logging
+        let eventType;
+        switch(status) {
+          case 'processing':
+            eventType = 'order_accepted';
+            break;
+          case 'shipped':
+            eventType = 'order_shipped';
+            break;
+          case 'delivered':
+            eventType = 'order_delivered';
+            break;
+          case 'cancelled':
+            eventType = 'order_cancelled';
+            break;
+          default:
+            eventType = 'order_status_updated';
+        }
+
+        await OrderLogService.logOrderEvent(
+          eventType,
+          order,
+          {
+            userId: req.user._id,
+            userType: req.user.role,
+            userName: req.user.name,
+            userEmail: req.user.email,
+            userPhone: req.user.phone
+          },
+          req,
+          {
+            previousStatus: 'various',
+            metadata: {
+              itemIds: updatedItems,
+              note: note,
+              bulkUpdate: true,
+              statusChangedBy: req.user.role
+            }
+          }
+        );
+      } catch (backgroundError) {
+        console.error('Background operation failed:', backgroundError);
+      }
+    });
+  } catch (error) {
+    console.error('Bulk update item status error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * ---------------------------
  * CANCEL ORDER (Customer)
  * ---------------------------
  */
@@ -519,9 +876,18 @@ router.put('/:id/cancel', [verifyToken, requireCustomer], async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
+    // Only allow cancellation if order is not delivered or already cancelled
+    if (order.orderStatus === 'delivered') {
+      return res.status(400).json({ message: 'Cannot cancel a delivered order' });
+    }
+
+    if (order.orderStatus === 'cancelled') {
+      return res.status(400).json({ message: 'Order is already cancelled' });
+    }
+
     // Cancel all items immediately
     for (const item of order.items) {
-      item.status = 'cancelled';
+      item.itemStatus = 'cancelled'; // Fixed: was item.status, should be item.itemStatus
     }
 
     await order.save();
@@ -565,6 +931,76 @@ router.put('/:id/cancel', [verifyToken, requireCustomer], async (req, res) => {
     });
   } catch (error) {
     console.error('Cancel order error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * ---------------------------
+ * ADMIN CANCEL ORDER
+ * ---------------------------
+ */
+router.put('/admin/:id/cancel', [verifyToken, requireAdmin], async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    // Only allow cancellation if order is not delivered or already cancelled
+    if (order.orderStatus === 'delivered') {
+      return res.status(400).json({ message: 'Cannot cancel a delivered order' });
+    }
+
+    if (order.orderStatus === 'cancelled') {
+      return res.status(400).json({ message: 'Order is already cancelled' });
+    }
+
+    // Cancel all items immediately
+    for (const item of order.items) {
+      item.itemStatus = 'cancelled';
+    }
+
+    await order.save();
+    res.json({ message: 'Order cancelled successfully by admin', order: cleanOrderResponse(order) });
+
+    // Handle stock restoration and logging in background
+    setImmediate(async () => {
+      try {
+        // Background stock restoration
+        for (const item of order.items) {
+          const product = await Product.findById(item.productId);
+          if (product) {
+            product.stock += item.quantity;
+            await product.save();
+          }
+        }
+
+        // Background logging
+        await OrderLogService.logOrderEvent(
+          'order_cancelled',
+          order,
+          {
+            userId: req.user._id,
+            userType: 'admin',
+            userName: req.user.name,
+            userEmail: req.user.email,
+            userPhone: req.user.phone
+          },
+          req,
+          {
+            previousStatus: order.orderStatus,
+            metadata: {
+              cancelledBy: 'admin',
+              stockRestored: true,
+              adminId: req.user._id
+            }
+          }
+        );
+      } catch (backgroundError) {
+        console.error('Background operation failed during admin cancellation:', backgroundError);
+      }
+    });
+  } catch (error) {
+    console.error('Admin cancel order error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -1181,11 +1617,11 @@ router.put("/:orderId/assign-merchant", async (req, res) => {
 
 
 async function assignMerchantToItem(orderId, itemId, merchantId, options = { validateMerchant: true }) {
-  // Find order
+  // First, get the order to validate item and merchant
   const order = await Order.findById(orderId);
   if (!order) throw new Error('Order not found');
 
-  // Find item
+  // Find item to get productId
   const item = order.items.id(itemId);
   if (!item) throw new Error('Order item not found');
 
@@ -1194,15 +1630,21 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
   if (merchantId) {
     // If manual assignment, validate merchant has this product
     if (options.validateMerchant) {
+      console.log(`🔍 Validating: Does merchant ${merchantId} sell product ${item.productId}?`);
+
       const productExists = await MerchantProduct.exists({
         productId: item.productId,
         merchantId,
         enabled: true,
       });
 
+      console.log(`   Result: ${productExists ? '✅ YES' : '❌ NO'}`);
+
       if (!productExists) {
         throw new Error('Selected merchant does not sell this product or is inactive');
       }
+    } else {
+      console.log(`⚠️ Validation SKIPPED for merchant ${merchantId}`);
     }
 
     merchant = await Merchant.findById(merchantId);
@@ -1227,45 +1669,84 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
     merchantId = merchant._id;
   }
 
-  // Assign merchant to item
-  item.assignedMerchantId = merchant._id;
-  item.assignedMerchantName = merchant.name || '';
-  item.itemStatus = 'assigned';
+  // Check and deduct stock BEFORE assigning (with atomic operation)
+  const merchantProduct = await MerchantProduct.findOne({
+    productId: item.productId,
+    merchantId: merchant._id,
+    enabled: true
+  });
 
-  // Deduct stock from merchant's inventory when accepting the order
+  if (!merchantProduct) {
+    throw new Error('Merchant product not found');
+  }
+
+  if (merchantProduct.stock < item.quantity) {
+    throw new Error(`Insufficient stock. Available: ${merchantProduct.stock}, Required: ${item.quantity}`);
+  }
+
+  // Atomic update: Only assign if item is still unassigned
+  // Using arrayFilters to ensure we update the EXACT item by ID that is also unassigned
+  const updatedOrder = await Order.findOneAndUpdate(
+    {
+      _id: orderId,
+      items: {
+        $elemMatch: {
+          _id: itemId,
+          assignedMerchantId: null  // ← Only update if still unassigned
+        }
+      }
+    },
+    {
+      $set: {
+        'items.$[elem].assignedMerchantId': merchant._id,
+        'items.$[elem].assignedMerchantName': merchant.name || '',
+        'items.$[elem].itemStatus': 'assigned'
+      }
+    },
+    {
+      arrayFilters: [{ 'elem._id': itemId }],
+      new: true
+    }
+  );
+
+  if (!updatedOrder) {
+    throw new Error('Item already assigned to another merchant or order not found');
+  }
+
+  // Now deduct stock (only if assignment was successful)
   try {
-    const merchantProduct = await MerchantProduct.findOne({
-      productId: item.productId,
-      merchantId: merchant._id,
-      enabled: true
-    });
-
-    if (!merchantProduct) {
-      throw new Error('Merchant product not found');
-    }
-
-    if (merchantProduct.stock < item.quantity) {
-      throw new Error(`Insufficient stock. Available: ${merchantProduct.stock}, Required: ${item.quantity}`);
-    }
-
-    // Deduct stock
     merchantProduct.stock -= item.quantity;
     await merchantProduct.save();
-    
+
     console.log(`Stock deducted: ${item.quantity} units of ${item.productName} from merchant ${merchant.name} (ID: ${merchant._id})`);
   } catch (stockError) {
-    console.error('Stock deduction error:', stockError);
+    // Rollback the assignment if stock deduction fails
+    await Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        'items._id': itemId
+      },
+      {
+        $set: {
+          'items.$.assignedMerchantId': null,
+          'items.$.assignedMerchantName': '',
+          'items.$.itemStatus': 'pending'
+        }
+      }
+    );
+    console.error('Stock deduction error, rolling back assignment:', stockError);
     throw new Error(`Failed to deduct stock: ${stockError.message}`);
   }
 
   // Update overall order status if all items are assigned
-  const allAssigned = order.items.every(i => i.itemStatus === 'assigned');
-  if (allAssigned) order.orderStatus = 'assigned';
+  const finalOrder = await Order.findById(orderId);
+  const allAssigned = finalOrder.items.every(i => i.itemStatus === 'assigned');
+  if (allAssigned) {
+    finalOrder.orderStatus = 'assigned';
+    await finalOrder.save();
+  }
 
-  // Save order
-  await order.save();
-
-  return order;
+  return finalOrder;
 }
 
 
@@ -1290,8 +1771,19 @@ const merchantProducts = await MerchantProduct.find({
       return res.json([]); // No products in stock, nothing to assign
     }
 
+    // CRITICAL FIX: Get addresses in the same city as the merchant to prevent cross-city orders
+    let cityAddressIds = null;
+    if (merchant.city) {
+      const cityAddresses = await Address.find({
+        city: { $regex: new RegExp(`^${merchant.city}$`, 'i') }
+      }).distinct('_id');
+      cityAddressIds = cityAddresses;
+      console.log(`🏙️ Merchant ${merchant.businessName} in ${merchant.city}: Found ${cityAddressIds.length} addresses in the same city`);
+    }
+
     // ✅ Step 2: Find orders containing unassigned items for those products
-    const unassignedOrders = await Order.find({
+    // AND with delivery addresses in the same city as the merchant
+    const orderFilter = {
       $or: [
         { orderStatus: 'pending' },
         { orderStatus: 'processing' } // Include processing orders that might have mixed assigned/unassigned items
@@ -1299,19 +1791,48 @@ const merchantProducts = await MerchantProduct.find({
       'items.itemStatus': 'pending',
       'items.assignedMerchantId': null,
       'items.productId': { $in: merchantProductIds }
-    })
+    };
+
+    // Add city filter if merchant has a city
+    if (cityAddressIds && cityAddressIds.length > 0) {
+      orderFilter.deliveryAddressId = { $in: cityAddressIds };
+    }
+
+    const unassignedOrders = await Order.find(orderFilter)
     .populate('customerId', 'name phone')
     .populate('deliveryAddressId', 'fullName phoneNumber addressLine1 addressLine2 landmark area city state pincode addressType title');
 
     // ✅ Step 3: Filter to show only unassigned items relevant to this merchant
-    const filteredOrders = unassignedOrders.map(order => ({
-      ...order.toObject(),
-      items: order.items.filter(item =>
+    const filteredOrders = unassignedOrders.map(order => {
+      const orderObj = order.toObject();
+
+      // Debug: Log each item's details
+      console.log(`\n=== Order ${order._id} - Merchant: ${merchant.businessName} ===`);
+      orderObj.items.forEach((item, index) => {
+        const merchantSells = merchantProductIds.includes(item.productId.toString());
+        console.log(`  Item ${index + 1}: ${item.productName}`);
+        console.log(`    - ProductId: ${item.productId}`);
+        console.log(`    - Status: ${item.itemStatus}`);
+        console.log(`    - AssignedTo: ${item.assignedMerchantId || 'none'}`);
+        console.log(`    - MerchantSells: ${merchantSells}`);
+        console.log(`    - WillShow: ${merchantSells && item.itemStatus === 'pending' && item.assignedMerchantId === null}`);
+      });
+
+      const filteredItems = orderObj.items.filter(item =>
         merchantProductIds.includes(item.productId.toString()) &&
         item.itemStatus === 'pending' &&
         item.assignedMerchantId === null
-      )
-    })).filter(order => order.items.length > 0); // Only return orders that have unassigned items for this merchant
+      );
+
+      console.log(`  >> Filtered: ${filteredItems.length} items will be shown`);
+
+      return {
+        ...orderObj,
+        items: filteredItems
+      };
+    }).filter(order => order.items.length > 0); // Only return orders that have unassigned items for this merchant
+
+    console.log(`\n>> Returning ${filteredOrders.length} orders to merchant ${merchant.businessName}\n`);
 
     res.json(cleanOrderResponse(filteredOrders));
   } catch (error) {

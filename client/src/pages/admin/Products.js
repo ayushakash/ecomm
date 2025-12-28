@@ -37,6 +37,8 @@ const Products = () => {
     price: 0,
     stock: 0,
     enabled: true,
+    gstRate: 18, // Default 18% GST
+    gstType: "exclusive", // Default exclusive GST
   });
   const [newCategory, setNewCategory] = useState("");
 
@@ -119,6 +121,8 @@ const Products = () => {
       price: product.price || 0,
       stock: product.stock || 0,
       enabled: product.enabled || false,
+      gstRate: product.gstRate || 18,
+      gstType: product.gstType || "exclusive",
     });
     setEditModal({ open: true, product });
   };
@@ -153,7 +157,21 @@ const Products = () => {
         return typeof val === "object" ? val?.name : val || "N/A";
       },
     },
-    { accessorKey: "price", header: "Price" },
+    {
+      accessorKey: "price",
+      header: "Base Price",
+      cell: (info) => {
+        const row = info.row.original;
+        return (
+          <div>
+            <div className="text-sm font-medium text-gray-900">₹{info.getValue()}</div>
+            <div className="text-xs text-gray-500">
+              {row.gstType === 'no-gst' ? 'No GST' : `${row.gstRate}% GST (${row.gstType})`}
+            </div>
+          </div>
+        );
+      }
+    },
     { accessorKey: "totalStock", header: "Stock" },
     {
       accessorKey: "enabled",
@@ -218,6 +236,8 @@ const Products = () => {
       price: 0,
       stock: 0,
       enabled: true,
+      gstRate: 18,
+      gstType: "exclusive",
     });
     setIsAddModalOpen(true);
   }}
@@ -233,6 +253,96 @@ const Products = () => {
         data={productList?.products || []}
         globalFilter={globalFilter}
         setGlobalFilter={setGlobalFilter}
+        renderCard={(product) => (
+          <div key={product._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            {/* Header with Image */}
+            <div className="relative">
+              <img
+                className="w-full h-48 object-cover"
+                src={product.images?.[0] || "https://picsum.photos/200/300"}
+                alt={product.name}
+              />
+              <div className="absolute top-2 right-2">
+                <span
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    product.enabled
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {product.enabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-3">
+              {/* Product Name & SKU */}
+              <div>
+                <h3 className="font-semibold text-gray-900 text-lg">{product.name}</h3>
+                <p className="text-sm text-gray-500">SKU: {product.sku}</p>
+              </div>
+
+              {/* Category */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">
+                  {typeof product.category === "object" ? product.category?.name : product.category || "N/A"}
+                </span>
+              </div>
+
+              {/* Price */}
+              <div className="flex items-center space-x-2">
+                <div>
+                  <span className="font-semibold text-gray-900">₹{product.price}</span>
+                  <span className="text-sm text-gray-500 ml-1">per {product.unit}</span>
+                  <div className="text-xs text-gray-500">
+                    {product.gstType === 'no-gst' ? 'No GST' : `${product.gstRate}% GST (${product.gstType})`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stock */}
+              <div className="flex items-center space-x-2">
+                <div>
+                  <span className={`font-medium ${
+                    product.totalStock > 10 ? 'text-green-600' :
+                    product.totalStock > 0 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {product.totalStock} units
+                  </span>
+                  <span className="text-sm text-gray-500 ml-1">in stock</span>
+                </div>
+              </div>
+
+              {/* Description */}
+              {product.description && (
+                <p className="text-sm text-gray-600 line-clamp-2">
+                  {product.description}
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => openEditModal(product)}
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                >
+                  Edit
+                </button>
+                <div className="flex-1">
+                  <ConfirmDeleteButton
+                    title="Delete Product?"
+                    message="This action cannot be undone."
+                    onConfirm={() => deleteProductMutation.mutate(product._id)}
+                    loading={deleteProductMutation.isLoading}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       />
 
       {/* Add Product Modal */}
@@ -421,6 +531,48 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
               className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
           </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">GST Configuration</label>
+
+          {/* GST Type */}
+          <div className="mb-3">
+            <label className="block text-sm text-gray-600 mb-1">GST Type</label>
+            <select
+              name="gstType"
+              value={formData.gstType}
+              onChange={(e) => setFormData({ ...formData, gstType: e.target.value })}
+              className="block w-full border border-gray-300 rounded-md p-2"
+            >
+              <option value="exclusive">Exclusive (GST added to price)</option>
+              <option value="inclusive">Inclusive (GST included in price)</option>
+              <option value="no-gst">No GST (Tax exempted)</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.gstType === 'exclusive' && 'GST will be added on top of the base price'}
+              {formData.gstType === 'inclusive' && 'Price already includes GST'}
+              {formData.gstType === 'no-gst' && 'No GST will be applied'}
+            </p>
+          </div>
+
+          {/* GST Rate - only show if not no-gst */}
+          {formData.gstType !== 'no-gst' && (
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">GST Rate (%)</label>
+              <select
+                name="gstRate"
+                value={formData.gstRate}
+                onChange={(e) => setFormData({ ...formData, gstRate: parseInt(e.target.value) })}
+                className="block w-full border border-gray-300 rounded-md p-2"
+              >
+                <option value={0}>0% (Exempted)</option>
+                <option value={5}>5% (Essential goods - Sand, Bricks)</option>
+                <option value={12}>12% (Standard goods)</option>
+                <option value={18}>18% (Most goods - Steel, Electrical)</option>
+                <option value={28}>28% (Luxury goods - Cement, Tiles, Paints)</option>
+              </select>
+            </div>
+          )}
         </div>
         <div>
           <label className="inline-flex items-center mt-2">

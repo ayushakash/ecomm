@@ -29,8 +29,8 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState<'new' | 'my'>('new');
 
   // Fetch data
-  const { data: myOrders, isLoading: isLoadingMy, error: errorMy, refetch: refetchMy } = useMerchantOrders();
-  const { data: newOrders, isLoading: isLoadingNew, error: errorNew, refetch: refetchNew } = useUnassignedOrders();
+  const { data: myOrders, isLoading: isLoadingMy, error: errorMy, refetch: refetchMy } = useMerchantOrders(activeTab === 'my');
+  const { data: newOrders, isLoading: isLoadingNew, error: errorNew, refetch: refetchNew } = useUnassignedOrders(activeTab === 'new');
 
   // Mutations
   const respondMutation = useRespondToOrder();
@@ -61,181 +61,178 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ navigation }) => {
     return statuses.length > 1;
   };
 
-  const handleRespondToOrder = (orderId: string, itemId: string, action: 'accept' | 'reject') => {
-    Alert.alert(
-      action === 'accept' ? 'Accept Order' : 'Reject Order',
-      `Are you sure you want to ${action} this order item?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: action === 'accept' ? 'Accept' : 'Reject',
-          style: action === 'accept' ? 'default' : 'destructive',
-          onPress: () => {
-            respondMutation.mutate({ orderId, itemId, action });
-          },
-        },
-      ]
-    );
+  const handleRespondToOrder = (orderId: string, itemIds: string | string[], action: 'accept' | 'reject') => {
+    const itemIdArray = Array.isArray(itemIds) ? itemIds : [itemIds];
+    respondMutation.mutate({ orderId, itemIds: itemIdArray, action });
   };
 
-  const handleUpdateStatus = (orderId: string, itemId: string, status: string, productName: string) => {
-    const statusLabels: { [key: string]: string } = {
-      processing: 'Start Processing',
-      shipped: 'Mark as Shipped',
-      delivered: 'Mark as Delivered',
-      cancelled: 'Cancel Order',
-    };
-
-    Alert.alert(
-      'Update Status',
-      `${statusLabels[status]} for ${productName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          style: status === 'cancelled' ? 'destructive' : 'default',
-          onPress: () => {
-            updateStatusMutation.mutate({ orderId, itemId, status });
-          },
-        },
-      ]
-    );
+  const handleUpdateStatus = (orderId: string, itemIds: string | string[], status: string) => {
+    const itemIdArray = Array.isArray(itemIds) ? itemIds : [itemIds];
+    updateStatusMutation.mutate({ orderId, itemIds: itemIdArray, status });
   };
 
   const renderOrderItem = (order: any, isNew = false) => {
-    const statusColors = getStatusColor(order.status);
-    
     return (
       <Card key={order._id} style={styles.orderCard}>
-        {/* Header */}
+        {/* Header with gradient background */}
         <View style={styles.orderHeader}>
           <View style={styles.orderHeaderLeft}>
-            <Text style={styles.orderNumber}>
-              #{order.orderNumber || order._id.slice(-6)}
-            </Text>
-            {!isNew && hasMixedStatuses(order) && (
-              <View style={[styles.statusBadge, { backgroundColor: THEME.warning + '20' }]}>
-                <Text style={[styles.statusText, { color: THEME.warning }]}>
-                  Partial
-                </Text>
+            <View style={styles.orderNumberContainer}>
+              <Text style={styles.orderNumber}>
+                #{order.orderNumber || order._id.slice(-6)}
+              </Text>
+            </View>
+            {!isNew && order.items && hasMixedStatuses(order) && (
+              <View style={styles.partialBadge}>
+                <Text style={styles.partialBadgeText}>Partial</Text>
               </View>
             )}
           </View>
-          <Text style={styles.orderDate}>
-            {new Date(order.createdAt).toLocaleDateString()}
-          </Text>
+          <View style={styles.orderMeta}>
+            <Text style={styles.orderDate}>
+              {new Date(order.createdAt).toLocaleDateString()}
+            </Text>
+            <Text style={styles.orderValue}>₹{order.totalAmount}</Text>
+          </View>
         </View>
 
-        {/* Customer Info */}
-        <View style={styles.customerInfo}>
-          <Text style={styles.customerName}>{order.customerName}</Text>
-          <Text style={styles.customerPhone}>{order.customerPhone}</Text>
+        {/* Customer Info with beautiful styling */}
+        <View style={styles.customerSection}>
+          <View style={styles.customerIcon}>
+            <Ionicons name="person" size={16} color={THEME.primary} />
+          </View>
+          <View style={styles.customerDetails}>
+            <Text style={styles.customerName}>{order.customerName}</Text>
+            <Text style={styles.customerPhone}>{order.customerPhone}</Text>
+          </View>
         </View>
 
-        {/* Items */}
-        <View style={styles.itemsContainer}>
-          {order.items?.map((item: any) => {
-            const itemStatusColors = getStatusColor(item.itemStatus);
-            
-            return (
-              <View key={item._id} style={styles.itemCard}>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.productName}</Text>
-                  <Text style={styles.itemDetails}>
-                    Qty: {item.quantity} | ₹{item.totalPrice}
+        {/* Address Section */}
+        {(order.deliveryAddressId || order.customerAddress) && (
+          <View style={styles.addressSection}>
+            <View style={styles.addressIcon}>
+              <Ionicons name="location" size={16} color={THEME.primary} />
+            </View>
+            <View style={styles.addressDetails}>
+              <Text style={styles.addressTitle}>Delivery Address</Text>
+              {order.deliveryAddressId ? (
+                <View>
+                  <Text style={styles.addressText}>
+                    {order.deliveryAddressId.addressLine1}
+                    {order.deliveryAddressId.addressLine2 ? `, ${order.deliveryAddressId.addressLine2}` : ''}
                   </Text>
+                  <Text style={styles.addressText}>
+                    {order.deliveryAddressId.city}, {order.deliveryAddressId.state} - {order.deliveryAddressId.pincode}
+                  </Text>
+                  {order.deliveryAddressId.landmark && (
+                    <Text style={styles.addressLandmark}>Near: {order.deliveryAddressId.landmark}</Text>
+                  )}
                 </View>
-                
-                <View style={styles.itemActions}>
-                  <View style={[styles.statusBadge, { backgroundColor: itemStatusColors.bg }]}>
-                    <Text style={[styles.statusText, { color: itemStatusColors.text }]}>
-                      {item.itemStatus?.charAt(0).toUpperCase() + item.itemStatus?.slice(1)}
+              ) : (
+                <Text style={styles.addressText}>{order.customerAddress}</Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Bulk action buttons for new orders */}
+        {isNew && order.items?.some((item: any) => item.itemStatus === 'pending') && (
+          <View style={styles.bulkActionsSection}>
+            <TouchableOpacity
+              style={styles.bulkAcceptButton}
+              onPress={() => handleRespondToOrder(
+                order._id,
+                order.items.filter((item: any) => item.itemStatus === 'pending').map((item: any) => item._id),
+                'accept'
+              )}
+            >
+              <Ionicons name="checkmark-circle" size={18} color="#fff" />
+              <Text style={styles.bulkAcceptButtonText}>
+                Accept All {order.items.filter((item: any) => item.itemStatus === 'pending').length} Items
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Bulk action buttons for my orders */}
+        {!isNew && (order.orderStatus === 'assigned' || order.orderStatus === 'processing' || order.orderStatus === 'shipped') && (
+          <View style={styles.bulkActionsSection}>
+            {(() => {
+              const status = order.orderStatus || 'assigned';
+              const allItemIds = order.items.map((item: any) => item._id);
+
+              if (status === 'assigned' || status === 'pending') {
+                return (
+                  <TouchableOpacity
+                    style={[styles.bulkStatusButton, { backgroundColor: THEME.info }]}
+                    onPress={() => handleUpdateStatus(order._id, allItemIds, 'processing')}
+                    disabled={updateStatusMutation.isLoading}
+                  >
+                    <Ionicons name="play-circle" size={18} color="#fff" />
+                    <Text style={styles.bulkStatusButtonText}>
+                      Start Processing All ({order.items.length})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              } else if (status === 'processing') {
+                return (
+                  <TouchableOpacity
+                    style={[styles.bulkStatusButton, { backgroundColor: THEME.secondary }]}
+                    onPress={() => handleUpdateStatus(order._id, allItemIds, 'shipped')}
+                    disabled={updateStatusMutation.isLoading}
+                  >
+                    <Ionicons name="airplane" size={18} color="#fff" />
+                    <Text style={styles.bulkStatusButtonText}>
+                      Ship All Items ({order.items.length})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              } else if (status === 'shipped') {
+                return (
+                  <TouchableOpacity
+                    style={[styles.bulkStatusButton, { backgroundColor: THEME.success }]}
+                    onPress={() => handleUpdateStatus(order._id, allItemIds, 'delivered')}
+                    disabled={updateStatusMutation.isLoading}
+                  >
+                    <Ionicons name="checkmark-done-circle" size={18} color="#fff" />
+                    <Text style={styles.bulkStatusButtonText}>
+                      Deliver All Items ({order.items.length})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }
+            })()}
+          </View>
+        )}
+
+        {/* Items with enhanced design */}
+        <View style={styles.itemsSection}>
+          <Text style={styles.sectionTitle}>Items ({order.items?.length || 0})</Text>
+          {order.items?.map((item: any) => {
+            const itemStatusColors = getStatusColor(item.itemStatus || order.orderStatus);
+
+            return (
+              <View key={item._id} style={styles.modernItemCard}>
+                <View style={styles.itemContent}>
+                  <View style={styles.itemDetails}>
+                    <Text style={styles.itemName}>{item.productName}</Text>
+                    <Text style={styles.itemMeta}>
+                      Qty: {item.quantity} • ₹{item.totalPrice}
                     </Text>
                   </View>
-                  
-                  {/* Action buttons for new orders and unassigned items */}
-                  {((isNew && item.itemStatus === 'pending') || 
-                    (!isNew && !item.assignedMerchantId && item.itemStatus === 'pending')) && (
-                    <View style={styles.actionButtons}>
-                      <Button
-                        title={isNew ? 'Accept' : 'Claim'}
-                        onPress={() => handleRespondToOrder(order._id, item._id, 'accept')}
-                        variant="primary"
-                        style={styles.smallButton}
-                        textStyle={styles.smallButtonText}
-                      />
-                      <Button
-                        title="Reject"
-                        onPress={() => handleRespondToOrder(order._id, item._id, 'reject')}
-                        variant="outline"
-                        style={[styles.smallButton, styles.rejectButton]}
-                        textStyle={[styles.smallButtonText, { color: THEME.error }]}
-                      />
+
+                  <View style={styles.itemStatusContainer}>
+                    <View style={[styles.modernStatusBadge, { backgroundColor: itemStatusColors.bg }]}>
+                      <Text style={[styles.modernStatusText, { color: itemStatusColors.text }]}>
+                        {(item.itemStatus || order.orderStatus)?.charAt(0).toUpperCase() + (item.itemStatus || order.orderStatus)?.slice(1)}
+                      </Text>
                     </View>
-                  )}
+                  </View>
                 </View>
               </View>
             );
           })}
         </View>
-
-        {/* Status Update Actions for My Orders */}
-        {!isNew && (
-          <View style={styles.statusActions}>
-            {order.items
-              ?.filter((item: any) => 
-                item.assignedMerchantId && 
-                item.itemStatus !== 'delivered' && 
-                item.itemStatus !== 'cancelled'
-              )
-              .map((item: any) => (
-                <View key={item._id} style={styles.statusActionGroup}>
-                  <Text style={styles.statusActionLabel}>{item.productName}:</Text>
-                  <View style={styles.statusActionButtons}>
-                    {item.itemStatus === 'assigned' && (
-                      <Button
-                        title="Start Processing"
-                        onPress={() => handleUpdateStatus(order._id, item._id, 'processing', item.productName)}
-                        variant="primary"
-                        style={styles.statusButton}
-                        textStyle={styles.statusButtonText}
-                      />
-                    )}
-                    
-                    {item.itemStatus === 'processing' && (
-                      <Button
-                        title="Mark Shipped"
-                        onPress={() => handleUpdateStatus(order._id, item._id, 'shipped', item.productName)}
-                        variant="secondary"
-                        style={styles.statusButton}
-                        textStyle={styles.statusButtonText}
-                      />
-                    )}
-                    
-                    {(item.itemStatus === 'shipped' || item.itemStatus === 'processing') && (
-                      <Button
-                        title="Mark Delivered"
-                        onPress={() => handleUpdateStatus(order._id, item._id, 'delivered', item.productName)}
-                        variant="primary"
-                        style={styles.statusButton}
-                        textStyle={styles.statusButtonText}
-                      />
-                    )}
-                    
-                    {(item.itemStatus === 'assigned' || item.itemStatus === 'processing') && (
-                      <Button
-                        title="Cancel"
-                        onPress={() => handleUpdateStatus(order._id, item._id, 'cancelled', item.productName)}
-                        variant="outline"
-                        style={[styles.statusButton, styles.cancelButton]}
-                        textStyle={[styles.statusButtonText, { color: THEME.error }]}
-                      />
-                    )}
-                  </View>
-                </View>
-              ))}
-          </View>
-        )}
       </Card>
     );
   };
@@ -260,7 +257,9 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ navigation }) => {
         );
       }
       
-      if (!newOrders || newOrders.length === 0) {
+      const ordersArray = Array.isArray(newOrders) ? newOrders : newOrders?.data || [];
+
+      if (ordersArray.length === 0) {
         return (
           <View style={styles.centerContainer}>
             <Ionicons name="receipt-outline" size={48} color={THEME.textMuted} />
@@ -268,8 +267,8 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ navigation }) => {
           </View>
         );
       }
-      
-      return newOrders.map((order: any) => renderOrderItem(order, true));
+
+      return ordersArray.map((order: any) => renderOrderItem(order, true));
     } else {
       if (isLoadingMy) {
         return <CustomLoader visible={true} message="Loading my orders..." />;
@@ -288,8 +287,9 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ navigation }) => {
           </View>
         );
       }
-      
-      if (!myOrders?.orders || myOrders.orders.length === 0) {
+      const ordersArray = Array.isArray(myOrders) ? myOrders : myOrders?.orders || [];
+
+      if (ordersArray.length === 0) {
         return (
           <View style={styles.centerContainer}>
             <Ionicons name="receipt-outline" size={48} color={THEME.textMuted} />
@@ -297,8 +297,8 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ navigation }) => {
           </View>
         );
       }
-      
-      return myOrders.orders.map((order: any) => renderOrderItem(order, false));
+
+      return ordersArray.map((order: any) => renderOrderItem(order, false));
     }
   };
 
@@ -314,35 +314,32 @@ const OrdersScreen: React.FC<OrdersScreenProps> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={THEME.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Orders</Text>
-        <View style={styles.headerRight} />
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Orders</Text>
+          <Text style={styles.headerSubtitle}>Manage incoming and assigned orders</Text>
+        </View>
+
+        {/* Tabs moved to header */}
+        <View style={styles.headerTabs}>
+          <TouchableOpacity
+            style={[styles.headerTab, activeTab === 'new' && styles.activeHeaderTab]}
+            onPress={() => setActiveTab('new')}
+          >
+            <Text style={[styles.headerTabText, activeTab === 'new' && styles.activeHeaderTabText]}>
+              New Orders
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerTab, activeTab === 'my' && styles.activeHeaderTab]}
+            onPress={() => setActiveTab('my')}
+          >
+            <Text style={[styles.headerTabText, activeTab === 'my' && styles.activeHeaderTabText]}>
+              My Orders
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'new' && styles.activeTab]}
-          onPress={() => setActiveTab('new')}
-        >
-          <Text style={[styles.tabText, activeTab === 'new' && styles.activeTabText]}>
-            New Orders
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'my' && styles.activeTab]}
-          onPress={() => setActiveTab('my')}
-        >
-          <Text style={[styles.tabText, activeTab === 'my' && styles.activeTabText]}>
-            My Orders
-          </Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Content */}
       <ScrollView
@@ -369,49 +366,47 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: THEME.background,
     paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
+    paddingTop: SIZES.lg,
+    paddingBottom: SIZES.md,
     borderBottomWidth: 1,
     borderBottomColor: THEME.border,
   },
-  backButton: {
-    padding: SIZES.sm,
+  headerContent: {
+    marginBottom: SIZES.lg,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: 'bold',
     color: THEME.text,
+    marginBottom: 4,
   },
-  headerRight: {
-    width: 40,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: THEME.background,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: SIZES.md,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: THEME.primary,
-  },
-  tabText: {
+  headerSubtitle: {
     fontSize: 16,
+    color: THEME.textSecondary,
+  },
+  headerTabs: {
+    flexDirection: 'row',
+    gap: SIZES.sm,
+  },
+  headerTab: {
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+    borderRadius: SIZES.sm,
+    backgroundColor: THEME.backgroundSecondary,
+  },
+  activeHeaderTab: {
+    backgroundColor: THEME.primary,
+  },
+  headerTabText: {
+    fontSize: 14,
     fontWeight: '500',
     color: THEME.textSecondary,
   },
-  activeTabText: {
-    color: THEME.primary,
-    fontWeight: 'bold',
+  activeHeaderTabText: {
+    color: THEME.background,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -440,125 +435,239 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: SIZES.md,
   },
+  // Modern Order Card Styles
   orderCard: {
     marginBottom: SIZES.lg,
-    padding: SIZES.lg,
+    padding: 0,
+    borderRadius: SIZES.md,
+    backgroundColor: THEME.background,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SIZES.md,
+    padding: SIZES.lg,
+    paddingBottom: SIZES.md,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border + '30',
   },
   orderHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  orderNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: THEME.text,
+  orderNumberContainer: {
+    backgroundColor: THEME.primary + '10',
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.xs,
+    borderRadius: SIZES.md,
     marginRight: SIZES.sm,
   },
-  orderDate: {
+  orderNumber: {
     fontSize: 14,
-    color: THEME.textSecondary,
+    fontWeight: 'bold',
+    color: THEME.primary,
   },
-  customerInfo: {
-    marginBottom: SIZES.md,
+  partialBadge: {
+    backgroundColor: THEME.warning + '20',
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: 4,
+    borderRadius: SIZES.sm,
+  },
+  partialBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: THEME.warning,
+  },
+  orderMeta: {
+    alignItems: 'flex-end',
+  },
+  orderDate: {
+    fontSize: 12,
+    color: THEME.textSecondary,
+    marginBottom: 2,
+  },
+  orderValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: THEME.success,
+  },
+
+  // Customer Section
+  customerSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SIZES.lg,
+    paddingTop: SIZES.md,
+    paddingBottom: SIZES.md,
+  },
+  customerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: THEME.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SIZES.sm,
+  },
+  customerDetails: {
+    flex: 1,
   },
   customerName: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: THEME.text,
+    marginBottom: 2,
   },
   customerPhone: {
-    fontSize: 14,
+    fontSize: 13,
     color: THEME.textSecondary,
   },
-  itemsContainer: {
-    marginBottom: SIZES.md,
-  },
-  itemCard: {
+
+  // Address Section
+  addressSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: SIZES.lg,
+    paddingTop: SIZES.md,
+    paddingBottom: SIZES.md,
+    borderTopWidth: 1,
+    borderTopColor: THEME.border + '20',
+  },
+  addressIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: THEME.primary + '10',
     alignItems: 'center',
-    backgroundColor: THEME.backgroundSecondary,
-    padding: SIZES.md,
-    borderRadius: SIZES.sm,
+    justifyContent: 'center',
+    marginRight: SIZES.sm,
+  },
+  addressDetails: {
+    flex: 1,
+  },
+  addressTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: THEME.text,
+    marginBottom: 4,
+  },
+  addressText: {
+    fontSize: 13,
+    color: THEME.textSecondary,
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  addressLandmark: {
+    fontSize: 12,
+    color: THEME.textMuted,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+
+  // Items Section
+  itemsSection: {
+    padding: SIZES.lg,
+    paddingTop: 0,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: THEME.text,
     marginBottom: SIZES.sm,
   },
-  itemInfo: {
+  modernItemCard: {
+    backgroundColor: THEME.backgroundSecondary,
+    borderRadius: SIZES.md,
+    padding: SIZES.md,
+    marginBottom: SIZES.sm,
+    borderWidth: 1,
+    borderColor: THEME.border + '20',
+  },
+  itemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: SIZES.sm,
+  },
+  itemDetails: {
     flex: 1,
     marginRight: SIZES.sm,
   },
   itemName: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: THEME.text,
+    marginBottom: 4,
   },
-  itemDetails: {
-    fontSize: 12,
+  itemMeta: {
+    fontSize: 13,
     color: THEME.textSecondary,
-    marginTop: 2,
   },
-  itemActions: {
+  itemStatusContainer: {
     alignItems: 'flex-end',
   },
-  statusBadge: {
+  modernStatusBadge: {
     paddingHorizontal: SIZES.sm,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: SIZES.sm,
-    marginBottom: SIZES.xs,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: SIZES.xs,
-  },
-  smallButton: {
-    paddingHorizontal: SIZES.sm,
-    paddingVertical: 4,
-    minHeight: 28,
-  },
-  smallButtonText: {
-    fontSize: 12,
-  },
-  rejectButton: {
-    borderColor: THEME.error,
-  },
-  statusActions: {
-    borderTopWidth: 1,
-    borderTopColor: THEME.border,
-    paddingTop: SIZES.md,
-  },
-  statusActionGroup: {
-    marginBottom: SIZES.sm,
-  },
-  statusActionLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: THEME.text,
-    marginBottom: SIZES.xs,
-  },
-  statusActionButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SIZES.xs,
-  },
-  statusButton: {
-    paddingHorizontal: SIZES.sm,
-    paddingVertical: 4,
-    minHeight: 28,
-  },
-  statusButtonText: {
+  modernStatusText: {
     fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
-  cancelButton: {
-    borderColor: THEME.error,
+
+  // Bulk Action Buttons
+  bulkActionsSection: {
+    padding: SIZES.lg,
+    paddingTop: SIZES.md,
+    paddingBottom: SIZES.md,
+    borderTopWidth: 1,
+    borderTopColor: THEME.border + '20',
+  },
+  bulkAcceptButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: THEME.success,
+    paddingHorizontal: SIZES.lg,
+    paddingVertical: SIZES.md,
+    borderRadius: SIZES.md,
+    gap: 10,
+    shadowColor: THEME.success,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  bulkAcceptButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  bulkStatusButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SIZES.lg,
+    paddingVertical: SIZES.md,
+    borderRadius: SIZES.md,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  bulkStatusButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

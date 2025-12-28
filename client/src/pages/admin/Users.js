@@ -140,6 +140,82 @@ const Users = () => {
           data={userList?.users ?? []}
           globalFilter={globalFilter}
           setGlobalFilter={setGlobalFilter}
+          renderCard={(user) => (
+            <div key={user._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+              {/* Header */}
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      user.role === 'admin' ? 'bg-gradient-to-br from-red-500 to-pink-600' :
+                      user.role === 'merchant' ? 'bg-gradient-to-br from-blue-500 to-purple-600' :
+                      'bg-gradient-to-br from-green-500 to-emerald-600'
+                    }`}>
+                      <span className="text-white font-bold text-sm">
+                        {user.name?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{user.name}</h3>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <span
+                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                      user.isActive
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {user.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 space-y-3">
+                {/* Role */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Role</span>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      user.role === "admin"
+                        ? "bg-red-100 text-red-800"
+                        : user.role === "merchant"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {user.role}
+                  </span>
+                </div>
+
+                {/* Area */}
+                {user.area && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Area</span>
+                    <span className="text-sm font-medium text-gray-900">{user.area}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                <button
+                  className={`w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    user.isActive
+                      ? 'border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'
+                      : 'border border-green-300 text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+                  }`}
+                  onClick={() => handleStatusToggle(user._id, !user.isActive)}
+                >
+                  {user.isActive ? 'Deactivate User' : 'Activate User'}
+                </button>
+              </div>
+            </div>
+          )}
         />
       </div>
     </div>

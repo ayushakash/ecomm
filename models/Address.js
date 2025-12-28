@@ -23,7 +23,13 @@ const addressSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Phone number is required'],
     trim: true,
-    match: [/^[6-9]\d{9}$/, 'Please enter a valid Indian phone number']
+    validate: {
+      validator: function(v) {
+        // Allow 10-digit numbers starting with 6-9, or 11-digit numbers starting with 0 followed by 6-9
+        return /^[6-9]\d{9}$/.test(v) || /^0[6-9]\d{9}$/.test(v);
+      },
+      message: 'Phone number must be 10 digits starting with 6-9, or 11 digits starting with 0'
+    }
   },
   addressLine1: {
     type: String,
@@ -68,6 +74,7 @@ const addressSchema = new mongoose.Schema({
   coordinates: {
     latitude: {
       type: Number,
+      required: false, // Optional now - city-based fallback available
       validate: {
         validator: function(v) {
           return v === null || v === undefined || (v >= -90 && v <= 90);
@@ -77,6 +84,7 @@ const addressSchema = new mongoose.Schema({
     },
     longitude: {
       type: Number,
+      required: false, // Optional now - city-based fallback available
       validate: {
         validator: function(v) {
           return v === null || v === undefined || (v >= -180 && v <= 180);
@@ -111,8 +119,14 @@ const addressSchema = new mongoose.Schema({
 addressSchema.index({ user: 1, isDefault: 1 });
 addressSchema.index({ user: 1, isActive: 1 });
 
-// Ensure only one default address per user
+// Pre-save hook to normalize phone number and handle default address
 addressSchema.pre('save', async function(next) {
+  // Strip leading 0 from phone number if present (normalize to 10 digits)
+  if (this.phoneNumber && this.phoneNumber.startsWith('0') && this.phoneNumber.length === 11) {
+    this.phoneNumber = this.phoneNumber.substring(1);
+  }
+
+  // Ensure only one default address per user
   if (this.isDefault && this.isModified('isDefault')) {
     // Remove default flag from other addresses of the same user
     await mongoose.model('Address').updateMany(

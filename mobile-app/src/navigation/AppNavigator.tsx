@@ -46,6 +46,7 @@ import AdminSettingsScreen from '../screens/admin/SettingsScreen';
 
 // Common Screens
 import LoadingScreen from '../screens/common/LoadingScreen';
+import GuestProfileScreen from '../screens/common/GuestProfileScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -108,6 +109,9 @@ const GuestTabs = () => {
             case 'Cart':
               iconName = focused ? 'cart' : 'cart-outline';
               break;
+            case 'Profile':
+              iconName = focused ? 'person' : 'person-outline';
+              break;
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -136,6 +140,7 @@ const GuestTabs = () => {
       <Tab.Screen name="Home" component={CustomerHomeScreen} />
       <Tab.Screen name="Products" component={ProductListScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
+      <Tab.Screen name="Profile" component={GuestProfileScreen} />
     </Tab.Navigator>
   );
 };

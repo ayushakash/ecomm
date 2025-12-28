@@ -17,7 +17,11 @@ function cleanOrderObject(order) {
   if (!order) return null;
 
   // Convert to plain object if it's a Mongoose document
+  // IMPORTANT: If items array is already provided (pre-filtered), use it as-is
   const orderObj = order.toObject ? order.toObject() : order;
+
+  // Preserve pre-filtered items if they exist (for merchant-specific views)
+  const preFilteredItems = (!order.toObject && order.items) ? order.items : null;
 
   // Helper function to format dates to ISO 8601
   const formatDate = (date) => {
@@ -82,6 +86,8 @@ function cleanOrderObject(order) {
         _id: cleanObjectId(item._id), // Keep _id for UI operations
         productName: item.productName,
         quantity: item.quantity,
+        unit: item.unit, // Keep for UI display
+        sku: item.sku, // Keep for UI display
         unitPrice: item.unitPrice,
         totalPrice: item.totalPrice,
         itemStatus: item.itemStatus, // Keep for UI status display
@@ -128,7 +134,7 @@ function cleanOrderObject(order) {
     customerName: orderObj.customerName,
     customerPhone: orderObj.customerPhone,
     customerAddress: orderObj.customerAddress,
-    items: cleanItems(orderObj.items),
+    items: cleanItems(preFilteredItems || orderObj.items), // Use pre-filtered items if available
     subtotal: orderObj.subtotal,
     tax: orderObj.tax,
     deliveryCharge: orderObj.deliveryCharge,
@@ -186,6 +192,16 @@ function cleanOrderObject(order) {
   // Always include customerArea for routing and logistics
   if (orderObj.customerArea) {
     cleanedOrder.customerArea = orderObj.customerArea;
+  }
+
+  // Preserve merchant payout data (for merchant views)
+  if (orderObj.merchantPayout) {
+    cleanedOrder.merchantPayout = orderObj.merchantPayout;
+  }
+
+  // Preserve platform fee
+  if (orderObj.platformFee !== undefined) {
+    cleanedOrder.platformFee = orderObj.platformFee;
   }
 
   // Remove undefined and null values

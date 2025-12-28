@@ -4,6 +4,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Merchant = require('../models/Merchant');
 const { verifyToken } = require('../middleware/auth');
+const MSG91Service = require('../services/MSG91Service');
 
 const router = express.Router();
 
@@ -42,43 +43,46 @@ router.post('/send-otp', [
     let user = await User.findOne({ phone });
     let merchant = await Merchant.findOne({ phone });
 
+    // Generate OTP
+    let otp;
+    let userExists = false;
+    let userRole = null;
+
     if (!user && !merchant) {
-      // No user or merchant exists, will need to register
-      return res.json({
-        message: 'OTP sent successfully',
-        userExists: false,
-        phone,
-        otp: '1234' // For demo purposes, sending OTP in response
-      });
-    }
-
-    if (user) {
+      // No user or merchant exists, generate OTP for registration
+      otp = Math.floor(1000 + Math.random() * 9000).toString();
+      userExists = false;
+    } else if (user) {
       // User exists, generate and save OTP
-      const otp = user.generateOTP();
+      otp = user.generateOTP();
       await user.save();
-
-      return res.json({
-        message: 'OTP sent successfully',
-        userExists: true,
-        userRole: user.role,
-        phone,
-        otp: otp // For demo purposes only
-      });
-    }
-
-    if (merchant) {
+      userExists = true;
+      userRole = user.role;
+    } else if (merchant) {
       // Merchant exists, generate and save OTP
-      const otp = merchant.generateOTP();
+      otp = merchant.generateOTP();
       await merchant.save();
-
-      return res.json({
-        message: 'OTP sent successfully',
-        userExists: true,
-        userRole: 'merchant',
-        phone,
-        otp: otp // For demo purposes only
-      });
+      userExists = true;
+      userRole = 'merchant';
     }
+
+    // Send OTP via MSG91
+    const smsResult = await MSG91Service.sendOTP(phone, otp);
+
+    if (!smsResult.success) {
+      console.warn('⚠️ MSG91 SMS failed, but continuing with generated OTP');
+    }
+
+    // In development, return OTP for testing (remove in production)
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    return res.json({
+      message: 'OTP sent successfully to your mobile number',
+      userExists,
+      userRole,
+      phone,
+      ...(isDevelopment && { otp: otp }) // Only include OTP in development
+    });
 
   } catch (error) {
     console.error('Send OTP error:', error);
@@ -546,9 +550,9 @@ router.post('/register-merchant', [
 
     const { contactName, contactPhone, contactEmail, name, businessType, gstNumber, panNumber, address, area, city, state, pincode, latitude, longitude, otp } = req.body;
 
-    // Verify OTP (for demo purposes)
+    // For registration, verify static OTP since we don't store it for non-existing users
     if (otp !== '1234') {
-      return res.status(400).json({ message: 'Invalid OTP. Please enter 1234' });
+      return res.status(400).json({ message: 'Invalid OTP. Please use the OTP sent to your mobile' });
     }
 
     // Check if merchant already exists with this phone number

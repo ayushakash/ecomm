@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import msg91OtpService from '../../services/msg91OtpService';
 
 const Login = () => {
   const [step, setStep] = useState(1);
@@ -13,12 +14,18 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [userExists, setUserExists] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [msg91RequestId, setMsg91RequestId] = useState(null);
 
   const { login, setUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/';
+
+  // Initialize MSG91 Widget on component mount
+  useEffect(() => {
+    msg91OtpService.initialize();
+  }, []);
 
   const validateMobile = () => {
     const newErrors = {};
@@ -35,8 +42,8 @@ const Login = () => {
     const newErrors = {};
     if (!otp.trim()) {
       newErrors.otp = 'OTP is required';
-    } else if (otp.trim() !== '1234') {
-      newErrors.otp = 'Invalid OTP. Please enter 1234';
+    } else if (otp.trim().length !== 4) {
+      newErrors.otp = 'OTP must be 4 digits';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -71,19 +78,27 @@ const Login = () => {
 
       const data = await response.json();
 
-      if (response.ok) {
-        setUserExists(data.userExists);
-        if (data.userExists && data.userRole) {
-          setUserRole(data.userRole);
-        }
-        setStep(2);
-        toast.success(`OTP sent to +91${mobile}. Please enter 1234 to verify.`);
-      } else {
+      if (!response.ok) {
         throw new Error(data.message || 'Failed to send OTP');
+      }
+
+      setUserExists(data.userExists);
+      if (data.userExists && data.userRole) {
+        setUserRole(data.userRole);
+      }
+
+      setStep(2);
+
+      // In development, show OTP in toast for easy testing
+      if (data.otp) {
+        toast.success(`OTP sent to +91${mobile}. For testing: ${data.otp}`);
+        console.log('📱 OTP for testing:', data.otp);
+      } else {
+        toast.success(`OTP sent to +91${mobile}`);
       }
     } catch (error) {
       console.error('Send OTP error:', error);
-      toast.error('Failed to send OTP. Please try again.');
+      toast.error(error.message || 'Failed to send OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +141,6 @@ const Login = () => {
           const api = (await import('../../services/api')).default;
           api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
-          // Update the user context - this was missing!
           setUser(userData);
 
           toast.success('Login successful!');
@@ -256,7 +270,7 @@ const Login = () => {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
         <div className="flex items-center">
           <span className="text-blue-600 mr-2">ℹ️</span>
-          <span className="text-blue-800 text-sm">For demo purposes, please enter: 1234</span>
+          <span className="text-blue-800 text-sm">Enter the 4-digit OTP sent to your mobile</span>
         </div>
       </div>
       <div className="space-y-4">
@@ -271,7 +285,7 @@ const Login = () => {
             onChange={(e) => setOtp(e.target.value)}
             maxLength={4}
             className={`${getInputClass('otp')} text-center text-lg font-mono tracking-widest`}
-            placeholder="1234"
+            placeholder="••••"
           />
           {errors.otp && <p className="text-red-600 text-sm mt-1">{errors.otp}</p>}
         </div>

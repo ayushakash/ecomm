@@ -27,14 +27,21 @@ const Settings = () => {
       perKmRate: 5,
       baseDistance: 5,
       perKgRate: 10,
-      freeWeightLimit: 50
+      freeWeightLimit: 50,
+      maxDeliveryRadius: 10,
+      maxExpandedRadius: 25,
+      minimumMerchantsBeforeExpand: 3,
+      fallbackStrategy: 'expand',
+      enablePincodeGrouping: true
     },
     priceDisplayMode: 'admin',
+    gstDisplayMode: 'exclusive',
     stockValidationMode: 'admin',
     autoReduceStockOnDelivery: true,
     minimumOrderValue: 100,
     platformFeeRate: 0.02
   });
+
 
   useEffect(() => {
     if (settings) {
@@ -54,10 +61,12 @@ const Settings = () => {
     }
   });
 
+
   const handleSubmit = (e) => {
     e.preventDefault();
     updateSettingsMutation.mutate(formData);
   };
+
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -102,27 +111,14 @@ const Settings = () => {
               {/* Pricing Configuration */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Pricing Configuration</h2>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tax Rate (%)
-                    </label>
-                    <input
-                      type="number"
-                      name="taxRate"
-                      value={(formData.taxRate * 100).toFixed(2)}
-                      onChange={(e) => handleInputChange({
-                        target: { name: 'taxRate', value: e.target.value / 100, type: 'number' }
-                      })}
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Current: {(formData.taxRate * 100).toFixed(2)}% GST</p>
-                  </div>
 
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>ℹ️ Note:</strong> GST is now calculated per product based on individual product GST rates. Configure product GST rates in the Products section.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Minimum Order Value (₹)
@@ -135,6 +131,26 @@ const Settings = () => {
                       min="0"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Minimum cart value required for checkout</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Platform Fee Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      name="platformFeeRate"
+                      value={(formData.platformFeeRate * 100).toFixed(2)}
+                      onChange={(e) => handleInputChange({
+                        target: { name: 'platformFeeRate', value: e.target.value / 100, type: 'number' }
+                      })}
+                      min="0"
+                      max="10"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Current: {(formData.platformFeeRate * 100).toFixed(2)}% platform fee</p>
                   </div>
                 </div>
               </div>
@@ -142,7 +158,7 @@ const Settings = () => {
               {/* Delivery Configuration */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Delivery Configuration</h2>
-                
+
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Delivery Calculation Method
@@ -208,6 +224,112 @@ const Settings = () => {
                 )}
               </div>
 
+              {/* Location-Based Delivery Filtering */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Location-Based Product Filtering</h2>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>ℹ️ How it works:</strong> Customers will only see products from merchants within their delivery area. This ensures no checkout failures and better delivery experience.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Primary Delivery Radius (km)
+                    </label>
+                    <input
+                      type="number"
+                      name="deliveryConfig.maxDeliveryRadius"
+                      value={formData.deliveryConfig.maxDeliveryRadius}
+                      onChange={handleInputChange}
+                      min="1"
+                      max="50"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Default distance for merchant search
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Maximum Expanded Radius (km)
+                    </label>
+                    <input
+                      type="number"
+                      name="deliveryConfig.maxExpandedRadius"
+                      value={formData.deliveryConfig.maxExpandedRadius}
+                      onChange={handleInputChange}
+                      min="5"
+                      max="100"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Extended search for sparse areas
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Minimum Merchants Before Expanding Search
+                  </label>
+                  <input
+                    type="number"
+                    name="deliveryConfig.minimumMerchantsBeforeExpand"
+                    value={formData.deliveryConfig.minimumMerchantsBeforeExpand}
+                    onChange={handleInputChange}
+                    min="1"
+                    max="10"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    If fewer merchants found, expand search radius automatically
+                  </p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fallback Strategy (When No Merchants Nearby)
+                  </label>
+                  <select
+                    name="deliveryConfig.fallbackStrategy"
+                    value={formData.deliveryConfig.fallbackStrategy}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="expand">Expand Radius (Recommended)</option>
+                    <option value="city-wide">Show All City Merchants</option>
+                    <option value="none">Show No Products</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    <strong>Expand:</strong> Gradually increase search radius<br/>
+                    <strong>City-wide:</strong> Show all merchants in same city<br/>
+                    <strong>None:</strong> Display "not available" message
+                  </p>
+                </div>
+
+                <div className="mt-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="deliveryConfig.enablePincodeGrouping"
+                      checked={formData.deliveryConfig.enablePincodeGrouping}
+                      onChange={handleInputChange}
+                      className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      Enable nearby pincode grouping
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1 ml-6">
+                    Group adjacent pincodes as same delivery zone (e.g., 560034, 560035, 560095)
+                  </p>
+                </div>
+              </div>
+
               {/* Display Configuration */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Display & Behavior Settings</h2>
@@ -247,6 +369,96 @@ const Settings = () => {
                     </select>
                     <p className="text-xs text-gray-500 mt-1">
                       How stock availability is calculated
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    GST Display Mode (How Customers See Prices)
+                  </label>
+                  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-xs text-blue-800">
+                      <strong>💡 How it works:</strong> Each product has its own GST rate. This setting controls how prices are displayed to customers.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="flex items-center cursor-pointer p-3 border border-gray-300 rounded-md hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="gstDisplayMode"
+                        value="inclusive"
+                        checked={formData.gstDisplayMode === 'inclusive'}
+                        onChange={handleInputChange}
+                        className="form-radio h-4 w-4 text-blue-600"
+                      />
+                      <div className="ml-3">
+                        <span className="text-sm font-medium text-gray-900">
+                          Inclusive (Show price with GST included)
+                        </span>
+                        <p className="text-xs text-gray-500">
+                          Example: Product ₹1000 + 18% GST → Shows ₹1180
+                        </p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center cursor-pointer p-3 border border-gray-300 rounded-md hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="gstDisplayMode"
+                        value="exclusive"
+                        checked={formData.gstDisplayMode === 'exclusive'}
+                        onChange={handleInputChange}
+                        className="form-radio h-4 w-4 text-blue-600"
+                      />
+                      <div className="ml-3">
+                        <span className="text-sm font-medium text-gray-900">
+                          Exclusive (Show price without GST, add at checkout)
+                        </span>
+                        <p className="text-xs text-gray-500">
+                          Example: Product ₹1000 + 18% GST → Shows ₹1000 (GST added at checkout)
+                        </p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center cursor-pointer p-3 border border-gray-300 rounded-md hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="gstDisplayMode"
+                        value="no-display"
+                        checked={formData.gstDisplayMode === 'no-display'}
+                        onChange={handleInputChange}
+                        className="form-radio h-4 w-4 text-blue-600"
+                      />
+                      <div className="ml-3">
+                        <span className="text-sm font-medium text-gray-900">
+                          No GST Display (Price is final, GST extracted on invoice)
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Example: Product price ₹100 (18% GST item) → Customer pays ₹100
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Invoice shows: Base ₹84.75 + GST ₹15.25 = Total ₹100
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          💡 Use this when you add products with GST-inclusive prices
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                    <p className="text-xs text-gray-700">
+                      <strong>Current Selection:</strong>
+                      {formData.gstDisplayMode === 'inclusive' && ' Prices shown will include GST (customers see final price)'}
+                      {formData.gstDisplayMode === 'exclusive' && ' GST will be added at checkout (prices appear lower during browsing)'}
+                      {formData.gstDisplayMode === 'no-display' && ' Prices are final (no GST added at checkout). GST extracted on invoice if requested.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-xs text-yellow-800">
+                      <strong>Legal Note:</strong> Invoices will always show GST breakdown separately for compliance, regardless of this setting.
                     </p>
                   </div>
                 </div>
