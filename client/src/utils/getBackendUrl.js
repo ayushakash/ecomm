@@ -1,6 +1,6 @@
 /**
  * Dynamically detects and returns the backend URL
- * Tries to connect to the backend on the same IP the frontend is running on
+ * Uses relative URLs in production for proper HTTPS/HTTP handling
  */
 
 const BACKEND_PORT = 5000;
@@ -10,20 +10,27 @@ const TIMEOUT = 3000; // 3 second timeout
  * Get the current host IP (works in development)
  */
 const getCurrentHostIP = () => {
-  // Get the hostname/IP from window.location.hostname
-  const hostname = window.location.hostname;
+  // ALWAYS use environment variable if set (highest priority)
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
 
-  // If it's localhost or 127.0.0.1, we might need to find the actual IP
+  // Get the hostname/IP from window.location
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol; // 'http:' or 'https:'
+
+  // If it's localhost or 127.0.0.1, use HTTP with port
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // Try to get from environment variable first
-    if (process.env.REACT_APP_API_URL) {
-      return process.env.REACT_APP_API_URL;
-    }
-    // Fallback to localhost
     return `http://localhost:${BACKEND_PORT}`;
   }
 
-  // Return the same IP/hostname as frontend with backend port
+  // In production, use relative URL to avoid mixed content issues
+  // This works because Nginx proxies /api to the backend
+  if (protocol === 'https:') {
+    return ''; // Empty string means use relative URLs (same origin)
+  }
+
+  // Fallback for HTTP (development on network IP)
   return `http://${hostname}:${BACKEND_PORT}`;
 };
 
@@ -117,9 +124,14 @@ export const getBackendUrl = async () => {
  * (Better for initial axios setup)
  */
 export const getBackendUrlSync = () => {
-  // First, try to use environment variable if set
+  // ALWAYS use environment variable if set (highest priority)
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
+  }
+
+  // Check if we're on HTTPS - use relative URLs
+  if (window.location.protocol === 'https:') {
+    return ''; // Empty string means relative URLs (same origin)
   }
 
   return getCurrentHostIP();

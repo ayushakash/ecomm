@@ -11,6 +11,7 @@
     "install-client": "cd client && npm install",
     "build": "cd client && npm run build",
     "heroku-postbuild": "npm run install-client && npm run build",
+    "create-admin": "node scripts/createAdminUser.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
