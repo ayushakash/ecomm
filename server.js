@@ -46,7 +46,6 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/auth', require('./routes/testMsg91')); // MSG91 test route
 app.use('/api/merchants', require('./routes/merchants'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
@@ -70,10 +69,8 @@ app.use('/api/merchants/device-token', require('./routes/deviceToken'));
 app.use('/api/sequential-notifications', require('./routes/sequentialNotifications'));
 
 // Test notification routes
-app.use('/api/test', require('./routes/testNotifications'));
 
 // MSG91 OTP Test routes
-app.use('/api/test/msg91', require('./routes/testMsg91OTP'));
 
 // Serve static files from client/public (for test pages)
 app.use(express.static('client/public'));
