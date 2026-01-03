@@ -12,6 +12,7 @@ import {
 const OrderCard = ({
   order,
   onShowLifecycle,
+  onShowDetails,
   getStatusColor,
   getOrderMerchantInfo,
   expandedOrders,
@@ -116,14 +117,21 @@ const OrderCard = ({
       {/* Actions */}
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
         <div className="flex items-center justify-between">
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
+            {onShowDetails && (
+              <button
+                onClick={() => onShowDetails(order)}
+                className="inline-flex items-center px-3 py-1.5 border border-purple-300 text-xs font-medium rounded-lg text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+              >
+                📄 Details
+              </button>
+            )}
             {onShowLifecycle && (
               <button
                 onClick={() => onShowLifecycle(order)}
-                className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 border border-green-300 text-xs font-medium rounded-lg text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
               >
-                <EyeIcon className="w-4 h-4 mr-1" />
-                View Details
+                📋 Lifecycle
               </button>
             )}
           </div>

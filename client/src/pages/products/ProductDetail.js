@@ -1,41 +1,20 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { StarIcon, ShoppingCartIcon, PlusIcon, MinusIcon, HandThumbUpIcon, HandThumbDownIcon } from '@heroicons/react/24/solid';
-import { productAPI, reviewAPI } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { StarIcon, ShoppingCartIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/solid';
+import { productAPI } from '../../services/api';
 import { useCart } from '../../contexts/CartContext';
-import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const { addToCart, getCartItem } = useCart();
-  const { isAuthenticated } = useAuth();
   const [quantity, setQuantity] = useState(1);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ title: '', comment: '', rating: 5 });
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
     queryFn: () => productAPI.getById(id)
-  });
-
-  const { data: reviewsData } = useQuery({
-    queryKey: ['reviews', id],
-    queryFn: () => reviewAPI.getProductReviews(id),
-    enabled: !!id
-  });
-
-  const createReviewMutation = useMutation({
-    mutationFn: (reviewData) => reviewAPI.createReview(reviewData),
-    onSuccess: () => {
-      toast.success('Review submitted! It will be displayed after admin approval.');
-      setShowReviewForm(false);
-      setReviewForm({ title: '', comment: '', rating: 5 });
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to submit review');
-    }
   });
 
   const cartItem = getCartItem(id);
@@ -60,22 +39,6 @@ const ProductDetail = () => {
     if (quantity > 1) {
       setQuantity(prev => prev - 1);
     }
-  };
-
-  const handleSubmitReview = (e) => {
-    e.preventDefault();
-    if (!isAuthenticated) {
-      toast.error('Please login to submit a review');
-      return;
-    }
-    if (reviewForm.comment.length < 10) {
-      toast.error('Review must be at least 10 characters');
-      return;
-    }
-    createReviewMutation.mutate({
-      productId: id,
-      ...reviewForm
-    });
   };
 
   if (isLoading) {
@@ -106,13 +69,14 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Product Image */}
+          {/* Product Image Gallery */}
           <div className="sticky top-8">
             <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 overflow-hidden">
+              {/* Main Image */}
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                 <img
-                  src={product.images?.[0] || '/placeholder-product.jpg'}
-                  alt={product.name}
+                  src={product.images?.[selectedImageIndex] || product.images?.[0] || '/placeholder-product.jpg'}
+                  alt={`${product.name} - Image ${selectedImageIndex + 1}`}
                   className="w-full h-full object-cover hover:scale-110 transition-transform duration-700"
                 />
                 {(product.totalStock || product.stock) <= 0 && (
@@ -122,14 +86,59 @@ const ProductDetail = () => {
                     </span>
                   </div>
                 )}
+
+                {/* Image Counter */}
+                {product.images && product.images.length > 1 && (
+                  <div className="absolute bottom-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                    {selectedImageIndex + 1} / {product.images.length}
+                  </div>
+                )}
               </div>
-              
-              {/* Additional Images Placeholder */}
-              <div className="flex gap-4 mt-6 overflow-x-auto">
-                {[1,2,3,4].map((thumb) => (
-                  <div key={thumb} className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-xl border-2 border-gray-200 hover:border-primary-300 transition-colors cursor-pointer"></div>
-                ))}
-              </div>
+
+              {/* Image Thumbnails */}
+              {product.images && product.images.length > 1 && (
+                <div className="flex gap-3 mt-6 overflow-x-auto pb-2">
+                  {product.images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`flex-shrink-0 w-20 h-20 rounded-xl border-2 overflow-hidden transition-all ${
+                        selectedImageIndex === index
+                          ? 'border-primary-500 ring-2 ring-primary-200 scale-105'
+                          : 'border-gray-200 hover:border-primary-300'
+                      }`}
+                    >
+                      <img
+                        src={image}
+                        alt={`${product.name} thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Navigation Arrows for Multiple Images */}
+              {product.images && product.images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setSelectedImageIndex(prev => (prev === 0 ? product.images.length - 1 : prev - 1))}
+                    className="absolute left-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setSelectedImageIndex(prev => (prev === product.images.length - 1 ? 0 : prev + 1))}
+                    className="absolute right-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -146,26 +155,13 @@ const ProductDetail = () => {
               </div>
 
               <h1 className="text-4xl font-black text-gray-900 mb-6 leading-tight">{product.name}</h1>
-              
-              {/* Rating & Reviews */}
+
+              {/* Category & Quality Badge */}
               <div className="flex items-center gap-6 mb-8">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <StarIcon
-                        key={i}
-                        className={`h-6 w-6 ${
-                          i < Math.floor(reviewsData?.ratingStats?.averageRating || 0)
-                            ? 'text-yellow-400'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-lg font-bold text-gray-900">
-                    {reviewsData?.ratingStats?.averageRating?.toFixed(1) || 'No'}
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
+                  <span className="text-sm font-medium text-gray-700">
+                    {product.category?.name || 'Product'}
                   </span>
-                  <span className="text-gray-600">({reviewsData?.ratingStats?.totalReviews || 0} reviews)</span>
                 </div>
                 <div className="text-green-600 font-semibold flex items-center gap-1">
                   ✅ Verified Quality
@@ -213,7 +209,7 @@ const ProductDetail = () => {
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900">Fast Delivery</div>
-                    <div className="text-sm text-gray-600">24-48 hours</div>
+                    <div className="text-sm text-gray-600">60-90 minutes</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -227,11 +223,11 @@ const ProductDetail = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                    <span className="text-orange-600 text-xl">🔄</span>
+                    <span className="text-orange-600 text-xl">📞</span>
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900">Easy Returns</div>
-                    <div className="text-sm text-gray-600">7-day return policy</div>
+                    <div className="font-semibold text-gray-900">24/7 Support</div>
+                    <div className="text-sm text-gray-600">Expert assistance</div>
                   </div>
                 </div>
               </div>
@@ -274,10 +270,22 @@ const ProductDetail = () => {
                   </span>
                 </div>
 
-                {/* Quantity Selector */}
+                {/* Cart Status - Show if already in cart */}
+                {cartItem && (
+                  <div className="mb-4 bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                    <div className="flex items-center justify-center gap-2 text-green-700 font-semibold">
+                      <ShoppingCartIcon className="h-5 w-5" />
+                      <span>Currently in Cart: {cartItem.quantity} items</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quantity Selector - Always show if stock available */}
                 {(product.totalStock || product.stock) > 0 && (
                   <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {cartItem ? 'Add More Quantity' : 'Select Quantity'}
+                    </label>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={decrementQuantity}
@@ -301,193 +309,53 @@ const ProductDetail = () => {
                   </div>
                 )}
 
-                {/* Add to Cart */}
-                {!cartItem ? (
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={(product.totalStock || product.stock) === 0}
-                    className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center transition-colors duration-200"
+                {/* Add to Cart Button - Always show */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={(product.totalStock || product.stock) === 0}
+                  className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center transition-colors duration-200"
+                >
+                  <ShoppingCartIcon className="h-5 w-5 mr-2" />
+                  {(product.totalStock || product.stock) === 0
+                    ? 'Out of Stock'
+                    : cartItem
+                      ? `Add ${quantity} More to Cart`
+                      : `Add ${quantity} to Cart`
+                  }
+                </button>
+
+                {/* View Cart Link - Show if already in cart */}
+                {cartItem && (
+                  <Link
+                    to="/cart"
+                    className="block mt-3 text-center text-primary-700 hover:text-primary-800 font-semibold hover:underline transition-colors"
                   >
-                    <ShoppingCartIcon className="h-5 w-5 mr-2" />
-                    Add {quantity} to Cart
-                  </button>
-                ) : (
-                  <div className="w-full bg-green-100 text-green-800 py-3 px-6 rounded-lg font-medium flex items-center justify-center">
-                    <ShoppingCartIcon className="h-5 w-5 mr-2" />
-                    In Cart ({cartItem.quantity} items)
-                  </div>
+                    View Cart →
+                  </Link>
                 )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Reviews Section */}
+        {/* Customer Reviews - Rating Display (Hidden for now) */}
+        {/* Uncomment this section when you want to enable reviews */}
+        {/*
         <div className="mt-16">
           <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900">Customer Reviews</h2>
-              {isAuthenticated && !showReviewForm && (
-                <button
-                  onClick={() => setShowReviewForm(true)}
-                  className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  + Write a Review
-                </button>
-              )}
-            </div>
-
-            {/* Review Form */}
-            {showReviewForm && (
-              <div className="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-200">
-                <form onSubmit={handleSubmitReview} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setReviewForm(prev => ({ ...prev, rating: star }))}
-                          className="focus:outline-none"
-                        >
-                          <StarIcon
-                            className={`h-8 w-8 transition-colors ${
-                              star <= reviewForm.rating
-                                ? 'text-yellow-400'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Title (Optional)</label>
-                    <input
-                      type="text"
-                      value={reviewForm.title}
-                      onChange={(e) => setReviewForm(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Summarize your review"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      maxLength="100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Your Review <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={reviewForm.comment}
-                      onChange={(e) => setReviewForm(prev => ({ ...prev, comment: e.target.value }))}
-                      placeholder="Share your experience with this product..."
-                      rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      maxLength="1000"
-                      required
-                    />
-                    <div className="text-sm text-gray-500 mt-1">
-                      {reviewForm.comment.length}/1000 characters
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      type="submit"
-                      disabled={createReviewMutation.isLoading}
-                      className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
-                    >
-                      {createReviewMutation.isLoading ? 'Submitting...' : 'Submit Review'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowReviewForm(false);
-                        setReviewForm({ title: '', comment: '', rating: 5 });
-                      }}
-                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {!isAuthenticated && (
-              <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
-                <Link to="/login" className="font-semibold hover:underline">
-                  Login to write a review
-                </Link>
-              </div>
-            )}
-
-            {/* Reviews List */}
-            {reviewsData?.reviews && reviewsData.reviews.length > 0 ? (
-              <div className="space-y-6">
-                {reviewsData.reviews.map((review) => (
-                  <div key={review._id} className="pb-6 border-b border-gray-200 last:border-b-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <StarIcon
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < review.rating
-                                    ? 'text-yellow-400'
-                                    : 'text-gray-300'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="font-semibold text-gray-900">{review.rating}/5</span>
-                        </div>
-                        <p className="font-semibold text-gray-900">
-                          {review.title || `${review.rating} star review`}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          By {review.user?.name || 'Anonymous'} • {new Date(review.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      {review.verified && (
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                          ✅ Verified
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-700 mb-3">{review.comment}</p>
-                    <div className="flex gap-4 text-sm">
-                      <button className="flex items-center gap-1 text-gray-600 hover:text-blue-600">
-                        <HandThumbUpIcon className="h-4 w-4" />
-                        Helpful ({review.helpful})
-                      </button>
-                      <button className="flex items-center gap-1 text-gray-600 hover:text-red-600">
-                        <HandThumbDownIcon className="h-4 w-4" />
-                        Not Helpful ({review.unhelpful})
-                      </button>
-                    </div>
-                  </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">Customer Reviews</h2>
+            <div className="text-center py-12">
+              <div className="flex items-center justify-center mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <StarIcon key={i} className="h-8 w-8 text-gray-300" />
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-600 mb-4">No reviews yet. Be the first to review this product!</p>
-                {isAuthenticated && (
-                  <button
-                    onClick={() => setShowReviewForm(true)}
-                    className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-                  >
-                    Write a Review
-                  </button>
-                )}
-              </div>
-            )}
+              <p className="text-gray-600 text-lg">No reviews yet</p>
+              <p className="text-gray-500 text-sm mt-2">Be the first customer to review this product</p>
+            </div>
           </div>
         </div>
+        */}
       </div>
     </div>
   );

@@ -55,6 +55,7 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/cities', require('./routes/cities'));
+app.use('/api/upload', require('./routes/upload'));
 
 // New routes for logging and notifications
 app.use('/api/notifications', require('./routes/notifications'));

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { orderAPI, merchantAPI } from "../../services/api";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import OrderLifecycleModal from "../../components/orders/OrderLifecycleModal";
+import OrderDetailsModal from "../../components/modals/OrderDetailsModal";
 import ResponsiveTable from "../../components/ui/ResponsiveTable";
 import OrderCard from "../../components/ui/OrderCard";
 import { toast } from 'react-hot-toast';
@@ -23,9 +24,18 @@ const Orders = () => {
   const [showLifecycleModal, setShowLifecycleModal] = useState(false);
   const [selectedOrderForLifecycle, setSelectedOrderForLifecycle] = useState(null);
 
+  // Order details modal state
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
+
   const handleShowLifecycle = (order) => {
     setSelectedOrderForLifecycle(order);
     setShowLifecycleModal(true);
+  };
+
+  const handleShowDetails = (order) => {
+    setSelectedOrderForDetails(order);
+    setShowDetailsModal(true);
   };
 
   const toggleExpand = (orderId) => {
@@ -161,6 +171,7 @@ const Orders = () => {
             <OrderCard
               order={order}
               onShowLifecycle={handleShowLifecycle}
+              onShowDetails={handleShowDetails}
               getStatusColor={getStatusColor}
               getOrderMerchantInfo={getOrderMerchantInfo}
               expandedOrders={expandedOrders}
@@ -331,12 +342,18 @@ const Orders = () => {
                   </div>
                 </td>
                 <td className="px-4 py-2">
-                  <div className="flex space-x-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => toggleExpand(order._id)}
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                     >
                       {expandedOrders[order._id] ? 'Collapse' : 'Manage'}
+                    </button>
+                    <button
+                      onClick={() => handleShowDetails(order)}
+                      className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                    >
+                      📄 Details
                     </button>
                     <button
                       onClick={() => handleShowLifecycle(order)}
@@ -489,12 +506,19 @@ const Orders = () => {
         />
       </div>
       
-      {/* Order Lifecycle Modal - Temporarily commented out */}
+      {/* Order Lifecycle Modal */}
       <OrderLifecycleModal
         show={showLifecycleModal}
         onHide={() => setShowLifecycleModal(false)}
         orderId={selectedOrderForLifecycle?._id}
         orderNumber={selectedOrderForLifecycle?.orderNumber}
+      />
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        show={showDetailsModal}
+        onHide={() => setShowDetailsModal(false)}
+        order={selectedOrderForDetails}
       />
     </div>
   );

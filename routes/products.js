@@ -50,6 +50,10 @@ router.post(
 
       const { category, name, description, images, specifications, tags, price, unit, gstRate, gstType } = req.body;
 
+      console.log('📥 Received images:', images);
+      console.log('📥 Images type:', typeof images);
+      console.log('📥 Images is array:', Array.isArray(images));
+
       // ---------------- Admin Flow ----------------
       if (req.user.role === "admin") {
         // Validate category
@@ -58,11 +62,14 @@ router.post(
           return res.status(404).json({ message: "Category not found" });
         }
 
+        const processedImages = Array.isArray(images) ? images : images ? [images] : [];
+        console.log('✅ Processed images:', processedImages);
+
         const newProduct = new Product({
           name,
           description,
           category,
-          images: Array.isArray(images) ? images : images ? [images] : [],
+          images: processedImages,
           specifications: specifications || {},
           tags: tags || [],
           price: price || 0,   // Admin-defined selling price

@@ -614,6 +614,7 @@ const Checkout = () => {
       deliveryInstructions: formData.deliveryInstructions,
       deliveryLocation: deliveryLocation || null,
       addressId: selectedAddress._id,
+      requireGSTBill: requireGSTBill,
       items: cart.map(item => ({
         productId: item._id,
         productName: item.name,
@@ -1485,12 +1486,6 @@ const Checkout = () => {
                   className="px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   Close
-                </button>
-                <button
-                  onClick={() => window.print()}
-                  className="px-6 py-3 bg-primary-700 hover:bg-primary-800 text-white rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  📥 Download/Print
                 </button>
               </div>
             </div>

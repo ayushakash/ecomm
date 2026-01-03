@@ -145,6 +145,10 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'paid', 'failed', 'refunded'],
     default: 'pending'
   },
+  requireGSTBill: {
+    type: Boolean,
+    default: false
+  },
   paymentMethod: {
     type: String,
     enum: ['cod', 'online', 'bank-transfer'],

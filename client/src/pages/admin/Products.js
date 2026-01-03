@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import DataTable from "../../components/commonComponents/dataTable";
 import { productAPI } from "../../services/api";
 import ConfirmDeleteButton from "../../components/products/ConfirmDeleteButton";
+import axios from "axios";
 
 const Products = () => {
   const queryClient = useQueryClient();
@@ -32,7 +33,7 @@ const Products = () => {
     description: "",
     unit: "",
     specification: "",
-    images: "",
+    images: [],
     sku: "",
     price: 0,
     stock: 0,
@@ -41,6 +42,8 @@ const Products = () => {
     gstType: "exclusive", // Default exclusive GST
   });
   const [newCategory, setNewCategory] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // Mutations
   const addCategoryMutation = useMutation({
@@ -55,8 +58,24 @@ const Products = () => {
     mutationFn: (data) => productAPI.createProduct(data),
     onSuccess: () => {
       queryClient.invalidateQueries(["products"]);
-      setIsAddModalOpen(false);
       toast.success("Product added!");
+      // Reset form and close modal
+      setFormData({
+        category: "",
+        name: "",
+        description: "",
+        unit: "",
+        specification: "",
+        images: [],
+        sku: "",
+        price: 0,
+        stock: 0,
+        enabled: true,
+        gstRate: 18,
+        gstType: "exclusive",
+      });
+      setSelectedFiles([]);
+      setIsAddModalOpen(false);
     },
     onError: (err) => toast.error(err?.response?.data?.message || "Error adding product"),
   });
@@ -65,8 +84,9 @@ const Products = () => {
     mutationFn: ({ id, ...data }) => productAPI.updateProduct(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(["products"]);
-      setEditModal({ open: false, product: null });
       toast.success("Product updated!");
+      setSelectedFiles([]);
+      setEditModal({ open: false, product: null });
     },
     onError: (err) => toast.error(err?.response?.data?.message || "Error updating product"),
   });
@@ -85,10 +105,90 @@ const Products = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Handle file selection
+  const handleFileSelect = (e) => {
+    const newFiles = Array.from(e.target.files);
+
+    // Combine existing and new files
+    const combinedFiles = [...selectedFiles, ...newFiles];
+
+    if (combinedFiles.length > 10) {
+      toast.error(`Maximum 10 images allowed. You selected ${combinedFiles.length} images.`);
+      return;
+    }
+
+    setSelectedFiles(combinedFiles);
+    toast.success(`${newFiles.length} image(s) selected. Total: ${combinedFiles.length}`);
+
+    // Reset input to allow selecting same file again if needed
+    e.target.value = '';
+  };
+
+  // Remove selected file
+  const removeSelectedFile = (index) => {
+    const updatedFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(updatedFiles);
+    toast.success('Image removed from selection');
+  };
+
+  // Upload images to MinIO
+  const uploadImages = async (files) => {
+    if (!files || files.length === 0) return [];
+
+    setUploadingImages(true);
+    const formDataImages = new FormData();
+    files.forEach(file => {
+      formDataImages.append('images', file);
+    });
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.post('/api/upload/product-images', formDataImages, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      setUploadingImages(false);
+      console.log('📤 Upload response:', response.data);
+      const urls = response.data.urls;
+      console.log('🔗 Image URLs received:', urls);
+      console.log('🔢 Number of URLs:', urls.length);
+
+      return urls;
+    } catch (error) {
+      setUploadingImages(false);
+      toast.error(error.response?.data?.message || 'Failed to upload images');
+      throw error;
+    }
+  };
+
   // Submit product
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    createProductMutation.mutate(formData);
+
+    let imageUrls = formData.images || [];
+
+    // Upload new images if selected
+    if (selectedFiles.length > 0) {
+      try {
+        imageUrls = await uploadImages(selectedFiles);
+        console.log('📸 Uploaded images:', imageUrls);
+      } catch (error) {
+        return; // Stop if upload fails
+      }
+    }
+
+    const productData = {
+      ...formData,
+      images: imageUrls
+    };
+
+    console.log('📦 Submitting product data:', productData);
+    console.log('🖼️ Images array:', productData.images);
+
+    createProductMutation.mutate(productData);
   };
 
   // Submit category
@@ -102,10 +202,29 @@ const Products = () => {
   };
 
   // Submit edit
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
+
+    let imageUrls = formData.images || [];
+
+    // Upload new images if selected
+    if (selectedFiles.length > 0) {
+      try {
+        const newUrls = await uploadImages(selectedFiles);
+        imageUrls = [...(Array.isArray(imageUrls) ? imageUrls : [imageUrls].filter(Boolean)), ...newUrls];
+      } catch (error) {
+        return; // Stop if upload fails
+      }
+    }
+
     console.log(formData);
-    updateProductMutation.mutate({ id: editModal.product._id, ...formData });
+    updateProductMutation.mutate({
+      id: editModal.product._id,
+      ...formData,
+      images: imageUrls
+    });
+
+    setSelectedFiles([]);
   };
 
   // Prepare edit modal
@@ -116,7 +235,7 @@ const Products = () => {
       description: product.description || "",
       unit: product.unit || "",
       specification: product.specification || "",
-      images: product.images?.[0] || "",
+      images: product.images || [],
       sku: product.sku || "",
       price: product.price || 0,
       stock: product.stock || 0,
@@ -124,6 +243,7 @@ const Products = () => {
       gstRate: product.gstRate || 18,
       gstType: product.gstType || "exclusive",
     });
+    setSelectedFiles([]);
     setEditModal({ open: true, product });
   };
 
@@ -231,7 +351,7 @@ const Products = () => {
       description: "",
       unit: "",
       specification: "",
-      images: "",
+      images: [],
       sku: "",
       price: 0,
       stock: 0,
@@ -239,6 +359,7 @@ const Products = () => {
       gstRate: 18,
       gstType: "exclusive",
     });
+    setSelectedFiles([]);
     setIsAddModalOpen(true);
   }}
   className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700"
@@ -352,11 +473,18 @@ const Products = () => {
           setFormData={setFormData}
           categories={categories}
           onSubmit={handleSubmit}
-          onClose={() => setIsAddModalOpen(false)}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setSelectedFiles([]);
+          }}
           onAddCategory={() => {
             setIsAddModalOpen(false);
             setIsCategoryModalOpen(true);
           }}
+          selectedFiles={selectedFiles}
+          handleFileSelect={handleFileSelect}
+          removeSelectedFile={removeSelectedFile}
+          uploadingImages={uploadingImages}
         />
       )}
 
@@ -367,7 +495,14 @@ const Products = () => {
           setFormData={setFormData}
           categories={categories}
           onSubmit={handleEditSubmit}
-          onClose={() => setEditModal({ open: false, product: null })}
+          onClose={() => {
+            setEditModal({ open: false, product: null });
+            setSelectedFiles([]);
+          }}
+          selectedFiles={selectedFiles}
+          handleFileSelect={handleFileSelect}
+          removeSelectedFile={removeSelectedFile}
+          uploadingImages={uploadingImages}
         />
       )}
 
@@ -410,11 +545,17 @@ const Products = () => {
 };
 
 // Product Modal Component
-const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, onAddCategory }) => (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-    <div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
-      <h2 className="text-xl font-semibold mb-4">Product Details</h2>
-      <form onSubmit={onSubmit} className="space-y-4">
+const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, onAddCategory, selectedFiles, handleFileSelect, removeSelectedFile, uploadingImages }) => {
+  const removeImage = (index) => {
+    const updatedImages = formData.images.filter((_, i) => i !== index);
+    setFormData({ ...formData, images: updatedImages });
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 m-4 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl font-semibold mb-4">Product Details</h2>
+        <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">Category</label>
           <select
@@ -490,15 +631,97 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
             />
           </div>
         </div>
+        {/* Product Images Upload */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Image URL</label>
-          <input
-            type="text"
-            name="images"
-            value={formData.images}
-            onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
+
+          {/* Existing Images */}
+          {formData.images && formData.images.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs text-gray-600 mb-2">Current Images:</p>
+              <div className="grid grid-cols-4 gap-2">
+                {formData.images.map((img, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={img}
+                      alt={`Product ${index + 1}`}
+                      className="w-full h-24 object-cover rounded border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* File Upload */}
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              id="product-images"
+              disabled={uploadingImages}
+            />
+            <label
+              htmlFor="product-images"
+              className={`cursor-pointer ${uploadingImages ? 'opacity-50' : ''}`}
+            >
+              <div className="text-gray-600">
+                <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <p className="mt-1 text-sm font-medium">
+                  {uploadingImages ? 'Uploading...' : 'Click to add more images'}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Select multiple files or add one at a time
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  PNG, JPG up to 5MB each (Max 10 total)
+                </p>
+              </div>
+            </label>
+
+            {/* Selected Files Preview */}
+            {selectedFiles.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-gray-600 mb-2">
+                  Selected: {selectedFiles.length} file(s) - Click × to remove
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-20 object-cover rounded border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSelectedFile(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        title="Remove this image"
+                      >
+                        ×
+                      </button>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 truncate">
+                        {file.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
@@ -586,12 +809,26 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
           </label>
         </div>
         <div className="flex justify-end space-x-3 mt-4">
-          <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg">Cancel</button>
-          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg">Save</button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            disabled={uploadingImages}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={uploadingImages}
+          >
+            {uploadingImages ? 'Uploading...' : 'Save Product'}
+          </button>
         </div>
       </form>
     </div>
-  </div>
-);
+    </div>
+  );
+};
 
 export default Products;

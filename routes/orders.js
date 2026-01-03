@@ -898,10 +898,18 @@ router.put('/:id/cancel', [verifyToken, requireCustomer], async (req, res) => {
       try {
         // Background stock restoration
         for (const item of order.items) {
-          const product = await Product.findById(item.productId);
-          if (product) {
-            product.stock += item.quantity;
-            await product.save();
+          // Restore stock to assigned merchant (if any)
+          if (item.assignedMerchantId) {
+            const merchantProduct = await MerchantProduct.findOne({
+              merchantId: item.assignedMerchantId,
+              productId: item.productId
+            });
+
+            if (merchantProduct) {
+              merchantProduct.stock += item.quantity;
+              await merchantProduct.save();
+              console.log(`✅ Stock restored: ${item.quantity} units of ${item.productName} to merchant ${item.assignedMerchantId}`);
+            }
           }
         }
 
@@ -967,10 +975,18 @@ router.put('/admin/:id/cancel', [verifyToken, requireAdmin], async (req, res) =>
       try {
         // Background stock restoration
         for (const item of order.items) {
-          const product = await Product.findById(item.productId);
-          if (product) {
-            product.stock += item.quantity;
-            await product.save();
+          // Restore stock to assigned merchant (if any)
+          if (item.assignedMerchantId) {
+            const merchantProduct = await MerchantProduct.findOne({
+              merchantId: item.assignedMerchantId,
+              productId: item.productId
+            });
+
+            if (merchantProduct) {
+              merchantProduct.stock += item.quantity;
+              await merchantProduct.save();
+              console.log(`✅ Stock restored: ${item.quantity} units of ${item.productName} to merchant ${item.assignedMerchantId}`);
+            }
           }
         }
 

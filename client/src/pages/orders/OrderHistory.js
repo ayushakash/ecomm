@@ -261,22 +261,28 @@ const OrderHistory = () => {
                       {order.items?.map((item, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-3 sm:gap-4 p-3 bg-white rounded-xl border border-gray-200 hover:border-primary-300 transition-colors"
+                          className="flex items-center gap-3 sm:gap-4 p-3 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all"
                         >
-                          {/* Product Image */}
-                          <div className="flex-shrink-0">
+                          {/* Product Image - Clickable */}
+                          <Link
+                            to={`/products/${item.productId?._id}`}
+                            className="flex-shrink-0 group"
+                          >
                             <img
                               src={item.productId?.images?.[0] || '/placeholder-product.jpg'}
                               alt={item.productName}
-                              className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                              className="w-16 h-16 object-cover rounded-lg border border-gray-200 group-hover:border-primary-500 group-hover:shadow-lg transition-all cursor-pointer"
                             />
-                          </div>
-                          
+                          </Link>
+
                           {/* Product Details */}
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                            <Link
+                              to={`/products/${item.productId?._id}`}
+                              className="font-semibold text-gray-900 text-sm sm:text-base hover:text-primary-700 transition-colors cursor-pointer inline-block"
+                            >
                               {item.productName}
-                            </p>
+                            </Link>
                             <p className="text-xs sm:text-sm text-gray-600">
                               {item.quantity} x ₹{(item.unitPrice || 0).toLocaleString('en-IN')} / {item.unit}
                             </p>
@@ -305,12 +311,16 @@ const OrderHistory = () => {
                     </h4>
                     <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
                       <div className="flex justify-between text-sm text-gray-700">
-                        <span>Subtotal</span>
-                        <span className="font-medium">₹{(order.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span>Taxable Amount (Base)</span>
+                        <span className="font-medium">₹{((order.subtotal || 0) - (order.tax || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-700">
-                        <span>GST</span>
+                        <span>GST (18%)</span>
                         <span className="font-medium">₹{(order.tax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-700 pb-2 border-b border-gray-300">
+                        <span className="font-semibold">Subtotal (Inc. GST)</span>
+                        <span className="font-semibold">₹{(order.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-700">
                         <span>Delivery Charge</span>

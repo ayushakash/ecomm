@@ -31,6 +31,13 @@ services:
       N8N_ENABLED: ${N8N_ENABLED:-false}
       ABANDONED_CART_ENABLED: ${ABANDONED_CART_ENABLED:-true}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      # MinIO Storage Configuration
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-storage.chardeevari.in}
+      MINIO_PORT: ${MINIO_PORT:-443}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-true}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-https://storage.chardeevari.in}
     networks:
       - ecomm-network
     healthcheck:

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { reverseGeocode } from '../../services/geocodingService';
 
 const MerchantRegister = () => {
   const [step, setStep] = useState(1); // 1: Basic Info, 2: Business Details, 3: OTP Verification
@@ -198,25 +199,72 @@ const MerchantRegister = () => {
     }
   };
 
-  const getLocationFromMap = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData(prev => ({
-            ...prev,
-            latitude: position.coords.latitude.toString(),
-            longitude: position.coords.longitude.toString()
-          }));
-          toast.success('Location captured successfully!');
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          toast.error('Could not get your location. Please enter manually if needed.');
-        }
-      );
-    } else {
+  const getLocationFromMap = async () => {
+    if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by this browser.');
+      return;
     }
+
+    toast.loading('Getting your location...', { id: 'gps' });
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        // Update coordinates first
+        setFormData(prev => ({
+          ...prev,
+          latitude: latitude.toString(),
+          longitude: longitude.toString()
+        }));
+
+        try {
+          // Reverse geocode to get address
+          toast.loading('Fetching address details...', { id: 'gps' });
+          const addressData = await reverseGeocode(latitude, longitude);
+
+          if (addressData.success) {
+            // Autofill address fields
+            setFormData(prev => ({
+              ...prev,
+              address: addressData.formattedAddress || prev.address,
+              area: addressData.area || prev.area,
+              city: addressData.city || prev.city,
+              state: addressData.state || prev.state,
+              pincode: addressData.pincode || prev.pincode,
+              latitude: latitude.toString(),
+              longitude: longitude.toString()
+            }));
+
+            toast.success('Location and address captured successfully!', { id: 'gps' });
+          } else {
+            toast.success('Location captured! Please fill address manually.', { id: 'gps' });
+          }
+        } catch (error) {
+          console.error('Geocoding error:', error);
+          toast.success('Location captured! Please fill address manually.', { id: 'gps' });
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+
+        let errorMessage = 'Could not get your location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = 'Location permission denied. Please enable it in browser settings.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMessage = 'Location information unavailable.';
+        } else if (error.code === error.TIMEOUT) {
+          errorMessage = 'Location request timed out.';
+        }
+
+        toast.error(errorMessage, { id: 'gps' });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   };
 
   const renderStep1 = () => (

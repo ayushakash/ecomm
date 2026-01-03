@@ -157,67 +157,72 @@ const ProductCard = ({ product }) => {
 
       {/* Add to Cart Section */}
       <div className="px-4 pb-4 sm:px-5 sm:pb-5">
-        {!cartItem ? (
-          <div className="space-y-2.5">
-            {/* Quantity Controls */}
-            {product.totalStock > 0 && (
-              <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 border border-gray-200">
-                <span className="text-xs font-semibold text-gray-700 ml-1">Qty</span>
-                <div className="flex items-center gap-1.5 flex-1 justify-center">
-                  <button
-                    onClick={decrementQuantity}
-                    disabled={quantity <= 1}
-                    className="w-7 h-7 flex items-center justify-center bg-white rounded-md border border-gray-300 hover:border-secondary-500 hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                  >
-                    <MinusIcon className="h-3.5 w-3.5 text-gray-700" />
-                  </button>
-                  <span className="w-8 text-center font-bold text-base text-gray-900">{quantity}</span>
-                  <button
-                    onClick={incrementQuantity}
-                    disabled={quantity >= (product.totalStock || 1)}
-                    className="w-7 h-7 flex items-center justify-center bg-white rounded-md border border-gray-300 hover:border-secondary-500 hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                  >
-                    <PlusIcon className="h-3.5 w-3.5 text-gray-700" />
-                  </button>
-                </div>
+        <div className="space-y-2.5">
+          {/* Show cart status if item is already in cart */}
+          {cartItem && (
+            <div className="bg-success-50 border border-success-200 rounded-lg p-2 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-success-700 font-semibold text-xs">
+                <ShoppingCartIcon className="h-4 w-4" />
+                <span>In Cart: {cartItem.quantity} items</span>
               </div>
-            )}
-
-            {/* Add to Cart Button */}
-            <button
-              onClick={handleAddToCart}
-              disabled={product.totalStock <= 0}
-              className={`w-full py-2.5 px-4 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 active:scale-95 ${
-                product.totalStock <= 0
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-primary-700 hover:bg-primary-800 text-white shadow-md hover:shadow-lg'
-              }`}
-            >
-              {product.totalStock <= 0 ? (
-                'Out of Stock'
-              ) : (
-                <span className="flex items-center justify-center gap-1.5">
-                  <ShoppingCartIcon className="h-4 w-4" />
-                  Add to Cart
-                </span>
-              )}
-            </button>
-          </div>
-        ) : (
-          <div className="bg-success-50 border border-success-200 rounded-lg p-2.5 text-center">
-            <div className="flex items-center justify-center gap-1.5 text-success-700 font-semibold text-xs mb-1.5">
-              <ShoppingCartIcon className="h-4 w-4" />
-              <span>In Cart ({cartItem.quantity})</span>
             </div>
+          )}
+
+          {/* Quantity Controls */}
+          {product.totalStock > 0 && (
+            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 border border-gray-200">
+              <span className="text-xs font-semibold text-gray-700 ml-1">Qty</span>
+              <div className="flex items-center gap-1.5 flex-1 justify-center">
+                <button
+                  onClick={decrementQuantity}
+                  disabled={quantity <= 1}
+                  className="w-7 h-7 flex items-center justify-center bg-white rounded-md border border-gray-300 hover:border-secondary-500 hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  <MinusIcon className="h-3.5 w-3.5 text-gray-700" />
+                </button>
+                <span className="w-8 text-center font-bold text-base text-gray-900">{quantity}</span>
+                <button
+                  onClick={incrementQuantity}
+                  disabled={quantity >= (product.totalStock || 1)}
+                  className="w-7 h-7 flex items-center justify-center bg-white rounded-md border border-gray-300 hover:border-secondary-500 hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  <PlusIcon className="h-3.5 w-3.5 text-gray-700" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Add to Cart Button - Always show */}
+          <button
+            onClick={handleAddToCart}
+            disabled={product.totalStock <= 0}
+            className={`w-full py-2.5 px-4 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+              product.totalStock <= 0
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-primary-700 hover:bg-primary-800 text-white shadow-md hover:shadow-lg'
+            }`}
+          >
+            {product.totalStock <= 0 ? (
+              'Out of Stock'
+            ) : (
+              <span className="flex items-center justify-center gap-1.5">
+                <ShoppingCartIcon className="h-4 w-4" />
+                {cartItem ? 'Add More to Cart' : 'Add to Cart'}
+              </span>
+            )}
+          </button>
+
+          {/* View Cart Link */}
+          {cartItem && (
             <Link
               to="/cart"
-              className="text-success-600 hover:text-success-700 text-xs font-semibold hover:underline transition-colors"
+              className="block text-center text-primary-700 hover:text-primary-800 text-xs font-semibold hover:underline transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               View Cart →
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
