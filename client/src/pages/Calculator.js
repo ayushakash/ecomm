@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import SEO from '../components/SEO/SEO';
 import analytics from '../services/analytics';
-import api from '../services/api';
+import api, { merchantAPI } from '../services/api';
 import { toast } from 'react-hot-toast';
 import { jsPDF } from 'jspdf';
 import { formatPrice } from '../utils/pricingUtils';
@@ -13,7 +13,7 @@ const Calculator = () => {
   const [formData, setFormData] = useState({
     length: '',
     breadth: '',
-    area: '1000',
+    area: '',
     floors: 1,
     includeFooting: false,
     priceCement: 350,
@@ -24,9 +24,10 @@ const Calculator = () => {
   });
 
   const [results, setResults] = useState(null);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   // City & Pricing state
-  const [selectedCity, setSelectedCity] = useState('Ranchi');
+  const [selectedCity, setSelectedCity] = useState('');
   const [availableCities, setAvailableCities] = useState([]);
   const [pricingMode, setPricingMode] = useState('market'); // 'market' or 'custom'
   const [cityPrices, setCityPrices] = useState(null);
@@ -36,19 +37,19 @@ const Calculator = () => {
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [leadData, setLeadData] = useState({ name: '', phone: '' });
 
-  // Calculation defaults
+  // Calculation defaults (Based on Indian construction thumb rules)
   const DEFAULTS = {
     columnSpacing: 10, // Default column spacing in feet
-    cementBagsPerSqft: 0.25,
-    steelKgPerSqft: 4,
-    sandCuftPerSqft: 1.2,
-    aggCuftPerSqft: 1.0,
-    bricksPerSqft: 8.5,
+    cementBagsPerSqft: 0.45,        // Industry standard: 0.4-0.5 bags/sqft
+    steelKgPerSqft: 4,              // Industry standard: 3.5-4.5 kg/sqft
+    sandCuftPerSqft: 0.9,           // Industry standard: 0.8-1.0 cuft/sqft
+    aggCuftPerSqft: 1.0,            // Industry standard: 1.0-1.2 cuft/sqft
+    bricksPerSqft: 7.5,             // Industry standard: 7.5 bricks/sqft (4" wall)
     footingPerColumn: {
-      cementBags: 4,
-      steelKg: 50,
-      sandCuft: 2,
-      aggCuft: 3
+      cementBags: 4,                // Standard for 3'x3'x3' footing
+      steelKg: 50,                  // Conservative estimate for column reinforcement
+      sandCuft: 7.5,                // Industry standard: 7-8 cuft per column
+      aggCuft: 14.5                 // Industry standard: 14-15 cuft per column
     }
   };
 
@@ -67,9 +68,13 @@ const Calculator = () => {
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        const response = await api.get('/api/cities/available');
-        if (response.data.cities && response.data.cities.length > 0) {
-          setAvailableCities(response.data.cities);
+        const response = await merchantAPI.getAvailableCities();
+        if (response.cities && response.cities.length > 0) {
+          setAvailableCities(response.cities);
+          // Set first city as default if no city selected
+          if (!selectedCity) {
+            setSelectedCity(response.cities[0].city);
+          }
         }
       } catch (error) {
         console.error('Error fetching cities:', error);
@@ -109,7 +114,19 @@ const Calculator = () => {
     fetchCityPrices();
   }, [selectedCity, pricingMode]);
 
+  // Draw grid when results are updated
+  useEffect(() => {
+    if (results && results.gridParams) {
+      const { length, breadth, colsX, colsY, spacing, assumedSquare } = results.gridParams;
+      // Use setTimeout to ensure canvas is rendered in DOM
+      setTimeout(() => {
+        drawGrid(length, breadth, colsX, colsY, spacing, assumedSquare);
+      }, 50);
+    }
+  }, [results]);
+
   const calculateMaterials = () => {
+    setIsCalculating(true);
     const { length: L, breadth: B, area, floors, includeFooting, priceCement, priceSteel, priceSand, priceAgg, priceBricks } = formData;
     const areaNum = parseFloat(area) || 0;
     const floorsNum = parseInt(floors) || 1;
@@ -126,6 +143,7 @@ const Calculator = () => {
       assumedSquare = true;
     } else if (!length || !breadth) {
       alert('Please enter either Length & Breadth OR Area.');
+      setIsCalculating(false);
       return;
     }
 
@@ -227,6 +245,15 @@ const Calculator = () => {
         aggregate: { quantity: q(structureAgg), unit: 'cu.ft', cost: q(structureAggCost), pricePerUnit: q(priceAgg) },
         bricks: { quantity: q(structureBricks), unit: 'nos', cost: q(structureBricksCost), pricePerUnit: q(priceBricks/1000) },
         totalCost: q(structureTotalCost)
+      },
+      // Grid drawing parameters
+      gridParams: {
+        length,
+        breadth,
+        colsX,
+        colsY,
+        spacing: spacingNum,
+        assumedSquare
       }
     };
 
@@ -246,8 +273,7 @@ const Calculator = () => {
       }
     });
 
-    // Draw grid
-    drawGrid(length, breadth, colsX, colsY, spacingNum, assumedSquare);
+    setIsCalculating(false);
   };
 
   const drawGrid = (length, breadth, colsX, colsY, spacing, assumedSquare) => {
@@ -628,10 +654,6 @@ const Calculator = () => {
     setLeadData({ name: '', phone: '' });
   };
 
-  useEffect(() => {
-    calculateMaterials();
-  }, []);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <SEO
@@ -666,12 +688,15 @@ const Calculator = () => {
               onChange={(e) => setSelectedCity(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
             >
-              <option value="Ranchi">Ranchi, Jharkhand</option>
-              {availableCities.map((city) => (
-                <option key={city._id} value={city.city}>
-                  {city.city}, {city.state}
-                </option>
-              ))}
+              {availableCities.length === 0 ? (
+                <option value="">Loading cities...</option>
+              ) : (
+                availableCities.map((city) => (
+                  <option key={city._id} value={city.city}>
+                    {city.city}, {city.state}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
@@ -883,9 +908,24 @@ const Calculator = () => {
 
               <button
                 onClick={calculateMaterials}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                disabled={isCalculating}
+                className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                  isCalculating
+                    ? 'bg-green-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } text-white`}
               >
-                Calculate Materials
+                {isCalculating ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Calculated ✓</span>
+                  </>
+                ) : (
+                  'Calculate Materials'
+                )}
               </button>
             </div>
           </div>
@@ -893,12 +933,14 @@ const Calculator = () => {
           {/* Results & Visualization */}
           <div className="space-y-6">
             {/* Grid Visualization */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Layout Visualization</h3>
-              <div className="flex justify-center">
-                <canvas ref={canvasRef} className="border border-gray-200 rounded-lg"></canvas>
+            {results && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Layout Visualization</h3>
+                <div className="flex justify-center">
+                  <canvas ref={canvasRef} className="border border-gray-200 rounded-lg"></canvas>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Results */}
             {results && (
