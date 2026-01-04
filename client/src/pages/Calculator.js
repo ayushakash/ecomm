@@ -1,0 +1,1169 @@
+import React, { useState, useRef, useEffect } from 'react';
+import SEO from '../components/SEO/SEO';
+import analytics from '../services/analytics';
+import api from '../services/api';
+import { toast } from 'react-hot-toast';
+import { jsPDF } from 'jspdf';
+import { formatPrice } from '../utils/pricingUtils';
+
+const Calculator = () => {
+  const canvasRef = useRef(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    length: '',
+    breadth: '',
+    area: '1000',
+    floors: 1,
+    includeFooting: false,
+    priceCement: 350,
+    priceSteel: 72,
+    priceSand: 40,
+    priceAgg: 70,
+    priceBricks: 10000
+  });
+
+  const [results, setResults] = useState(null);
+
+  // City & Pricing state
+  const [selectedCity, setSelectedCity] = useState('Ranchi');
+  const [availableCities, setAvailableCities] = useState([]);
+  const [pricingMode, setPricingMode] = useState('market'); // 'market' or 'custom'
+  const [cityPrices, setCityPrices] = useState(null);
+  const [loadingPrices, setLoadingPrices] = useState(false);
+
+  // Lead capture modal
+  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [leadData, setLeadData] = useState({ name: '', phone: '' });
+
+  // Calculation defaults
+  const DEFAULTS = {
+    columnSpacing: 10, // Default column spacing in feet
+    cementBagsPerSqft: 0.25,
+    steelKgPerSqft: 4,
+    sandCuftPerSqft: 1.2,
+    aggCuftPerSqft: 1.0,
+    bricksPerSqft: 8.5,
+    footingPerColumn: {
+      cementBags: 4,
+      steelKg: 50,
+      sandCuft: 2,
+      aggCuft: 3
+    }
+  };
+
+  const q = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+  // Social Media Configuration from Footer.jsx
+  const SOCIAL_MEDIA_LINKS = {
+    facebook: 'https://www.facebook.com/ChardeevariConstruction',
+    instagram: 'https://www.instagram.com/chardeevari.in/',
+    linkedin: 'https://www.linkedin.com/company/chardeevari/',
+    twitter: 'https://x.com/Chardeevari_in',
+    email: 'chardeevari.construction@gmail.com'
+  };
+
+  // Fetch available cities
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await api.get('/api/cities/available');
+        if (response.data.cities && response.data.cities.length > 0) {
+          setAvailableCities(response.data.cities);
+        }
+      } catch (error) {
+        console.error('Error fetching cities:', error);
+      }
+    };
+    fetchCities();
+  }, []);
+
+  // Fetch city prices when city or pricing mode changes
+  useEffect(() => {
+    const fetchCityPrices = async () => {
+      if (pricingMode !== 'market' || !selectedCity) return;
+
+      setLoadingPrices(true);
+      try {
+        const response = await api.get(`/api/analytics/city-prices/${selectedCity}`);
+        if (response.data.success && response.data.prices) {
+          setCityPrices(response.data);
+          // Update form prices
+          setFormData(prev => ({
+            ...prev,
+            priceCement: response.data.prices.cement?.avg || 350,
+            priceSteel: response.data.prices.steel?.avg || 72,
+            priceSand: response.data.prices.sand?.avg || 40,
+            priceAgg: response.data.prices.aggregate?.avg || 70,
+            priceBricks: response.data.prices.bricks?.avg || 10000
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching city prices:', error);
+        toast.error('Could not load city prices, using default prices');
+      } finally {
+        setLoadingPrices(false);
+      }
+    };
+
+    fetchCityPrices();
+  }, [selectedCity, pricingMode]);
+
+  const calculateMaterials = () => {
+    const { length: L, breadth: B, area, floors, includeFooting, priceCement, priceSteel, priceSand, priceAgg, priceBricks } = formData;
+    const areaNum = parseFloat(area) || 0;
+    const floorsNum = parseInt(floors) || 1;
+    const spacingNum = DEFAULTS.columnSpacing; // Use default column spacing
+
+    // Determine length and breadth
+    let length = parseFloat(L) || 0;
+    let breadth = parseFloat(B) || 0;
+    let assumedSquare = false;
+
+    // If length and breadth not provided, use area and assume square
+    if ((!length || !breadth) && areaNum) {
+      length = breadth = Math.sqrt(areaNum);
+      assumedSquare = true;
+    } else if (!length || !breadth) {
+      alert('Please enter either Length & Breadth OR Area.');
+      return;
+    }
+
+    const builtArea = length * breadth;
+
+    // Calculate columns
+    const colsX = Math.ceil(length / spacingNum) + 1;
+    const colsY = Math.ceil(breadth / spacingNum) + 1;
+    const totalColumns = colsX * colsY;
+
+    // Base calculations per floor
+    const cementPerFloor = builtArea * DEFAULTS.cementBagsPerSqft;
+    const steelPerFloor = builtArea * DEFAULTS.steelKgPerSqft;
+    const sandPerFloor = builtArea * DEFAULTS.sandCuftPerSqft;
+    const aggPerFloor = builtArea * DEFAULTS.aggCuftPerSqft;
+    const bricksPerFloor = builtArea * DEFAULTS.bricksPerSqft;
+
+    // Total for all floors
+    let totalCement = cementPerFloor * floorsNum;
+    let totalSteel = steelPerFloor * floorsNum;
+    let totalSand = sandPerFloor * floorsNum;
+    let totalAgg = aggPerFloor * floorsNum;
+    let totalBricks = bricksPerFloor * floorsNum;
+
+    // Calculate foundation materials separately
+    let foundationCement = 0, foundationSteel = 0, foundationSand = 0, foundationAgg = 0;
+    if (includeFooting) {
+      foundationCement = totalColumns * DEFAULTS.footingPerColumn.cementBags;
+      foundationSteel = totalColumns * DEFAULTS.footingPerColumn.steelKg;
+      foundationSand = totalColumns * DEFAULTS.footingPerColumn.sandCuft;
+      foundationAgg = totalColumns * DEFAULTS.footingPerColumn.aggCuft;
+      
+      // Add to totals
+      totalCement += foundationCement;
+      totalSteel += foundationSteel;
+      totalSand += foundationSand;
+      totalAgg += foundationAgg;
+    }
+
+    // Calculate total costs
+    const cementCost = totalCement * priceCement;
+    const steelCost = totalSteel * priceSteel;
+    const sandCost = totalSand * priceSand;
+    const aggCost = totalAgg * priceAgg;
+    const bricksCost = (totalBricks / 1000) * priceBricks;
+    const totalCost = cementCost + steelCost + sandCost + aggCost + bricksCost;
+
+    // Structure materials (excluding foundation)
+    const structureCement = cementPerFloor * floorsNum;
+    const structureSteel = steelPerFloor * floorsNum;
+    const structureSand = sandPerFloor * floorsNum;
+    const structureAgg = aggPerFloor * floorsNum;
+    const structureBricks = bricksPerFloor * floorsNum;
+
+    // Foundation costs
+    const foundationCementCost = foundationCement * priceCement;
+    const foundationSteelCost = foundationSteel * priceSteel;
+    const foundationSandCost = foundationSand * priceSand;
+    const foundationAggCost = foundationAgg * priceAgg;
+    const foundationTotalCost = foundationCementCost + foundationSteelCost + foundationSandCost + foundationAggCost;
+
+    // Structure costs
+    const structureCementCost = structureCement * priceCement;
+    const structureSteelCost = structureSteel * priceSteel;
+    const structureSandCost = structureSand * priceSand;
+    const structureAggCost = structureAgg * priceAgg;
+    const structureBricksCost = (structureBricks / 1000) * priceBricks;
+    const structureTotalCost = structureCementCost + structureSteelCost + structureSandCost + structureAggCost + structureBricksCost;
+
+    const calculationResults = {
+      length: q(length),
+      breadth: q(breadth),
+      area: q(builtArea),
+      floors: floorsNum,
+      columns: totalColumns,
+      colsX,
+      colsY,
+      spacing: spacingNum,
+      assumedSquare,
+      cement: { quantity: q(totalCement), unit: 'bags', cost: q(cementCost), pricePerUnit: q(priceCement) },
+      steel: { quantity: q(totalSteel), unit: 'kg', cost: q(steelCost), pricePerUnit: q(priceSteel) },
+      sand: { quantity: q(totalSand), unit: 'cu.ft', cost: q(sandCost), pricePerUnit: q(priceSand) },
+      aggregate: { quantity: q(totalAgg), unit: 'cu.ft', cost: q(aggCost), pricePerUnit: q(priceAgg) },
+      bricks: { quantity: q(totalBricks), unit: 'nos', cost: q(bricksCost), pricePerUnit: q(priceBricks/1000) },
+      totalCost: q(totalCost),
+      // Foundation materials
+      foundationMaterials: includeFooting ? {
+        cement: { quantity: q(foundationCement), unit: 'bags', cost: q(foundationCementCost), pricePerUnit: q(priceCement) },
+        steel: { quantity: q(foundationSteel), unit: 'kg', cost: q(foundationSteelCost), pricePerUnit: q(priceSteel) },
+        sand: { quantity: q(foundationSand), unit: 'cu.ft', cost: q(foundationSandCost), pricePerUnit: q(priceSand) },
+        aggregate: { quantity: q(foundationAgg), unit: 'cu.ft', cost: q(foundationAggCost), pricePerUnit: q(priceAgg) },
+        totalCost: q(foundationTotalCost)
+      } : null,
+      // Structure materials (excluding foundation)
+      structureMaterials: {
+        cement: { quantity: q(structureCement), unit: 'bags', cost: q(structureCementCost), pricePerUnit: q(priceCement) },
+        steel: { quantity: q(structureSteel), unit: 'kg', cost: q(structureSteelCost), pricePerUnit: q(priceSteel) },
+        sand: { quantity: q(structureSand), unit: 'cu.ft', cost: q(structureSandCost), pricePerUnit: q(priceSand) },
+        aggregate: { quantity: q(structureAgg), unit: 'cu.ft', cost: q(structureAggCost), pricePerUnit: q(priceAgg) },
+        bricks: { quantity: q(structureBricks), unit: 'nos', cost: q(structureBricksCost), pricePerUnit: q(priceBricks/1000) },
+        totalCost: q(structureTotalCost)
+      }
+    };
+
+    setResults(calculationResults);
+
+    // Track calculator usage in analytics
+    analytics.trackCalculatorUse({
+      area: builtArea,
+      floors: floorsNum,
+      totalCost: q(totalCost),
+      materials: {
+        cement: q(totalCement),
+        steel: q(totalSteel),
+        sand: q(totalSand),
+        aggregate: q(totalAgg),
+        bricks: q(totalBricks)
+      }
+    });
+
+    // Draw grid
+    drawGrid(length, breadth, colsX, colsY, spacingNum, assumedSquare);
+  };
+
+  const drawGrid = (length, breadth, colsX, colsY, spacing, assumedSquare) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const isMobile = window.innerWidth <= 640;
+
+    canvas.width = isMobile ? Math.min(350, window.innerWidth - 40) : 760;
+    canvas.height = isMobile ? Math.min(canvas.width * 0.7, 280) : Math.min(canvas.width * 0.6, 460);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const pad = isMobile ? 30 : 50;
+    const w = canvas.width - pad * 2;
+    const h = canvas.height - pad * 2;
+
+    const scale = Math.min(w / length, h / breadth);
+    const drawW = length * scale;
+    const drawH = breadth * scale;
+    const originX = pad + (w - drawW) / 2;
+    const originY = pad + (h - drawH) / 2;
+
+    // Draw outer rectangle
+    ctx.strokeStyle = '#1f2937';
+    ctx.lineWidth = isMobile ? 1.5 : 2;
+    ctx.strokeRect(originX, originY, drawW, drawH);
+
+    const dx = drawW / (colsX - 1);
+    const dy = drawH / (colsY - 1);
+
+    // Draw grid lines
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = isMobile ? 1 : 2;
+    for (let i = 0; i < colsY; i++) {
+      ctx.beginPath();
+      ctx.moveTo(originX, originY + i * dy);
+      ctx.lineTo(originX + drawW, originY + i * dy);
+      ctx.stroke();
+    }
+    for (let j = 0; j < colsX; j++) {
+      ctx.beginPath();
+      ctx.moveTo(originX + j * dx, originY);
+      ctx.lineTo(originX + j * dx, originY + drawH);
+      ctx.stroke();
+    }
+
+    // Draw columns
+    ctx.fillStyle = '#b91c1c';
+    const circleRadius = isMobile ? 3 : 5;
+    for (let i = 0; i < colsY; i++) {
+      for (let j = 0; j < colsX; j++) {
+        const cx = originX + j * dx;
+        const cy = originY + i * dy;
+        ctx.beginPath();
+        ctx.arc(cx, cy, circleRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Dimension lines
+    ctx.strokeStyle = '#059669';
+    ctx.fillStyle = '#059669';
+    ctx.lineWidth = 1;
+    const dimOffset = isMobile ? 15 : 20;
+    const fontSize = isMobile ? 9 : 11;
+    ctx.font = `bold ${fontSize}px Arial`;
+
+    // Top dimension (length)
+    const topDimY = originY - dimOffset;
+    ctx.beginPath();
+    ctx.moveTo(originX, topDimY);
+    ctx.lineTo(originX + drawW, topDimY);
+    ctx.stroke();
+
+    const lengthText = `${q(length)} ft`;
+    const lengthTextWidth = ctx.measureText(lengthText).width;
+    ctx.fillText(lengthText, originX + (drawW - lengthTextWidth) / 2, topDimY - 5);
+
+    // Right dimension (breadth)
+    const rightDimX = originX + drawW + dimOffset;
+    ctx.beginPath();
+    ctx.moveTo(rightDimX, originY);
+    ctx.lineTo(rightDimX, originY + drawH);
+    ctx.stroke();
+
+    const breadthText = `${q(breadth)} ft`;
+    ctx.save();
+    ctx.translate(rightDimX + (isMobile ? 8 : 10), originY + drawH / 2);
+    ctx.rotate(-Math.PI / 2);
+    const breadthTextWidth = ctx.measureText(breadthText).width;
+    ctx.fillText(breadthText, -breadthTextWidth / 2, 0);
+    ctx.restore();
+
+    // Grid info
+    ctx.fillStyle = '#111827';
+    ctx.font = `${isMobile ? 9 : 10}px Arial`;
+    const gridText = `Grid: ${colsX} × ${colsY} (spacing ${q(spacing)} ft)`;
+    ctx.fillText(gridText, originX, originY + drawH + (isMobile ? 15 : 20));
+    if (assumedSquare) {
+      ctx.fillText('(Square footprint assumed)', originX, originY + drawH + (isMobile ? 25 : 32));
+    }
+  };
+
+  // Download PDF with lead capture
+  const handleDownloadPDF = () => {
+    if (!results) {
+      toast.error('Please calculate materials first');
+      return;
+    }
+    setShowLeadModal(true);
+  };
+
+  const generatePDF = () => {
+    if (!leadData.name || !leadData.phone) {
+      toast.error('Please enter your name and phone number');
+      return;
+    }
+
+    if (leadData.phone.length < 10) {
+      toast.error('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    // Create PDF
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 10;
+
+    // ========== MODERN HEADER LAYOUT (Option 3) ==========
+    const headerHeight = 45;
+
+    // Top section - Dark slate background
+    doc.setFillColor(30, 41, 59); // Sophisticated dark slate
+    doc.rect(0, 0, pageWidth, 32, 'F');
+
+    // Bottom section - Light gray background (thinner)
+    doc.setFillColor(248, 250, 252); // Very light gray
+    doc.rect(0, 32, pageWidth, 13, 'F');
+
+    // Add logo
+    try {
+      const logoUrl = '/logo.png';
+      const logoImg = new Image();
+      logoImg.src = logoUrl;
+      // Logo in top-left (width: 23px, height: 20px)
+      doc.addImage(logoUrl, 'PNG', 10, 6, 23, 20);
+    } catch (error) {
+      // Logo placeholder if not found
+      doc.setFillColor(255, 255, 255);
+      doc.circle(20, 16, 10, 'F');
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('C', 20, 18, { align: 'center' });
+    }
+
+    // Company name and subtitle (top section)
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CHARDEEVARI', 35, 15);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Construction Material Estimate', 35, 24);
+
+    // Contact info section (bottom light gray area - thinner)
+    doc.setTextColor(51, 65, 85); // Dark gray text
+
+    // Email and Phone (left side, stacked)
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'normal');
+    const emailX = 15;
+    const emailY = 38;
+
+    // Email
+    const emailText = `Email: ${SOCIAL_MEDIA_LINKS.email}`;
+    doc.text(emailText, emailX, emailY);
+    const emailWidth = doc.getTextWidth(emailText);
+    doc.link(emailX, emailY - 3, emailWidth, 4, { url: `mailto:${SOCIAL_MEDIA_LINKS.email}` });
+
+    // Phone (below email)
+    const phoneText = `Phone: +91 6201176610`;
+    doc.text(phoneText, emailX, emailY + 5);
+    const phoneWidth = doc.getTextWidth(phoneText);
+    doc.link(emailX, emailY + 2, phoneWidth, 4, { url: 'tel:+916201176610' });
+
+    // Social Media Icons (right side, properly centered)
+    const iconY = 38.5;
+    const iconSize = 5;
+    const iconSpacing = 15;
+    const totalIconWidth = (4 * iconSpacing);
+    const iconsStartX = pageWidth - totalIconWidth - 10; // Right-aligned with padding
+
+    // Helper function to draw social media icon
+    const drawSocialIcon = (x, color, letter, url) => {
+      // Draw colored circle
+      doc.setFillColor(color[0], color[1], color[2]);
+      doc.circle(x, iconY, iconSize / 2, 'F');
+
+      // White letter in center
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      doc.text(letter, x, iconY + 1, { align: 'center' });
+
+      // Add clickable link area
+      doc.link(x - iconSize / 2, iconY - iconSize / 2, iconSize, iconSize, { url: url });
+    };
+
+    // Draw social media icons with proper brand colors
+    drawSocialIcon(iconsStartX, [59, 89, 152], 'f', SOCIAL_MEDIA_LINKS.facebook); // Facebook blue
+    drawSocialIcon(iconsStartX + iconSpacing, [225, 48, 108], 'i', SOCIAL_MEDIA_LINKS.instagram); // Instagram pink
+    drawSocialIcon(iconsStartX + iconSpacing * 2, [0, 119, 181], 'in', SOCIAL_MEDIA_LINKS.linkedin); // LinkedIn blue
+    drawSocialIcon(iconsStartX + iconSpacing * 3, [29, 161, 242], 'X', SOCIAL_MEDIA_LINKS.twitter); // Twitter blue
+
+    // Separator line
+    doc.setDrawColor(203, 213, 225); // Light gray line
+    doc.setLineWidth(0.5);
+    doc.line(0, headerHeight, pageWidth, headerHeight);
+
+    yPos = headerHeight + 10;
+
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+
+    // Customer Details Section
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Customer Details', 15, yPos);
+    yPos += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Name: ${leadData.name}`, 15, yPos);
+    yPos += 6;
+    doc.text(`Phone: ${leadData.phone}`, 15, yPos);
+    yPos += 6;
+    doc.text(`Date: ${new Date().toLocaleDateString('en-IN')}`, 15, yPos);
+    yPos += 10;
+
+    // Project Details Section
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Project Details', 15, yPos);
+    yPos += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Location: ${selectedCity}`, 15, yPos);
+    yPos += 6;
+    doc.text(`Dimensions: ${results.length} ft × ${results.breadth} ft`, 15, yPos);
+    yPos += 6;
+    doc.text(`Built-up Area: ${results.area} sq.ft`, 15, yPos);
+    yPos += 6;
+    doc.text(`Number of Floors: ${results.floors}`, 15, yPos);
+    yPos += 6;
+    doc.text(`Columns Required: ${results.columns} (${results.colsX} × ${results.colsY} grid)`, 15, yPos);
+    yPos += 10;
+
+    // Material Requirements Section
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Material Requirements & Cost', 15, yPos);
+    yPos += 8;
+
+    // Helper function to add material with brands and unit price
+    const addMaterial = (name, quantity, unit, cost, unitPrice, materialKey) => {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(name, 15, yPos);
+
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${quantity} ${unit}`, 80, yPos);
+      doc.text(`Rs ${unitPrice}/${unit.split(' ')[0]}`, 125, yPos);
+      doc.text(`Rs ${cost}`, 185, yPos, { align: 'right' });
+      yPos += 5;
+
+      // Add brands if available
+      if (pricingMode === 'market' && cityPrices && cityPrices.prices[materialKey]?.brands && cityPrices.prices[materialKey].brands.length > 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        const brands = cityPrices.prices[materialKey].brands.join(', ');
+        const brandText = `(${brands})`;
+        const splitBrands = doc.splitTextToSize(brandText, 170);
+        doc.text(splitBrands, 20, yPos);
+        yPos += splitBrands.length * 3 + 2;
+        doc.setTextColor(0, 0, 0);
+      } else {
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text('(using standard pricing)', 20, yPos);
+        yPos += 5;
+        doc.setTextColor(0, 0, 0);
+      }
+      yPos += 2;
+    };
+
+    // Structure Materials Section
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('STRUCTURE MATERIALS', 15, yPos);
+    yPos += 8;
+
+    // Add structure materials
+    addMaterial('Cement', results.structureMaterials.cement.quantity, 'bags (50kg)', results.structureMaterials.cement.cost, results.structureMaterials.cement.pricePerUnit, 'cement');
+    addMaterial('Steel (TMT Bars)', results.structureMaterials.steel.quantity, 'kg', results.structureMaterials.steel.cost, results.structureMaterials.steel.pricePerUnit, 'steel');
+    addMaterial('Sand (M-Sand)', results.structureMaterials.sand.quantity, 'cu.ft', results.structureMaterials.sand.cost, results.structureMaterials.sand.pricePerUnit, 'sand');
+    addMaterial('Aggregate (20mm)', results.structureMaterials.aggregate.quantity, 'cu.ft', results.structureMaterials.aggregate.cost, results.structureMaterials.aggregate.pricePerUnit, 'aggregate');
+    addMaterial('Bricks', results.structureMaterials.bricks.quantity, 'nos', results.structureMaterials.bricks.cost, results.structureMaterials.bricks.pricePerUnit, 'bricks');
+
+    // Structure subtotal
+    yPos += 5;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Structure Subtotal:', 125, yPos);
+    doc.text(`Rs ${results.structureMaterials.totalCost}`, 185, yPos, { align: 'right' });
+    yPos += 8;
+
+    // Foundation Materials Section
+    if (results.foundationMaterials) {
+      yPos += 3;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FOUNDATION MATERIALS', 15, yPos);
+      yPos += 8;
+
+      // Add foundation materials
+      addMaterial('Cement', results.foundationMaterials.cement.quantity, 'bags (50kg)', results.foundationMaterials.cement.cost, results.foundationMaterials.cement.pricePerUnit, 'cement');
+      addMaterial('Steel', results.foundationMaterials.steel.quantity, 'kg', results.foundationMaterials.steel.cost, results.foundationMaterials.steel.pricePerUnit, 'steel');
+      addMaterial('Sand', results.foundationMaterials.sand.quantity, 'cu.ft', results.foundationMaterials.sand.cost, results.foundationMaterials.sand.pricePerUnit, 'sand');
+      addMaterial('Aggregate', results.foundationMaterials.aggregate.quantity, 'cu.ft', results.foundationMaterials.aggregate.cost, results.foundationMaterials.aggregate.pricePerUnit, 'aggregate');
+
+      // Foundation subtotal
+      yPos += 5;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Foundation Subtotal:', 125, yPos);
+      doc.text(`Rs ${results.foundationMaterials.totalCost}`, 185, yPos, { align: 'right' });
+      yPos += 8;
+    }
+
+    // Total Cost
+    yPos += 5;
+    doc.setDrawColor(0, 0, 0);
+    doc.line(15, yPos, 195, yPos);
+    yPos += 8;
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL ESTIMATED COST', 15, yPos);
+    doc.setTextColor(34, 139, 34);
+    doc.text(`Rs ${results.totalCost}`, 185, yPos, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    yPos += 10;
+
+    // Pricing Info (disclaimers at bottom)
+    yPos += 8;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 116, 139); // Gray text
+    if (pricingMode === 'market' && cityPrices) {
+      doc.text(`* Prices based on ${cityPrices.merchantCount} verified merchants in ${selectedCity}`, 15, yPos);
+    } else {
+      doc.text('* Prices are standard estimates and may vary based on market conditions', 15, yPos);
+    }
+    yPos += 4;
+    doc.text('* Actual requirements may vary based on design, wastage, and site conditions', 15, yPos);
+    yPos += 4;
+    doc.text('* This is a preliminary estimate. Final quantities should be verified by a civil engineer.', 15, yPos);
+
+    // Save PDF (always single page)
+    doc.save(`Chardeevari_Estimate_${leadData.name.replace(/\s/g, '_')}.pdf`);
+
+    toast.success('PDF Report downloaded successfully!');
+    setShowLeadModal(false);
+    setLeadData({ name: '', phone: '' });
+  };
+
+  useEffect(() => {
+    calculateMaterials();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <SEO
+        title="Construction Material Calculator - Cement, Steel, Sand, Bricks | Ranchi"
+        description="Free construction material calculator for Ranchi. Estimate cement, steel, sand, aggregate, and brick requirements for your building project in Jharkhand."
+        keywords="construction calculator Ranchi, cement calculator, building material estimate, construction cost calculator Jharkhand, steel calculator, sand calculator, brick calculator"
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
+            Construction Material Calculator
+          </h1>
+          <p className="text-lg text-gray-600">
+            Enter Length & Breadth (for actual dimensions) OR Area (for square estimate)
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Get instant material estimates for your construction project in Ranchi, Jharkhand
+          </p>
+        </div>
+
+        {/* City & Pricing Selection - Mobile First */}
+        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
+          {/* City Selector */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📍 Your Location
+            </label>
+            <select
+              value={selectedCity}
+              onChange={(e) => setSelectedCity(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+            >
+              <option value="Ranchi">Ranchi, Jharkhand</option>
+              {availableCities.map((city) => (
+                <option key={city._id} value={city.city}>
+                  {city.city}, {city.state}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Pricing Mode Toggle */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              💰 Pricing
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPricingMode('market')}
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  pricingMode === 'market'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Market Prices
+              </button>
+              <button
+                onClick={() => setPricingMode('custom')}
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  pricingMode === 'custom'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Custom
+              </button>
+            </div>
+          </div>
+
+          {/* Price info */}
+          {pricingMode === 'market' && cityPrices && (
+            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-xs text-green-800">
+                ℹ️ Using prices from {cityPrices.merchantCount} merchants in {selectedCity}
+              </p>
+            </div>
+          )}
+
+          {pricingMode === 'custom' && (
+            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800">
+                ⚙️ Scroll down to customize material prices
+              </p>
+            </div>
+          )}
+
+          {loadingPrices && (
+            <div className="mt-3 text-center text-sm text-blue-600">
+              Loading prices...
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Input Form */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Project Details</h2>
+
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Tip:</strong> Enter <strong>Length & Breadth</strong> (for actual dimensions)
+                  <strong> OR </strong> <strong>Area</strong> (assumes square footprint)
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Length (ft)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.length}
+                    onChange={(e) => setFormData({ ...formData, length: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="optional if area provided"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Breadth (ft)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.breadth}
+                    onChange={(e) => setFormData({ ...formData, breadth: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="optional if area provided"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Total Built-up Area (sq.ft)
+                </label>
+                <input
+                  type="number"
+                  value={formData.area}
+                  onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="optional if length & breadth provided"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Number of Floors
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={formData.floors}
+                  onChange={(e) => setFormData({ ...formData, floors: parseInt(e.target.value) })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="includeFooting"
+                  checked={formData.includeFooting}
+                  onChange={(e) => setFormData({ ...formData, includeFooting: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="includeFooting" className="ml-2 block text-sm text-gray-700">
+                  Include footing materials
+                </label>
+              </div>
+
+              {/* Custom Price Inputs - Only show in custom mode */}
+              {pricingMode === 'custom' && (
+                <div className="border-t pt-4 space-y-4">
+                  <h3 className="font-semibold text-gray-900 mb-2">💰 Material Prices</h3>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Cement (₹/bag 50kg)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.priceCement}
+                      onChange={(e) => setFormData({ ...formData, priceCement: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 350"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Steel (₹/kg)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.priceSteel}
+                      onChange={(e) => setFormData({ ...formData, priceSteel: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 72"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Sand (₹/cu.ft)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.priceSand}
+                      onChange={(e) => setFormData({ ...formData, priceSand: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 40"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Aggregate (₹/cu.ft)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.priceAgg}
+                      onChange={(e) => setFormData({ ...formData, priceAgg: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 70"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Bricks (₹/1000 nos)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.priceBricks}
+                      onChange={(e) => setFormData({ ...formData, priceBricks: e.target.value })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 10000"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={calculateMaterials}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+              >
+                Calculate Materials
+              </button>
+            </div>
+          </div>
+
+          {/* Results & Visualization */}
+          <div className="space-y-6">
+            {/* Grid Visualization */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Layout Visualization</h3>
+              <div className="flex justify-center">
+                <canvas ref={canvasRef} className="border border-gray-200 rounded-lg"></canvas>
+              </div>
+            </div>
+
+            {/* Results */}
+            {results && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Material Estimates</h3>
+
+                {/* Project Overview */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-2">📐 Project Overview</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600">Dimensions:</span>
+                      <span className="ml-2 font-semibold text-gray-900">
+                        {results.length} ft × {results.breadth} ft
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Area:</span>
+                      <span className="ml-2 font-semibold text-gray-900">{results.area} sq.ft</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Floors:</span>
+                      <span className="ml-2 font-semibold text-gray-900">{results.floors}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Columns:</span>
+                      <span className="ml-2 font-semibold text-gray-900">
+                        {results.columns} ({results.colsX} × {results.colsY})
+                      </span>
+                    </div>
+                  </div>
+                  {results.assumedSquare && (
+                    <p className="mt-2 text-xs text-blue-600">
+                      ℹ️ Square footprint assumed from area
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {/* Structure Materials Section */}
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+                      🏗️ Structure Materials
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">Cement</p>
+                          <p className="text-sm text-gray-600">{results.structureMaterials.cement.quantity} bags (50kg)</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">₹{results.structureMaterials.cement.pricePerUnit}/bag</p>
+                          <p className="font-bold text-blue-600">₹{results.structureMaterials.cement.cost}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">Steel (TMT Bars)</p>
+                          <p className="text-sm text-gray-600">{results.structureMaterials.steel.quantity} kg</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">₹{results.structureMaterials.steel.pricePerUnit}/kg</p>
+                          <p className="font-bold text-blue-600">₹{results.structureMaterials.steel.cost}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">Sand (M-Sand)</p>
+                          <p className="text-sm text-gray-600">{results.structureMaterials.sand.quantity} cu.ft</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">₹{results.structureMaterials.sand.pricePerUnit}/cu.ft</p>
+                          <p className="font-bold text-blue-600">₹{results.structureMaterials.sand.cost}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">Aggregate (20mm)</p>
+                          <p className="text-sm text-gray-600">{results.structureMaterials.aggregate.quantity} cu.ft</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">₹{results.structureMaterials.aggregate.pricePerUnit}/cu.ft</p>
+                          <p className="font-bold text-blue-600">₹{results.structureMaterials.aggregate.cost}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pb-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">Bricks</p>
+                          <p className="text-sm text-gray-600">{results.structureMaterials.bricks.quantity} nos</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">₹{results.structureMaterials.bricks.pricePerUnit}/brick</p>
+                          <p className="font-bold text-blue-600">₹{results.structureMaterials.bricks.cost}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 pt-3 border-t border-blue-300 flex justify-between items-center">
+                      <p className="font-semibold text-blue-900">Structure Subtotal:</p>
+                      <p className="font-bold text-lg text-blue-900">₹{results.structureMaterials.totalCost}</p>
+                    </div>
+                  </div>
+
+                  {/* Foundation Materials Section */}
+                  {results.foundationMaterials && (
+                    <div className="bg-orange-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-orange-900 mb-3 flex items-center">
+                        🏗️ Foundation Materials
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center border-b border-orange-200 pb-2">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">Cement</p>
+                            <p className="text-sm text-gray-600">{results.foundationMaterials.cement.quantity} bags (50kg)</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">₹{results.foundationMaterials.cement.pricePerUnit}/bag</p>
+                            <p className="font-bold text-orange-600">₹{results.foundationMaterials.cement.cost}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center border-b border-orange-200 pb-2">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">Steel</p>
+                            <p className="text-sm text-gray-600">{results.foundationMaterials.steel.quantity} kg</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">₹{results.foundationMaterials.steel.pricePerUnit}/kg</p>
+                            <p className="font-bold text-orange-600">₹{results.foundationMaterials.steel.cost}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center border-b border-orange-200 pb-2">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">Sand</p>
+                            <p className="text-sm text-gray-600">{results.foundationMaterials.sand.quantity} cu.ft</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">₹{results.foundationMaterials.sand.pricePerUnit}/cu.ft</p>
+                            <p className="font-bold text-orange-600">₹{results.foundationMaterials.sand.cost}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center pb-2">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">Aggregate</p>
+                            <p className="text-sm text-gray-600">{results.foundationMaterials.aggregate.quantity} cu.ft</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">₹{results.foundationMaterials.aggregate.pricePerUnit}/cu.ft</p>
+                            <p className="font-bold text-orange-600">₹{results.foundationMaterials.aggregate.cost}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 pt-3 border-t border-orange-300 flex justify-between items-center">
+                        <p className="font-semibold text-orange-900">Foundation Subtotal:</p>
+                        <p className="font-bold text-lg text-orange-900">₹{results.foundationMaterials.totalCost}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total Section */}
+                  <div className="flex justify-between items-center pt-4 border-t-2 border-gray-300 bg-green-50 rounded-lg p-4">
+                    <p className="text-lg font-bold text-gray-900">Total Estimated Cost</p>
+                    <p className="text-2xl font-bold text-green-600">₹{results.totalCost}</p>
+                  </div>
+                </div>
+
+                {/* Download PDF Button */}
+                <button
+                  onClick={handleDownloadPDF}
+                  className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                >
+                  <span>📥</span>
+                  <span>Download Report</span>
+                </button>
+
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> These are approximate estimates. Actual requirements may vary based on design, wastage, and site conditions. Prices shown are indicative for Ranchi, Jharkhand market.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="mt-12 bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-2xl p-8 text-center text-white">
+          <h2 className="text-3xl font-bold mb-4">Ready to Buy Construction Materials?</h2>
+          <p className="text-lg mb-6">Get quality materials delivered to your site in Ranchi</p>
+          <a
+            href="/products"
+            className="inline-block bg-white text-blue-600 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+          >
+            Browse Products
+          </a>
+        </div>
+      </div>
+
+      {/* Lead Capture Modal - Simple & Mobile-First */}
+      {showLeadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">📥 Download Your Estimate</h3>
+            <p className="text-sm text-gray-600 mb-6">Enter your details to download the report</p>
+
+            {/* Name Input */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={leadData.name}
+                onChange={(e) => setLeadData({ ...leadData, name: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                placeholder="Enter your name"
+                autoFocus
+              />
+            </div>
+
+            {/* Phone Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                value={leadData.phone}
+                onChange={(e) => setLeadData({ ...leadData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                placeholder="10-digit mobile number"
+                maxLength="10"
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowLeadModal(false);
+                  setLeadData({ name: '', phone: '' });
+                }}
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={generatePDF}
+                className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Calculator;

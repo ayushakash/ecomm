@@ -55,7 +55,7 @@ router.get('/profile', verifyToken, async (req, res) => {
 router.put('/profile', [
   verifyToken,
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('phone').optional().trim(),
+  body('phone').optional().trim().matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
   body('address').optional().trim(),
   body('area').optional().trim(),
   body('email').optional().trim().isEmail().withMessage('Invalid email format')
@@ -68,21 +68,52 @@ router.put('/profile', [
 
     const { name, phone, address, area, email } = req.body;
 
-    // Update allowed fields
-    if (name) req.user.name = name;
-    if (phone) req.user.phone = phone;
-    if (address) req.user.address = address;
-    if (area) req.user.area = area;
-    if (email) req.user.email = email;
+    // Build update object with only provided fields
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (phone) updateData.phone = phone;
+    if (address) updateData.address = address;
+    if (area) updateData.area = area;
+    if (email) updateData.email = email;
 
-    await req.user.save();
+    // Use findByIdAndUpdate to avoid issues with password validation
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updateData },
+      {
+        new: true, // Return the updated document
+        runValidators: true, // Run model validators
+        select: '-password -refreshToken -otp -otpExpiry' // Exclude sensitive fields
+      }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     res.json({
       message: 'Profile updated successfully',
-      user: req.user
+      user: updatedUser
     });
   } catch (error) {
     console.error('Update profile error:', error);
+
+    // Handle specific MongoDB errors
+    if (error.code === 11000) {
+      // Duplicate key error
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        message: `${field === 'phone' ? 'Phone number' : field} already exists`
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: error.message,
+        errors: Object.values(error.errors).map(e => e.message)
+      });
+    }
+
     res.status(500).json({ message: 'Server error' });
   }
 });

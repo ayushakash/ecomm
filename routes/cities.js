@@ -32,6 +32,30 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * GET /api/cities/available
+ * Get cities that have active merchants (for calculator dropdown)
+ */
+router.get('/available', async (req, res) => {
+  try {
+    const cities = await CityMaster.find({ isActive: true })
+      .sort({ displayOrder: 1, cityName: 1 })
+      .select('cityName state');
+
+    res.json({
+      success: true,
+      cities: cities.map(c => ({
+        _id: c._id,
+        city: c.cityName,
+        state: c.state
+      }))
+    });
+  } catch (error) {
+    console.error('Get available cities error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
  * GET /api/cities/:id
  * Get single city by ID
  */

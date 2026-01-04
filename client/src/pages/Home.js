@@ -13,6 +13,7 @@ import ProductCard from '../components/products/ProductCard';
 import { useLocation } from '../contexts/LocationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import SEO from '../components/SEO/SEO';
 
 const Home = () => {
   const { user } = useAuth();
@@ -103,6 +104,14 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title="Chardeevari - Buy Construction Materials Online in Ranchi, Jharkhand"
+        description="Best online store for construction materials in Ranchi. Buy cement, sand, bricks, TMT bars, aggregates with doorstep delivery. Quality products at competitive prices."
+        keywords="construction materials Ranchi, buy cement online Ranchi, building materials Jharkhand, M-Sand Ranchi, TMT bars online, bricks delivery Ranchi, construction supplies Ranchi, aggregates Jharkhand"
+        breadcrumbs={[
+          { name: 'Home', path: '/' }
+        ]}
+      />
       {/* Hero Banner */}
       <div className="bg-primary-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">

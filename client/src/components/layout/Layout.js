@@ -17,7 +17,8 @@ const Layout = () => {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Products', href: '/products' },
-    { name: 'About', href: '/about' },
+    { name: 'Calculator', href: '/calculator' },
+    { name: 'Blog', href: '/blog' },
     { name: 'Contact', href: '/contact' },
   ];
 

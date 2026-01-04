@@ -3,13 +3,13 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   HomeIcon,
   ShoppingCartIcon,
-  ClipboardDocumentListIcon,
+  CalculatorIcon,
   UserIcon
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconFilled,
   ShoppingCartIcon as ShoppingCartIconFilled,
-  ClipboardDocumentListIcon as ClipboardDocumentListIconFilled,
+  CalculatorIcon as CalculatorIconFilled,
   UserIcon as UserIconFilled
 } from '@heroicons/react/24/solid';
 
@@ -18,7 +18,7 @@ const Footer = ({ cartCount = 0 }) => {
 
   const navItems = [
     { name: 'Home', href: '/', icon: HomeIcon, iconFilled: HomeIconFilled },
-    { name: 'Orders', href: '/profile/orders', icon: ClipboardDocumentListIcon, iconFilled: ClipboardDocumentListIconFilled },
+    { name: 'Calculator', href: '/calculator', icon: CalculatorIcon, iconFilled: CalculatorIconFilled },
     { name: 'Cart', href: '/cart', icon: ShoppingCartIcon, iconFilled: ShoppingCartIconFilled },
     { name: 'Profile', href: '/profile', icon: UserIcon, iconFilled: UserIconFilled }
   ];

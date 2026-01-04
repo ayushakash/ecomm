@@ -7,6 +7,8 @@ import { useLocation } from '../../contexts/LocationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import LocationEducationModal from '../../components/location/LocationEducationModal';
 import { Link } from 'react-router-dom';
+import SEO from '../../components/SEO/SEO';
+import analytics from '../../services/analytics';
 
 const ProductList = () => {
   const { user } = useAuth();
@@ -23,6 +25,17 @@ const ProductList = () => {
       setShowLocationModal(true);
     }
   }, [user, selectedAddress]);
+
+  // Track search analytics with debounce
+  useEffect(() => {
+    if (searchTerm && searchTerm.trim().length > 2) {
+      const searchTimeout = setTimeout(() => {
+        analytics.trackSearch(searchTerm.trim());
+      }, 1000); // Wait 1 second after user stops typing
+
+      return () => clearTimeout(searchTimeout);
+    }
+  }, [searchTerm]);
 
   const { data: productList, isLoading, error } = useQuery({
     queryKey: ['products', searchTerm, selectedCategory, priceRange, merchantIds],
@@ -133,6 +146,15 @@ const ProductList = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <SEO
+        title="Buy Construction Materials Online in Ranchi | Cement, Steel, Sand, Bricks | Chardeevari"
+        description="Buy premium quality construction materials online in Ranchi, Jharkhand. Order cement (ACC, UltraTech), TMT steel bars (Tata, Jindal), M-sand, bricks, aggregates with doorstep delivery. Best prices guaranteed. Shop now at Chardeevari!"
+        keywords="buy construction materials Ranchi, cement dealers Ranchi, TMT steel suppliers Jharkhand, M-sand online Ranchi, building materials Ranchi, brick suppliers Ranchi, aggregate dealers Jharkhand, construction material shop near me, cement price Ranchi, steel bars online Jharkhand, building supplies delivery Ranchi, construction materials wholesale Ranchi, ACC cement Ranchi, UltraTech cement dealers, Tata steel TMT bars, Jindal TMT Ranchi, cheap construction materials Ranchi, best building material suppliers Jharkhand, online building materials store, construction materials home delivery, buy cement online India, Chardeevari Ranchi"
+        breadcrumbs={[
+          { name: 'Home', path: '/' },
+          { name: 'Products', path: '/products' }
+        ]}
+      />
       {/* Location Info Banner */}
       {user && selectedAddress && locationInfo && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">

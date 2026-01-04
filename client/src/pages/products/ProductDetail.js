@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { StarIcon, ShoppingCartIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/solid';
 import { productAPI } from '../../services/api';
 import { useCart } from '../../contexts/CartContext';
 import { toast } from 'react-hot-toast';
+import analytics from '../../services/analytics';
+import SEO from '../../components/SEO/SEO';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -19,6 +21,13 @@ const ProductDetail = () => {
 
   const cartItem = getCartItem(id);
 
+  // Track product view when product loads
+  useEffect(() => {
+    if (product) {
+      analytics.trackProductView(product);
+    }
+  }, [product]);
+
   const handleAddToCart = () => {
     if (!product || product.totalStock <= 0) {
       toast.error('Product is out of stock');
@@ -26,6 +35,10 @@ const ProductDetail = () => {
     }
 
     addToCart(product, quantity);
+
+    // Track add to cart event
+    analytics.trackAddToCart(product, quantity);
+
     toast.success(`Added ${quantity} ${quantity === 1 ? 'item' : 'items'} to cart`);
   };
 
@@ -65,8 +78,24 @@ const ProductDetail = () => {
     );
   }
 
+  // Generate dynamic SEO data
+  const productTitle = `Buy ${product.name} Online in Ranchi | ${product.category || 'Construction Material'} | Chardeevari`;
+  const productDescription = `${product.description?.substring(0, 150) || `Buy ${product.name} online in Ranchi, Jharkhand`}. Best price Rs ${product.price}. Premium quality ${product.category || 'construction material'} with doorstep delivery. ${product.totalStock > 0 ? 'In Stock' : 'Limited Stock'} - Order now at Chardeevari!`;
+  const productKeywords = `buy ${product.name} Ranchi, ${product.name} price Ranchi, ${product.category} suppliers Ranchi, ${product.name} online Jharkhand, ${product.category} dealers Ranchi, construction materials Ranchi, ${product.name} home delivery, buy ${product.category} online, Chardeevari ${product.category}`;
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title={productTitle}
+        description={productDescription}
+        keywords={productKeywords}
+        breadcrumbs={[
+          { name: 'Home', path: '/' },
+          { name: 'Products', path: '/products' },
+          { name: product.category || 'Product', path: `/products?category=${product.category}` },
+          { name: product.name, path: `/products/${product._id}` }
+        ]}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Image Gallery */}

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
+import analytics from '../services/analytics';
 
 const AuthContext = createContext();
 
@@ -56,6 +57,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
 
+      // Track login in analytics
+      analytics.trackLogin('email');
+
       toast.success('Login successful!');
       
       // Redirect based on role
@@ -85,12 +89,15 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
 
+      // Track registration in analytics
+      analytics.trackSignUp(userData.email ? 'email' : 'phone');
+
       if (newUser.role === 'merchant') {
         navigate('/pending-approval');
       } else {
         navigate('/');
       }
-      
+
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'Registration failed';
@@ -173,6 +180,9 @@ export const AuthProvider = ({ children }) => {
       setToken(accessToken);
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshTokenValue);
+
+      // Track OTP login in analytics
+      analytics.trackLogin('otp');
 
       toast.success('Login successful!');
 

@@ -8,6 +8,7 @@ import { orderAPI, settingsAPI, addressAPI } from '../../services/api';
 import { reverseGeocode, forwardGeocode } from '../../services/geocodingService';
 import toast from 'react-hot-toast';
 import LocationConfirmation from '../../components/location/LocationConfirmation';
+import analytics from '../../services/analytics';
 import {
   MapPinIcon,
   PlusIcon,
@@ -146,6 +147,14 @@ const Checkout = () => {
     }
   }, [addressesData, selectedAddress]);
 
+  // Track begin checkout when page loads with cart items
+  useEffect(() => {
+    if (cart && cart.length > 0) {
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      analytics.trackBeginCheckout(cart, subtotal);
+    }
+  }, []); // Only track once when component mounts
+
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
   // Use dynamic pricing if available, fallback to static calculation
@@ -161,9 +170,18 @@ const Checkout = () => {
     onSuccess: (res) => {
       console.log("✅ Order created:", res.data);
 
-      clearCart();
-
       const newOrder = res.data.order || res.data;
+
+      // Track purchase in analytics
+      analytics.trackPurchase({
+        orderId: newOrder._id || newOrder.orderId,
+        items: newOrder.items || cart,
+        totalAmount: newOrder.totalAmount || finalPricing.totalAmount,
+        tax: newOrder.tax || finalPricing.tax,
+        shipping: newOrder.deliveryCharges || finalPricing.deliveryCharges
+      });
+
+      clearCart();
 
       // Optimistically update the cache with the new order
       queryClient.setQueryData(['orders'], (oldData) => {

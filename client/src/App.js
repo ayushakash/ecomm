@@ -1,9 +1,11 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation as useRouterLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { LocationProvider, useLocation } from './contexts/LocationContext';
 import LocationPermissionModal from './components/location/LocationPermissionModal';
+import analytics from './services/analytics';
 
 // Layout Components
 import Layout from './components/layout/Layout';
@@ -21,6 +23,8 @@ import ProductDetail from './pages/products/ProductDetail';
 import Cart from './pages/cart/Cart';
 import Checkout from './pages/cart/Checkout';
 import Contact from './pages/Contact';
+import Calculator from './pages/Calculator';
+import Blog from './pages/Blog';
 
 // Protected Pages
 import Profile from './pages/profile/Profile';
@@ -92,6 +96,8 @@ function AppRoutes() {
         <Route path="checkout" element={<Checkout />} />
         <Route path="order-success" element={<OrderSuccess />} />
         <Route path="contact" element={<Contact />} />
+        <Route path="calculator" element={<Calculator />} />
+        <Route path="blog" element={<Blog />} />
       </Route>
 
       {/* Auth-related Routes (outside main layout) */}
@@ -157,6 +163,17 @@ function AppRoutes() {
 // Wrapper component to access LocationContext
 function AppContent() {
   const { showLocationModal, requestLocationPermission, skipLocationPermission } = useLocation();
+  const location = useRouterLocation();
+
+  // Initialize analytics on app load
+  useEffect(() => {
+    analytics.initialize();
+  }, []);
+
+  // Track page views on route change
+  useEffect(() => {
+    analytics.trackPageView(location.pathname, document.title);
+  }, [location]);
 
   return (
     <>
@@ -173,13 +190,15 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <LocationProvider>
-        <CartProvider>
-          <AppContent />
-        </CartProvider>
-      </LocationProvider>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <LocationProvider>
+          <CartProvider>
+            <AppContent />
+          </CartProvider>
+        </LocationProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 

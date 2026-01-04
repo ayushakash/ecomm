@@ -33,10 +33,32 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Quick Links - Only About and Contact */}
+          {/* Quick Links */}
           <nav className="px-6 py-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">More</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Links</p>
             <div className="space-y-2">
+              {/* Calculator */}
+              <Link
+                to="/calculator"
+                onClick={() => setOpen(false)}
+                className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                <svg className="h-5 w-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Calculator
+              </Link>
+              {/* Blog */}
+              <Link
+                to="/blog"
+                onClick={() => setOpen(false)}
+                className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                <svg className="h-5 w-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                </svg>
+                Blog
+              </Link>
               {/* About */}
               <Link
                 to="/about"
