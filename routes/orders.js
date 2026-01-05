@@ -264,8 +264,8 @@ router.post('/', [
     // Handle all heavy operations in background (async, non-blocking)
     setImmediate(async () => {
       try {
-        // Background stock reservation
-        await reserveStockForOrder(order);
+        // Stock will be reserved when merchant accepts the order, not at placement
+        // await reserveStockForOrder(order);
 
         // Background logging
         await OrderLogService.logOrderEvent(
@@ -680,10 +680,10 @@ router.put('/:orderId/items/:itemId/status', [
     // Handle all heavy operations in background (async, non-blocking)
     setImmediate(async () => {
       try {
-        // Background stock reduction for delivered items
-        if (status === 'delivered') {
-          await handleStockReductionOnDelivery(orderId, itemId);
-        }
+        // Stock is already reduced when merchant accepts the order, not on delivery
+        // if (status === 'delivered') {
+        //   await handleStockReductionOnDelivery(orderId, itemId);
+        // }
 
         // Background logging
         let eventType;
@@ -805,12 +805,12 @@ router.put('/:orderId/items/bulk-status', [
     // Handle all heavy operations in background (async, non-blocking)
     setImmediate(async () => {
       try {
-        // Background stock reduction for delivered items
-        if (status === 'delivered') {
-          for (const itemId of updatedItems) {
-            await handleStockReductionOnDelivery(orderId, itemId);
-          }
-        }
+        // Stock is already reduced when merchant accepts the order, not on delivery
+        // if (status === 'delivered') {
+        //   for (const itemId of updatedItems) {
+        //     await handleStockReductionOnDelivery(orderId, itemId);
+        //   }
+        // }
 
         // Background logging
         let eventType;
@@ -1979,74 +1979,76 @@ router.post('/claim', verifyToken, async (req, res) => {
 
 /**
  * Reserve stock for an order by reducing merchant stock
+ * NOTE: This function is no longer used as stock is now reduced when merchant accepts the order
  */
-async function reserveStockForOrder(order) {
-  for (const item of order.items) {
-    let remainingQuantity = item.quantity;
-    
-    // Find merchants with stock for this product
-    const merchantProducts = await MerchantProduct.find({
-      productId: item.productId,
-      enabled: true,
-      stock: { $gt: 0 }
-    }).sort({ stock: -1 }); // Start with merchants with most stock
-    
-    for (const merchantProduct of merchantProducts) {
-      if (remainingQuantity <= 0) break;
-      
-      const reserveAmount = Math.min(remainingQuantity, merchantProduct.stock);
-      
-      // Reduce merchant stock
-      merchantProduct.stock -= reserveAmount;
-      await merchantProduct.save();
-      
-      remainingQuantity -= reserveAmount;
-      
-      console.log(`Reserved ${reserveAmount} units of ${item.productName} from merchant ${merchantProduct.merchantId}`);
-    }
-    
-    if (remainingQuantity > 0) {
-      console.warn(`Could not fully reserve stock for ${item.productName}. Missing: ${remainingQuantity} units`);
-    }
-  }
-}
+// async function reserveStockForOrder(order) {
+//   for (const item of order.items) {
+//     let remainingQuantity = item.quantity;
+//
+//     // Find merchants with stock for this product
+//     const merchantProducts = await MerchantProduct.find({
+//       productId: item.productId,
+//       enabled: true,
+//       stock: { $gt: 0 }
+//     }).sort({ stock: -1 }); // Start with merchants with most stock
+//
+//     for (const merchantProduct of merchantProducts) {
+//       if (remainingQuantity <= 0) break;
+//
+//       const reserveAmount = Math.min(remainingQuantity, merchantProduct.stock);
+//
+//       // Reduce merchant stock
+//       merchantProduct.stock -= reserveAmount;
+//       await merchantProduct.save();
+//
+//       remainingQuantity -= reserveAmount;
+//
+//       console.log(`Reserved ${reserveAmount} units of ${item.productName} from merchant ${merchantProduct.merchantId}`);
+//     }
+//
+//     if (remainingQuantity > 0) {
+//       console.warn(`Could not fully reserve stock for ${item.productName}. Missing: ${remainingQuantity} units`);
+//     }
+//   }
+// }
 
 /**
  * Reduce stock when order is delivered (if auto-reduce is enabled)
+ * NOTE: This function is no longer used as stock is now reduced when merchant accepts the order
  */
-async function handleStockReductionOnDelivery(orderId, itemId) {
-  try {
-    const AppSettings = require('../models/AppSettings');
-    const settings = await AppSettings.getSettings();
-    
-    if (!settings.autoReduceStockOnDelivery) {
-      return; // Auto stock reduction is disabled
-    }
-    
-    const order = await Order.findById(orderId);
-    if (!order) return;
-    
-    const item = order.items.id(itemId);
-    if (!item || item.itemStatus !== 'delivered') return;
-    
-    // Find the merchant product and reduce stock
-    if (item.assignedMerchantId) {
-      const merchantProduct = await MerchantProduct.findOne({
-        merchantId: item.assignedMerchantId,
-        productId: item.productId
-      });
-      
-      if (merchantProduct && merchantProduct.stock >= item.quantity) {
-        merchantProduct.stock -= item.quantity;
-        await merchantProduct.save();
-        
-        console.log(`Auto-reduced ${item.quantity} units of ${item.productName} from merchant ${item.assignedMerchantId} stock`);
-      }
-    }
-  } catch (error) {
-    console.error('Stock reduction error:', error);
-  }
-}
+// async function handleStockReductionOnDelivery(orderId, itemId) {
+//   try {
+//     const AppSettings = require('../models/AppSettings');
+//     const settings = await AppSettings.getSettings();
+//
+//     if (!settings.autoReduceStockOnDelivery) {
+//       return; // Auto stock reduction is disabled
+//     }
+//
+//     const order = await Order.findById(orderId);
+//     if (!order) return;
+//
+//     const item = order.items.id(itemId);
+//     if (!item || item.itemStatus !== 'delivered') return;
+//
+//     // Find the merchant product and reduce stock
+//     if (item.assignedMerchantId) {
+//       const merchantProduct = await MerchantProduct.findOne({
+//         merchantId: item.assignedMerchantId,
+//         productId: item.productId
+//       });
+//
+//       if (merchantProduct && merchantProduct.stock >= item.quantity) {
+//         merchantProduct.stock -= item.quantity;
+//         await merchantProduct.save();
+//
+//         console.log(`Auto-reduced ${item.quantity} units of ${item.productName} from merchant ${item.assignedMerchantId} stock`);
+//       }
+//     }
+//   } catch (error) {
+//     console.error('Stock reduction error:', error);
+//   }
+// }
 
 /**
  * ---------------------------
