@@ -133,16 +133,9 @@ frontend/
 
 ## 🔐 Environment Variables
 
-Already configured in `.env`:
 
-```env
-MINIO_ENDPOINT=storage.chardeevari.in
-MINIO_PORT=443
-MINIO_USE_SSL=true
-MINIO_ACCESS_KEY=ecomm_minio_admin
-MINIO_SECRET_KEY=MinioSecure5332173e9bbcdd
-MINIO_PUBLIC_URL=https://storage.chardeevari.in
-```
+
+
 
 ---
 

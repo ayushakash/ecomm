@@ -136,6 +136,7 @@ function cleanOrderObject(order) {
     customerAddress: orderObj.customerAddress,
     items: cleanItems(preFilteredItems || orderObj.items), // Use pre-filtered items if available
     subtotal: orderObj.subtotal,
+    subtotalBeforeGST: orderObj.subtotalBeforeGST, // Base amount before GST (for proper checkout display)
     tax: orderObj.tax,
     deliveryCharge: orderObj.deliveryCharge,
     totalAmount: orderObj.totalAmount,

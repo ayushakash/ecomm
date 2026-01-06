@@ -155,6 +155,8 @@ class PricingCalculator {
     );
     const platformFee = this.calculatePlatformFee(subtotal);
 
+    // totalAmount = subtotal (already includes GST) + delivery + platform fee
+    // GST is already included in subtotal for all display modes
     const totalAmount = subtotal + deliveryCharges + platformFee;
     console.log("final Pricing",{
       subtotal: Math.round(subtotal * 100) / 100,

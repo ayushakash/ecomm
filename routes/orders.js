@@ -15,6 +15,114 @@ const router = express.Router();
 
 /**
  * ---------------------------
+ * CALCULATE CART TOTALS (for checkout preview)
+ * ---------------------------
+ */
+router.post('/calculate-cart-totals', [
+  verifyToken,
+  requireCustomer,
+  body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
+  body('items.*.productId').isMongoId().withMessage('Valid product ID is required'),
+  body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { items, customerArea, addressId } = req.body;
+
+    // Get pricing calculator with current settings
+    const pricingCalculator = await getPricingCalculator();
+
+    // Get cityId from address for city-specific pricing
+    let cityId = null;
+    if (addressId) {
+      const address = await Address.findById(addressId);
+      if (address && address.city) {
+        const CityMaster = require('../models/CityMaster');
+        const cityMaster = await CityMaster.findOne({
+          cityName: { $regex: new RegExp(`^${address.city}$`, 'i') }
+        });
+        if (cityMaster) {
+          cityId = cityMaster._id.toString();
+        }
+      }
+    }
+
+    const cartItems = [];
+
+    // Calculate prices for each item
+    for (const item of items) {
+      const product = await Product.findById(item.productId).populate('category', 'name');
+      if (!product) return res.status(400).json({ message: `Product ${item.productId} not found` });
+      if (!product.enabled) return res.status(400).json({ message: `Product ${product.name} is not available` });
+
+      // Get base price (considering city-specific pricing if applicable)
+      let basePrice = product.price;
+      if (cityId && product.cityPricing && product.cityPricing.length > 0) {
+        const cityPrice = product.cityPricing.find(
+          cp => cp.cityId.toString() === cityId.toString() && cp.isAvailable
+        );
+        if (cityPrice) {
+          basePrice = cityPrice.price;
+        }
+      }
+
+      // Calculate GST and final price
+      const gstRate = product.gstRate || 18;
+      const gstType = product.gstType || 'exclusive';
+      const gstCalc = pricingCalculator.calculateProductGST(basePrice, gstRate, gstType);
+
+      // Get display price for showing to customer
+      const displayPrice = await pricingCalculator.getDisplayPrice(product, cityId);
+
+      cartItems.push({
+        productId: product._id,
+        productName: product.name,
+        quantity: item.quantity,
+        unitPrice: displayPrice,
+        totalPrice: gstCalc.finalPrice * item.quantity,
+        price: basePrice,
+        gstRate: gstRate,
+        gstType: gstType,
+        weight: product.weight || 0
+      });
+    }
+
+    // Calculate totals
+    const customerData = {
+      distance: req.user.distance || 0,
+      area: customerArea || req.user.area
+    };
+
+    const totals = pricingCalculator.calculateOrderTotals(cartItems, customerData);
+
+    // Return breakdown for checkout display
+    res.json({
+      success: true,
+      items: cartItems.map(item => ({
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice
+      })),
+      subtotalBeforeGST: totals.subtotalBeforeGST,
+      subtotal: totals.subtotal,
+      tax: totals.tax,
+      deliveryCharges: totals.deliveryCharges,
+      platformFee: totals.platformFee,
+      totalAmount: totals.totalAmount,
+      breakdown: totals.breakdown
+    });
+  } catch (error) {
+    console.error('Calculate cart totals error:', error);
+    res.status(500).json({ message: error.message || 'Server error' });
+  }
+});
+
+/**
+ * ---------------------------
  * CREATE ORDER
  * ---------------------------
  */
@@ -81,22 +189,61 @@ router.post('/', [
         });
       }
 
-      // Get display price based on current settings (with city-specific pricing if available)
+      // Get base price (considering city-specific pricing if applicable)
+      let basePrice = product.price;
+
+      // Check for city-specific pricing (highest priority)
+      if (cityId && product.cityPricing && product.cityPricing.length > 0) {
+        const cityPrice = product.cityPricing.find(
+          cp => cp.cityId.toString() === cityId.toString() && cp.isAvailable
+        );
+        if (cityPrice) {
+          basePrice = cityPrice.price;
+        }
+      } else {
+        // Use priceDisplayMode to determine base price
+        switch (pricingCalculator.settings.priceDisplayMode) {
+          case 'merchant':
+            const merchantProduct = await MerchantProduct.findOne({
+              productId: product._id,
+              enabled: true,
+              stock: { $gt: 0 }
+            }).sort({ price: 1 });
+            if (merchantProduct) basePrice = merchantProduct.price;
+            break;
+          case 'lowest':
+            const lowestPrice = await MerchantProduct.findOne({
+              productId: product._id,
+              enabled: true,
+              stock: { $gt: 0 }
+            }).sort({ price: 1 });
+            if (lowestPrice) basePrice = Math.min(product.price, lowestPrice.price);
+            break;
+          default:
+            basePrice = product.price;
+        }
+      }
+
+      // Calculate GST and final price based on base price
+      const gstRate = product.gstRate || 18;
+      const gstType = product.gstType || 'exclusive';
+      const gstCalc = pricingCalculator.calculateProductGST(basePrice, gstRate, gstType);
+
+      // Get display price for showing to customer (affected by display mode)
       const displayPrice = await pricingCalculator.getDisplayPrice(product, cityId);
-      const totalPrice = displayPrice * item.quantity;
 
       orderItems.push({
         productId: product._id,
         productName: product.name,
         quantity: item.quantity,
-        unitPrice: displayPrice,
-        totalPrice,
+        unitPrice: displayPrice, // Price shown to customer (changes with display mode)
+        totalPrice: gstCalc.finalPrice * item.quantity, // Actual amount customer pays (always includes GST if applicable)
         sku: product.sku,
         unit: product.unit,
         weight: product.weight || 0,
-        price: displayPrice, // Add for pricing calculator
-        gstRate: product.gstRate || 18, // Add GST rate
-        gstType: product.gstType || 'exclusive', // Add GST type
+        price: basePrice, // Base price for calculations (used by calculateOrderTotals)
+        gstRate: gstRate,
+        gstType: gstType,
         assignedMerchantId: null, // assigned later
         itemStatus: 'pending'
       });
@@ -241,6 +388,7 @@ router.post('/', [
       deliveryLocation: finalDeliveryLocation,
       items: orderItems,
       subtotal: totals.subtotal,
+      subtotalBeforeGST: totals.subtotalBeforeGST, // Base amount before GST
       tax: totals.tax,
       deliveryCharge: totals.deliveryCharges,
       platformFee: totals.platformFee || 0,

@@ -4,7 +4,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { orderAPI, settingsAPI, addressAPI } from '../../services/api';
+import { orderAPI, addressAPI } from '../../services/api';
 import { reverseGeocode, forwardGeocode } from '../../services/geocodingService';
 import toast from 'react-hot-toast';
 import LocationConfirmation from '../../components/location/LocationConfirmation';
@@ -100,21 +100,18 @@ const Checkout = () => {
   });
   const [capturingCoordinates, setCapturingCoordinates] = useState(false);
 
-  // Prepare items for pricing calculation
+  // Prepare items for cart totals calculation (send product IDs, not prices)
   const cartItems = useMemo(() =>
     cart.map(item => ({
-      price: item.price,
-      quantity: item.quantity,
-      weight: item.weight || 0,
-      gstRate: item.gstRate || 18,
-      gstType: item.gstType || 'exclusive'
+      productId: item._id,
+      quantity: item.quantity
     })), [cart]
   );
 
-  // Get dynamic pricing from backend
+  // Get dynamic pricing from backend using new endpoint
   const { data: pricingData, isLoading: pricingLoading } = useQuery({
-    queryKey: ['checkout-pricing', cartItems],
-    queryFn: () => settingsAPI.calculatePricing(cartItems),
+    queryKey: ['checkout-pricing', cartItems, selectedAddress?._id],
+    queryFn: () => orderAPI.calculateCartTotals(cartItems, formData.customerArea, selectedAddress?._id),
     enabled: cart.length > 0
   });
   console.log("PRICING DATAAAA",pricingData)

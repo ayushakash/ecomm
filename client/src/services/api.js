@@ -121,6 +121,7 @@ export const productAPI = {
 
 export const orderAPI = {
   createOrder: (orderData) => api.post('/api/orders', orderData),
+  calculateCartTotals: (items, customerArea, addressId) => api.post('/api/orders/calculate-cart-totals', { items, customerArea, addressId }).then(res => res.data),
   getOrders: (params) => api.get('/api/orders', { params }).then(res => res.data),
   getOrder: (id) => api.get(`/api/orders/${id}`),
   updateOrderStatus: (id, status, note) => api.put(`/api/orders/${id}/status`, { status, note }),

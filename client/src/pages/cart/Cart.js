@@ -4,7 +4,7 @@ import { TrashIcon, PlusIcon, MinusIcon, ArrowRightIcon, ShieldCheckIcon, Exclam
 import { ShoppingCartIcon } from '@heroicons/react/24/solid';
 import { useCart } from '../../contexts/CartContext';
 import { useQuery } from '@tanstack/react-query';
-import { settingsAPI } from '../../services/api';
+import { orderAPI, settingsAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -15,21 +15,18 @@ const Cart = () => {
   const isLoggedIn = !!user;
   console.log("ORIFINAL",cart)
   
-  // Prepare items for pricing calculation
+  // Prepare items for cart totals calculation (send product IDs, not prices)
   const cartItems = useMemo(() =>
     cart.map(item => ({
-      price: item.price,
-      quantity: item.quantity,
-      weight: item.weight || 0,
-      gstRate: item.gstRate || 18,
-      gstType: item.gstType || 'exclusive'
+      productId: item._id,
+      quantity: item.quantity
     })), [cart]
   );
 
   // Get dynamic pricing from backend (only if logged in)
   const { data: pricingData, isLoading: pricingLoading } = useQuery({
     queryKey: ['cart-pricing', cartItems],
-    queryFn: () => settingsAPI.calculatePricing(cartItems),
+    queryFn: () => orderAPI.calculateCartTotals(cartItems, null, null),
     enabled: cart.length > 0 && isLoggedIn
   });
 

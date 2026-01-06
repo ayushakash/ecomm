@@ -82,36 +82,46 @@ async function calculateMerchantPayout(order, merchantId) {
     ? (itemsCustomerValue / totalOrderCustomerValue)
     : 0;
 
-  // Calculate proportional delivery share
+  // Calculate proportional delivery share (merchant keeps 100% of delivery charges)
   const deliveryShare = Math.round((order.deliveryCharge || 0) * merchantSharePercent);
 
   // Calculate proportional platform fee share
   const platformFeeShare = Math.round((order.platformFee || 0) * merchantSharePercent);
 
-  // Calculate proportional tax share
+  // Calculate proportional tax share (for display purposes only)
   const taxShare = Math.round((order.tax || 0) * merchantSharePercent);
 
   // Calculate platform commission (markup on merchant's items)
   const platformCommission = itemsCustomerValue - itemsBaseValue;
 
   // FIXED: Calculate COD collection amount for THIS MERCHANT ONLY
-  // COD amount = merchant's items + their share of delivery + their share of platform fee + their share of tax
-  const codCollectionAmount = itemsCustomerValue + deliveryShare + platformFeeShare + taxShare;
+  // COD amount = merchant's items + their share of delivery + their share of platform fee
+  // NOTE: Tax is NOT added separately because it's already included in itemsCustomerValue
+  // (either inclusive in price or added via order.totalAmount for exclusive mode)
+  const codCollectionAmount = itemsCustomerValue + deliveryShare + platformFeeShare;
 
-  // Amount merchant owes back to platform (commission + delivery + platform fee + tax)
-  const amountOwePlatform = platformCommission + deliveryShare + platformFeeShare + taxShare;
+  // Amount merchant owes back to platform
+  // - Commission (markup on items)
+  // - Platform fee (merchant collects but must remit to platform)
+  // NOTE: Delivery charges are NOT included - merchant keeps 100%
+  // NOTE: Tax is NOT included - it's already part of item prices or handled separately
+  const amountOwePlatform = platformCommission + platformFeeShare;
 
-  // Net payout to merchant = COD collected - amount owe platform = base value
+  // Net payout to merchant = COD collected - amount owe platform
+  // = (itemsCustomerValue + deliveryShare + platformFeeShare) - (platformCommission + platformFeeShare)
+  // = itemsCustomerValue - platformCommission + deliveryShare
+  // = itemsBaseValue + deliveryShare
   const netPayout = codCollectionAmount - amountOwePlatform;
 
   console.log(`\n📊 Merchant Payout Breakdown:`);
-  console.log(`   Items Value (Customer Price): ₹${itemsCustomerValue.toFixed(2)}`);
-  console.log(`   + Delivery Share (${Math.round(merchantSharePercent * 100)}%): ₹${deliveryShare.toFixed(2)}`);
+  console.log(`   Items Value (Customer Price): ₹${itemsCustomerValue.toFixed(2)} (includes GST)`);
+  console.log(`   + Delivery Share (${Math.round(merchantSharePercent * 100)}%): ₹${deliveryShare.toFixed(2)} (merchant keeps 100%)`);
   console.log(`   + Platform Fee Share: ₹${platformFeeShare.toFixed(2)}`);
-  console.log(`   + Tax Share (GST): ₹${taxShare.toFixed(2)}`);
   console.log(`   = COD to Collect: ₹${codCollectionAmount.toFixed(2)}`);
-  console.log(`   - Amount Owe Platform: ₹${amountOwePlatform.toFixed(2)}`);
-  console.log(`   = Net Merchant Payout: ₹${netPayout.toFixed(2)}`);
+  console.log(`   - Commission (markup): ₹${platformCommission.toFixed(2)}`);
+  console.log(`   - Platform Fee to Remit: ₹${platformFeeShare.toFixed(2)}`);
+  console.log(`   = Amount Owe Platform: ₹${amountOwePlatform.toFixed(2)}`);
+  console.log(`   = Net Merchant Payout: ₹${netPayout.toFixed(2)} (base cost + delivery)`);
 
   // Create itemized bill for merchant
   const itemizedBill = {
@@ -122,11 +132,11 @@ async function calculateMerchantPayout(order, merchantId) {
       totalPrice: item.totalPrice,
       sku: item.sku
     })),
-    subtotal: itemsCustomerValue,
-    deliveryCharge: deliveryShare,
-    platformFee: platformFeeShare,
-    tax: taxShare,
-    totalAmount: codCollectionAmount
+    subtotal: itemsCustomerValue, // Already includes GST
+    deliveryCharge: deliveryShare, // Merchant keeps 100%
+    platformFee: platformFeeShare, // Merchant must remit to platform
+    tax: taxShare, // For display only - already included in subtotal
+    totalAmount: codCollectionAmount // Total COD to collect from customer
   };
 
   return {
