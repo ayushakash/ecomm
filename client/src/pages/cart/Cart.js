@@ -1,19 +1,26 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { TrashIcon, PlusIcon, MinusIcon, ArrowRightIcon, ShieldCheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { ShoppingCartIcon } from '@heroicons/react/24/solid';
 import { useCart } from '../../contexts/CartContext';
 import { useQuery } from '@tanstack/react-query';
-import { orderAPI, settingsAPI } from '../../services/api';
+import { orderAPI, settingsAPI, productAPI } from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Cart = () => {
-  const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, clearCart, syncCartPrices } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const isLoggedIn = !!user;
   console.log("ORIFINAL",cart)
+
+  // Sync cart prices when component mounts and user is logged in
+  useEffect(() => {
+    if (isLoggedIn && cart.length > 0) {
+      syncCartPrices(productAPI);
+    }
+  }, [isLoggedIn]); // Only run when login status changes
   
   // Prepare items for cart totals calculation (send product IDs, not prices)
   const cartItems = useMemo(() =>

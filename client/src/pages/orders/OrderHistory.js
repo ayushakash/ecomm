@@ -7,15 +7,16 @@ import ConfirmationModal from "../../components/ui/ConfirmationModal";
 
 const OrderHistory = () => {
   const queryClient = useQueryClient();
-  const { data: orderList, isLoading, error, refetch } = useQuery({
+  const { data: orderList, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["orders"],
     queryFn: () => orderAPI.getOrders(),
     staleTime: 0, // Data is always considered stale
     cacheTime: 5 * 60 * 1000, // Keep cache for 5 minutes
     refetchOnWindowFocus: true, // Refetch when user focuses window
     refetchOnReconnect: true, // Refetch when internet reconnects
+    refetchOnMount: 'always', // Always refetch on mount to get fresh data
   });
-  console.log(orderList);
+  console.log('OrderList data:', orderList);
 
   const [openOrder, setOpenOrder] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -73,7 +74,8 @@ const OrderHistory = () => {
     }
   };
 
-  if (isLoading) {
+  // Show loading spinner during initial load or when refetching without cached data
+  if (isLoading || (isFetching && !orderList)) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -91,6 +93,16 @@ const OrderHistory = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* Background refetch indicator */}
+      {isFetching && orderList && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-primary-600 text-white text-center py-2 text-sm font-medium shadow-lg">
+          <div className="flex items-center justify-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <span>Refreshing orders...</span>
+          </div>
+        </div>
+      )}
+
       {/* Modern Header */}
       <div className="bg-primary-700 rounded-xl shadow-lg p-6 sm:p-8 mb-6 sm:mb-8 text-white">
         <h1 className="text-2xl sm:text-3xl font-bold mb-1">📦 Order History</h1>
@@ -264,27 +276,44 @@ const OrderHistory = () => {
                           className="flex items-center gap-3 sm:gap-4 p-3 bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all"
                         >
                           {/* Product Image - Clickable */}
-                          <Link
-                            to={`/products/${item.productId?._id}`}
-                            className="flex-shrink-0 group"
-                          >
-                            <img
-                              src={item.productId?.images?.[0] || '/placeholder-product.jpg'}
-                              alt={item.productName}
-                              className="w-16 h-16 object-cover rounded-lg border border-gray-200 group-hover:border-primary-500 group-hover:shadow-lg transition-all cursor-pointer"
-                            />
-                          </Link>
+                          {item.productId?._id ? (
+                            <Link
+                              to={`/products/${item.productId._id}`}
+                              className="flex-shrink-0 group"
+                            >
+                              <img
+                                src={item.productId?.images?.[0] || '/placeholder-product.jpg'}
+                                alt={item.productName || 'Product'}
+                                className="w-16 h-16 object-cover rounded-lg border border-gray-200 group-hover:border-primary-500 group-hover:shadow-lg transition-all cursor-pointer"
+                                onError={(e) => { e.target.src = '/placeholder-product.jpg'; }}
+                              />
+                            </Link>
+                          ) : (
+                            <div className="flex-shrink-0">
+                              <img
+                                src="/placeholder-product.jpg"
+                                alt={item.productName || 'Product'}
+                                className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                              />
+                            </div>
+                          )}
 
                           {/* Product Details */}
                           <div className="flex-1 min-w-0">
-                            <Link
-                              to={`/products/${item.productId?._id}`}
-                              className="font-semibold text-gray-900 text-sm sm:text-base hover:text-primary-700 transition-colors cursor-pointer inline-block"
-                            >
-                              {item.productName}
-                            </Link>
+                            {item.productId?._id ? (
+                              <Link
+                                to={`/products/${item.productId._id}`}
+                                className="font-semibold text-gray-900 text-sm sm:text-base hover:text-primary-700 transition-colors cursor-pointer inline-block"
+                              >
+                                {item.productName || 'Unknown Product'}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-gray-900 text-sm sm:text-base">
+                                {item.productName || 'Unknown Product'}
+                              </span>
+                            )}
                             <p className="text-xs sm:text-sm text-gray-600">
-                              {item.quantity} x ₹{(item.unitPrice || 0).toLocaleString('en-IN')} / {item.unit}
+                              {item.quantity || 0} x ₹{(item.unitPrice || 0).toLocaleString('en-IN')} {item.unit ? `/ ${item.unit}` : ''}
                             </p>
                             {item.sku && (
                               <p className="text-xs text-gray-500 mt-0.5">SKU: {item.sku}</p>

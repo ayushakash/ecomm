@@ -50,6 +50,7 @@ router.post('/calculate-cart-totals', [
     }
 
     const cartItems = [];
+    const MerchantProduct = require('../models/MerchantProduct');
 
     // Calculate prices for each item
     for (const item of items) {
@@ -68,6 +69,18 @@ router.post('/calculate-cart-totals', [
         }
       }
 
+      // Get merchant base price (for split GST calculation)
+      let merchantPrice = basePrice * 0.8; // Default fallback
+      const merchantProduct = await MerchantProduct.findOne({
+        productId: product._id,
+        enabled: true,
+        stock: { $gt: 0 }
+      }).sort({ price: 1 }); // Get lowest merchant price
+
+      if (merchantProduct && merchantProduct.price) {
+        merchantPrice = merchantProduct.price;
+      }
+
       // Calculate GST and final price
       const gstRate = product.gstRate || 18;
       const gstType = product.gstType || 'exclusive';
@@ -76,13 +89,30 @@ router.post('/calculate-cart-totals', [
       // Get display price for showing to customer
       const displayPrice = await pricingCalculator.getDisplayPrice(product, cityId);
 
+      // Get GST mode to determine which prices to pass to calculateOrderTotals
+      const gstMode = pricingCalculator.settings.gstMode || 'no-gst';
+
+      // In inclusive mode, calculateSplitGST expects GST-inclusive prices
+      let priceForCalculation, merchantPriceForCalculation;
+
+      if (gstMode === 'inclusive') {
+        // Pass GST-inclusive prices to calculateOrderTotals
+        priceForCalculation = displayPrice; // ₹708 (includes GST)
+        merchantPriceForCalculation = Math.round(merchantPrice * (1 + gstRate / 100) * 100) / 100; // ₹590 (includes GST)
+      } else {
+        // Pass exclusive prices (current behavior for exclusive/no-gst modes)
+        priceForCalculation = basePrice; // ₹600 (exclusive)
+        merchantPriceForCalculation = merchantPrice; // ₹500 (exclusive)
+      }
+
       cartItems.push({
         productId: product._id,
         productName: product.name,
         quantity: item.quantity,
         unitPrice: displayPrice,
-        totalPrice: gstCalc.finalPrice * item.quantity,
-        price: basePrice,
+        totalPrice: displayPrice * item.quantity, // Total amount customer pays
+        price: priceForCalculation,             // Price for calculations (inclusive in inclusive mode)
+        merchantPrice: merchantPriceForCalculation, // Merchant price for split GST calculation
         gstRate: gstRate,
         gstType: gstType,
         weight: product.weight || 0
@@ -113,6 +143,9 @@ router.post('/calculate-cart-totals', [
       deliveryCharges: totals.deliveryCharges,
       platformFee: totals.platformFee,
       totalAmount: totals.totalAmount,
+      gstBreakdown: totals.gstBreakdown,        // Include split GST breakdown
+      deliverySplit: totals.deliverySplit,      // Include delivery split
+      platformFeeBreakdown: totals.platformFeeBreakdown,
       breakdown: totals.breakdown
     });
   } catch (error) {
@@ -224,26 +257,54 @@ router.post('/', [
         }
       }
 
-      // Calculate GST and final price based on base price
+      // Get merchant base price (for split GST calculation)
+      let merchantPrice = basePrice * 0.8; // Default fallback
+      const merchantProductForPrice = await MerchantProduct.findOne({
+        productId: product._id,
+        enabled: true,
+        stock: { $gt: 0 }
+      }).sort({ price: 1 }); // Get lowest merchant price
+
+      if (merchantProductForPrice && merchantProductForPrice.price) {
+        merchantPrice = merchantProductForPrice.price;
+      }
+
       const gstRate = product.gstRate || 18;
-      const gstType = product.gstType || 'exclusive';
-      const gstCalc = pricingCalculator.calculateProductGST(basePrice, gstRate, gstType);
 
       // Get display price for showing to customer (affected by display mode)
       const displayPrice = await pricingCalculator.getDisplayPrice(product, cityId);
+
+      // Get GST mode to determine which prices to pass to calculateOrderTotals
+      const gstMode = pricingCalculator.settings.gstMode || 'no-gst';
+
+      // In inclusive mode, calculateSplitGST expects GST-inclusive prices
+      // In exclusive/no-gst modes, it expects exclusive prices
+      let priceForCalculation, merchantPriceForCalculation;
+
+      if (gstMode === 'inclusive') {
+        // Pass GST-inclusive prices to calculateOrderTotals
+        priceForCalculation = displayPrice; // ₹708 (includes GST)
+        merchantPriceForCalculation = Math.round(merchantPrice * (1 + gstRate / 100) * 100) / 100; // ₹590 (includes GST)
+      } else {
+        // Pass exclusive prices (current behavior for exclusive/no-gst modes)
+        priceForCalculation = basePrice; // ₹600 (exclusive)
+        merchantPriceForCalculation = merchantPrice; // ₹500 (exclusive)
+      }
 
       orderItems.push({
         productId: product._id,
         productName: product.name,
         quantity: item.quantity,
         unitPrice: displayPrice, // Price shown to customer (changes with display mode)
-        totalPrice: gstCalc.finalPrice * item.quantity, // Actual amount customer pays (always includes GST if applicable)
+        totalPrice: displayPrice * item.quantity, // Total amount customer pays (inclusive of GST in inclusive mode)
+        merchantUnitPrice: merchantPrice, // Merchant's base cost per unit (exclusive)
+        merchantTotalPrice: merchantPrice * item.quantity, // Merchant's total base cost (exclusive)
         sku: product.sku,
         unit: product.unit,
         weight: product.weight || 0,
-        price: basePrice, // Base price for calculations (used by calculateOrderTotals)
+        price: priceForCalculation, // Price for calculations (inclusive in inclusive mode, exclusive otherwise)
+        merchantPrice: merchantPriceForCalculation, // Merchant price for split GST calculation
         gstRate: gstRate,
-        gstType: gstType,
         assignedMerchantId: null, // assigned later
         itemStatus: 'pending'
       });
@@ -396,7 +457,9 @@ router.post('/', [
       paymentMethod,
       deliveryInstructions,
       expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      pricingBreakdown: totals.breakdown // Store pricing settings used
+      pricingBreakdown: totals.breakdown, // Store pricing settings used
+      gstBreakdown: totals.gstBreakdown,  // Store split GST breakdown
+      deliverySplit: totals.deliverySplit  // Store delivery fee split
     });
 
     await order.save();
@@ -513,8 +576,17 @@ router.get('/', verifyToken, async (req, res) => {
 
           const orderObj = { ...order.toObject(), items: filteredItems };
 
-          // Add merchant payout calculation (await async function)
-          const payout = await calculateMerchantPayout(order, merchant._id);
+          // ✅ Use stored payout from database (single source of truth)
+          const payout = order.merchantPayouts?.find(
+            p => p.merchantId.toString() === merchant._id.toString()
+          );
+
+          if (payout) {
+            console.log(`✅ Using STORED payout for order ${order.orderNumber}`);
+          } else {
+            console.log(`⚠️ No payout found for order ${order.orderNumber} - merchant may not be assigned`);
+          }
+
           console.log(`💰 Payout for order ${order.orderNumber}:`, JSON.stringify(payout, null, 2));
           if (payout) {
             orderObj.merchantPayout = payout;
@@ -1902,6 +1974,106 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
     throw new Error(`Failed to deduct stock: ${stockError.message}`);
   }
 
+  // 🚨 CRITICAL: Calculate and STORE merchant payout when order is accepted
+  // This locks in the financial agreement and prevents price changes from affecting old orders
+  const { calculateMerchantPayout } = require('../utils/merchantPayoutUtils');
+
+  try {
+    const payout = await calculateMerchantPayout(updatedOrder, merchant._id);
+
+    if (payout) {
+      console.log(`💰 Storing payout for merchant ${merchant.name}:`);
+      console.log(`   🚨 amountOwePlatform: ${payout.amountOwePlatform} (type: ${typeof payout.amountOwePlatform})`);
+      console.log(`   platformCommission: ${payout.platformCommission}`);
+      console.log(`   platformFeeShare: ${payout.platformFeeShare}`);
+
+      // Check if payout already exists for this merchant (shouldn't happen, but just in case)
+      const existingPayoutIndex = updatedOrder.merchantPayouts.findIndex(
+        p => p.merchantId.toString() === merchant._id.toString()
+      );
+
+      if (existingPayoutIndex !== -1) {
+        // Update existing payout - SINGLE SOURCE OF TRUTH
+        updatedOrder.merchantPayouts[existingPayoutIndex] = {
+          // Merchant identification
+          merchantId: merchant._id,
+          merchantName: merchant.name || merchant.businessName,
+
+          // Item values
+          itemsCount: payout.itemsCount,
+          itemsBaseValue: payout.itemsBaseValue,
+          itemsCustomerValue: payout.itemsCustomerValue,
+
+          // GST breakdown (NEW)
+          merchantGSTShare: payout.merchantGSTShare || 0,
+          platformGSTShare: payout.platformGSTShare || 0,
+
+          // Revenue shares
+          deliveryShare: payout.deliveryShare,
+          platformDeliveryShare: payout.platformDeliveryShare || 0,
+          platformFeeShare: payout.platformFeeShare,
+          platformCommission: payout.platformCommission,
+
+          // GST metadata (NEW)
+          gstMode: payout.gstMode || 'no-gst',
+          isDummyGST: payout.isDummyGST || false,
+
+          // Settlement amounts
+          codCollectionAmount: payout.codCollectionAmount,
+          amountOwePlatform: payout.amountOwePlatform,
+          netPayout: payout.netPayout,
+
+          // Metadata
+          merchantSharePercent: payout.merchantSharePercent,
+          calculatedAt: new Date(),
+          settlementStatus: 'pending'
+        };
+      } else {
+        // Add new payout - SINGLE SOURCE OF TRUTH
+        updatedOrder.merchantPayouts.push({
+          // Merchant identification
+          merchantId: merchant._id,
+          merchantName: merchant.name || merchant.businessName,
+
+          // Item values
+          itemsCount: payout.itemsCount,
+          itemsBaseValue: payout.itemsBaseValue,
+          itemsCustomerValue: payout.itemsCustomerValue,
+
+          // GST breakdown (NEW)
+          merchantGSTShare: payout.merchantGSTShare || 0,
+          platformGSTShare: payout.platformGSTShare || 0,
+
+          // Revenue shares
+          deliveryShare: payout.deliveryShare,
+          platformDeliveryShare: payout.platformDeliveryShare || 0,
+          platformFeeShare: payout.platformFeeShare,
+          platformCommission: payout.platformCommission,
+
+          // GST metadata (NEW)
+          gstMode: payout.gstMode || 'no-gst',
+          isDummyGST: payout.isDummyGST || false,
+
+          // Settlement amounts
+          codCollectionAmount: payout.codCollectionAmount,
+          amountOwePlatform: payout.amountOwePlatform,
+          netPayout: payout.netPayout,
+
+          // Metadata
+          merchantSharePercent: payout.merchantSharePercent,
+          calculatedAt: new Date(),
+          settlementStatus: 'pending'
+        });
+      }
+
+      await updatedOrder.save();
+      console.log(`✅ Payout stored successfully for merchant ${merchant.name}`);
+    }
+  } catch (payoutError) {
+    console.error('❌ Failed to calculate/store payout (non-critical):', payoutError);
+    // Don't throw - payout calculation failure shouldn't block assignment
+  }
+
   // Update overall order status if all items are assigned
   const finalOrder = await Order.findById(orderId);
   const allAssigned = finalOrder.items.every(i => i.itemStatus === 'assigned');
@@ -1967,38 +2139,48 @@ const merchantProducts = await MerchantProduct.find({
     .populate('deliveryAddressId', 'fullName phoneNumber addressLine1 addressLine2 landmark area city state pincode addressType title');
 
     // ✅ Step 3: Filter to show only unassigned items relevant to this merchant
-    const filteredOrders = unassignedOrders.map(order => {
-      const orderObj = order.toObject();
+    const { calculateMerchantPayout } = require('../utils/merchantPayoutUtils');
 
-      // Debug: Log each item's details
-      console.log(`\n=== Order ${order._id} - Merchant: ${merchant.businessName} ===`);
-      orderObj.items.forEach((item, index) => {
-        const merchantSells = merchantProductIds.includes(item.productId.toString());
-        console.log(`  Item ${index + 1}: ${item.productName}`);
-        console.log(`    - ProductId: ${item.productId}`);
-        console.log(`    - Status: ${item.itemStatus}`);
-        console.log(`    - AssignedTo: ${item.assignedMerchantId || 'none'}`);
-        console.log(`    - MerchantSells: ${merchantSells}`);
-        console.log(`    - WillShow: ${merchantSells && item.itemStatus === 'pending' && item.assignedMerchantId === null}`);
-      });
+    const filteredOrders = await Promise.all(
+      unassignedOrders.map(async (order) => {
+        const orderObj = order.toObject();
 
-      const filteredItems = orderObj.items.filter(item =>
-        merchantProductIds.includes(item.productId.toString()) &&
-        item.itemStatus === 'pending' &&
-        item.assignedMerchantId === null
-      );
+        // Debug: Log each item's details
+        console.log(`\n=== Order ${order._id} - Merchant: ${merchant.businessName} ===`);
+        orderObj.items.forEach((item, index) => {
+          const merchantSells = merchantProductIds.includes(item.productId.toString());
+          console.log(`  Item ${index + 1}: ${item.productName}`);
+          console.log(`    - ProductId: ${item.productId}`);
+          console.log(`    - Status: ${item.itemStatus}`);
+          console.log(`    - AssignedTo: ${item.assignedMerchantId || 'none'}`);
+          console.log(`    - MerchantSells: ${merchantSells}`);
+          console.log(`    - WillShow: ${merchantSells && item.itemStatus === 'pending' && item.assignedMerchantId === null}`);
+        });
 
-      console.log(`  >> Filtered: ${filteredItems.length} items will be shown`);
+        const filteredItems = orderObj.items.filter(item =>
+          merchantProductIds.includes(item.productId.toString()) &&
+          item.itemStatus === 'pending' &&
+          item.assignedMerchantId === null
+        );
 
-      return {
-        ...orderObj,
-        items: filteredItems
-      };
-    }).filter(order => order.items.length > 0); // Only return orders that have unassigned items for this merchant
+        console.log(`  >> Filtered: ${filteredItems.length} items will be shown`);
 
-    console.log(`\n>> Returning ${filteredOrders.length} orders to merchant ${merchant.businessName}\n`);
+        // Calculate ESTIMATED merchant payout for these items (even though not accepted yet)
+        const estimatedPayout = await calculateMerchantPayout(order, merchant._id);
 
-    res.json(cleanOrderResponse(filteredOrders));
+        return {
+          ...orderObj,
+          items: filteredItems,
+          merchantPayout: estimatedPayout // Add estimated payout for display
+        };
+      })
+    );
+
+    const validOrders = filteredOrders.filter(order => order.items.length > 0); // Only return orders that have unassigned items for this merchant
+
+    console.log(`\n>> Returning ${validOrders.length} orders to merchant ${merchant.businessName}\n`);
+
+    res.json(cleanOrderResponse(validOrders));
   } catch (error) {
     console.error('Unassigned order fetch error:', error);
     res.status(500).json({ message: 'Server error' });

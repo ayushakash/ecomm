@@ -124,7 +124,43 @@ const AppSettingsSchema = new mongoose.Schema({
     type: Number,
     default: 100
   },
-  
+
+  // GST Mode Configuration
+  gstMode: {
+    type: String,
+    enum: ['no-gst', 'inclusive', 'exclusive'],
+    default: 'no-gst',
+    required: true
+  },
+
+  // Enable split GST calculation between merchant and platform
+  splitGSTEnabled: {
+    type: Boolean,
+    default: true
+  },
+
+  // Delivery fee revenue sharing between merchant and platform
+  deliveryFeeSplit: {
+    merchantPercent: {
+      type: Number,
+      default: 100,
+      min: 0,
+      max: 100
+    },
+    platformPercent: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
+    }
+  },
+
+  // Apply GST on platform fee (service tax)
+  applyGSTOnPlatformFee: {
+    type: Boolean,
+    default: true
+  },
+
   // Updated timestamp
   updatedAt: {
     type: Date,

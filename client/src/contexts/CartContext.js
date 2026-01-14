@@ -126,6 +126,48 @@ export const CartProvider = ({ children }) => {
     return cart.some(item => item._id === productId);
   };
 
+  // Sync cart prices from backend (useful after price changes or when user logs in)
+  const syncCartPrices = async (productAPI) => {
+    if (cart.length === 0) return;
+
+    try {
+      // Fetch fresh product data for all cart items
+      const productIds = cart.map(item => item._id);
+      const freshProducts = await Promise.all(
+        productIds.map(async (id) => {
+          try {
+            const response = await productAPI.getProduct(id);
+            return response.data; // Extract data from axios response
+          } catch (error) {
+            console.error(`Failed to fetch product ${id}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Update cart with fresh prices
+      let updatedCount = 0;
+      setCart(prevCart =>
+        prevCart.map(item => {
+          const freshProduct = freshProducts.find(p => p && p._id === item._id);
+          if (freshProduct && freshProduct.price !== item.price) {
+            console.log(`🔄 Updated price for ${item.name}: ₹${item.price} → ₹${freshProduct.price}`);
+            updatedCount++;
+            return { ...item, price: freshProduct.price };
+          }
+          return item;
+        })
+      );
+
+      // Notify user if any prices were updated
+      if (updatedCount > 0) {
+        console.log(`✅ Updated ${updatedCount} product price(s) in cart`);
+      }
+    } catch (error) {
+      console.error('Error syncing cart prices:', error);
+    }
+  };
+
   const value = {
     cart,
     cartCity,
@@ -140,6 +182,7 @@ export const CartProvider = ({ children }) => {
     getCartCount,
     getCartItem,
     isInCart,
+    syncCartPrices,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

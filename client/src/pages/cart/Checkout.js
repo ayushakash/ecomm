@@ -153,13 +153,22 @@ const Checkout = () => {
   }, []); // Only track once when component mounts
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  
-  // Use dynamic pricing if available, fallback to static calculation
+
+  // Use dynamic pricing from backend (no fallback to avoid incorrect calculations)
   const finalPricing = pricingData || {
-    subtotal: subtotal,
-    tax: subtotal * 0.1,
-    deliveryCharges: 50,
-    totalAmount: subtotal + (subtotal * 0.1) + 50
+    subtotal: 0,
+    subtotalBeforeGST: 0,
+    tax: 0,
+    deliveryCharges: 0,
+    platformFee: 0,
+    totalAmount: 0,
+    gstBreakdown: {
+      mode: 'no-gst',
+      merchantGST: 0,
+      platformGST: 0,
+      totalGST: 0,
+      isDummyGST: false
+    }
   };
 
     const createOrderMutation = useMutation({

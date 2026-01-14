@@ -140,6 +140,45 @@ const orderSchema = new mongoose.Schema({
     deliveryConfig: Object,
     minimumOrderValue: Number
   },
+  // GST split breakdown between merchant and platform
+  gstBreakdown: {
+    mode: {
+      type: String,
+      enum: ['no-gst', 'inclusive', 'exclusive'],
+      default: 'no-gst'
+    },
+    merchantGST: {
+      type: Number,
+      default: 0
+    },
+    platformGST: {
+      type: Number,
+      default: 0
+    },
+    totalGST: {
+      type: Number,
+      default: 0
+    },
+    isDummyGST: {
+      type: Boolean,
+      default: false
+    },
+    platformFeeGST: {
+      type: Number,
+      default: 0
+    }
+  },
+  // Delivery fee split between merchant and platform
+  deliverySplit: {
+    merchantShare: {
+      type: Number,
+      default: 0
+    },
+    platformShare: {
+      type: Number,
+      default: 0
+    }
+  },
   orderStatus: {
     type: String,
    enum: ['pending', 'approved', 'assigned', 'processing', 'shipped', 'delivered', 'cancelled'],
@@ -217,22 +256,48 @@ const orderSchema = new mongoose.Schema({
     },
     eventDescription: String
   }],
-  // Merchant payout tracking for multi-merchant orders
+  // Merchant payout tracking for multi-merchant orders (single source of truth)
   merchantPayouts: [{
+    // Merchant identification
     merchantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Merchant',
       required: true
     },
     merchantName: String,
-    itemsBaseValue: Number,        // What merchant gets (base price)
-    itemsCustomerValue: Number,    // What customer pays for these items
+
+    // Item values
     itemsCount: Number,
-    deliveryShare: Number,         // Merchant's share of delivery fee
-    platformFeeShare: Number,      // Merchant's share of platform fee
-    platformCommission: Number,    // Markup/commission (itemsCustomerValue - itemsBaseValue)
-    codCollectionAmount: Number,   // Total COD merchant collects
-    netPayout: Number,             // Final amount merchant gets
+    itemsBaseValue: Number,        // Merchant's cost price
+    itemsCustomerValue: Number,    // What customer pays for items
+
+    // GST breakdown (split GST between merchant and platform)
+    merchantGSTShare: { type: Number, default: 0 },    // Merchant's GST share (merchant remits to govt)
+    platformGSTShare: { type: Number, default: 0 },    // Platform's GST share (platform remits to govt)
+
+    // Revenue shares
+    deliveryShare: Number,                             // Merchant's share of delivery fee
+    platformDeliveryShare: { type: Number, default: 0 }, // Platform's share of delivery fee
+    platformFeeShare: Number,                          // Merchant's share of platform fee
+    platformCommission: Number,                        // Platform's markup (price - cost, GST excluded)
+
+    // GST metadata
+    gstMode: {
+      type: String,
+      enum: ['no-gst', 'inclusive', 'exclusive']
+    },
+    isDummyGST: { type: Boolean, default: false },     // True if GST is for display only (no-gst mode)
+
+    // Settlement amounts (complete calculations stored for single source of truth)
+    codCollectionAmount: Number,                       // Total COD merchant collects from customer
+    amountOwePlatform: Number,                         // Total merchant owes to platform (commission + GST + fees)
+    netPayout: Number,                                 // Final merchant payout (base + GST - platform dues)
+
+    // Metadata
+    merchantSharePercent: Number,                      // % of order this merchant handles (for multi-merchant orders)
+    calculatedAt: { type: Date, default: Date.now },  // When payout was calculated
+
+    // Settlement tracking
     settlementStatus: {
       type: String,
       enum: ['pending', 'processing', 'settled', 'failed'],

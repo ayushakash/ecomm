@@ -145,6 +145,7 @@ function cleanOrderObject(order) {
     paymentMethod: orderObj.paymentMethod,
     expectedDeliveryDate: formatDate(orderObj.expectedDeliveryDate),
     actualDeliveryDate: formatDate(orderObj.actualDeliveryDate),
+    merchantPayouts: orderObj.merchantPayouts, // Stored payout data (locked in at acceptance)
     statusHistory: cleanStatusHistory(orderObj.statusHistory),
     lifecycle: cleanLifecycle(orderObj.lifecycle),
     createdAt: formatDate(orderObj.createdAt), // Keep for UI sorting/display
@@ -276,9 +277,98 @@ function getInternalOrderData(orderData) {
   return orderData;
 }
 
+/**
+ * Recalculate and update merchantPayouts for existing orders
+ * Use this utility to fix orders that were created before the full payout storage was implemented
+ * @returns {Promise<Object>} - Results of recalculation (updated count, skipped count, errors)
+ */
+async function recalculateMerchantPayouts() {
+  const Order = require('../models/Order');
+  const { calculateMerchantPayout } = require('./merchantPayoutUtils');
+
+  console.log('🔄 Recalculating merchant payouts for all orders...');
+  console.log('   This will update orders to include complete payout data\n');
+
+  try {
+    const orders = await Order.find({
+      orderStatus: { $in: ['assigned', 'processing', 'shipped', 'delivered'] },
+      'merchantPayouts.0': { $exists: true }
+    });
+
+    console.log(`   Found ${orders.length} orders with merchant payouts\n`);
+
+    let updated = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    for (const order of orders) {
+      let modified = false;
+
+      try {
+        for (let i = 0; i < order.merchantPayouts.length; i++) {
+          const existingPayout = order.merchantPayouts[i];
+
+          // Skip if already has new fields
+          if (existingPayout.platformGSTShare !== undefined &&
+              existingPayout.merchantGSTShare !== undefined &&
+              existingPayout.gstMode !== undefined) {
+            console.log(`   ⏭️  Skipped order ${order.orderNumber} - already has complete payout data`);
+            skipped++;
+            continue;
+          }
+
+          // Recalculate payout with current data
+          const newPayout = await calculateMerchantPayout(order, existingPayout.merchantId);
+
+          if (newPayout) {
+            // Update payout with all fields
+            order.merchantPayouts[i] = {
+              ...existingPayout.toObject(),
+              // Add missing GST breakdown fields
+              merchantGSTShare: newPayout.merchantGSTShare || 0,
+              platformGSTShare: newPayout.platformGSTShare || 0,
+              platformDeliveryShare: newPayout.platformDeliveryShare || 0,
+              // Add missing GST metadata
+              gstMode: newPayout.gstMode || 'no-gst',
+              isDummyGST: newPayout.isDummyGST || false,
+              // Update settlement amounts with complete calculations
+              amountOwePlatform: newPayout.amountOwePlatform,
+              netPayout: newPayout.netPayout,
+              codCollectionAmount: newPayout.codCollectionAmount,
+              // Add missing metadata
+              merchantSharePercent: newPayout.merchantSharePercent || existingPayout.merchantSharePercent
+            };
+            modified = true;
+          }
+        }
+
+        if (modified) {
+          await order.save();
+          updated++;
+          console.log(`   ✅ Updated order ${order.orderNumber}`);
+        }
+      } catch (error) {
+        errors++;
+        console.error(`   ❌ Error updating order ${order.orderNumber}:`, error.message);
+      }
+    }
+
+    console.log(`\n✅ Recalculation complete!`);
+    console.log(`   Updated: ${updated} orders`);
+    console.log(`   Skipped: ${skipped} orders (already complete)`);
+    console.log(`   Errors: ${errors} orders`);
+
+    return { updated, skipped, errors, total: orders.length };
+  } catch (error) {
+    console.error('❌ Fatal error during recalculation:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   cleanOrderObject,
   cleanOrderArray,
   cleanOrderResponse,
-  getInternalOrderData
+  getInternalOrderData,
+  recalculateMerchantPayouts
 };

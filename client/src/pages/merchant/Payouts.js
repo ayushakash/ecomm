@@ -22,6 +22,8 @@ const Payouts = () => {
       acc.totalPlatformFee += order.merchantPayout.platformFeeShare || 0;
       acc.totalDelivery += order.merchantPayout.deliveryShare || 0;
       acc.totalTax += order.merchantPayout.taxShare || 0;
+
+      // Use stored amountOwePlatform from database (single source of truth)
       acc.totalOwePlatform += order.merchantPayout.amountOwePlatform || 0;
     }
     return acc;
@@ -183,30 +185,51 @@ const Payouts = () => {
                           </div>
                         </div>
 
+                        {/* GST Breakdown */}
+                        {order.merchantPayout.gstMode !== 'no-gst' && (
+                          <div className="border-t mt-4 pt-4">
+                            <p className="text-sm font-semibold text-gray-700 mb-2">GST Breakdown:</p>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Merchant GST (to govt):</span>
+                                <span className="font-medium">₹{(order.merchantPayout.merchantGSTShare || 0).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Platform GST (to remit):</span>
+                                <span className="font-medium">₹{(order.merchantPayout.platformGSTShare || 0).toLocaleString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Platform Charges */}
                         <div className="border-t mt-4 pt-4">
                           <p className="text-sm font-semibold text-gray-700 mb-2">Platform Charges to Remit:</p>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Commission:</span>
-                              <span className="font-medium">₹{order.merchantPayout.platformCommission?.toLocaleString()}</span>
+                              <span className="text-gray-600">Commission (base):</span>
+                              <span className="font-medium">₹{(order.merchantPayout.platformCommission || 0).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Platform GST:</span>
+                              <span className="font-medium">₹{(order.merchantPayout.platformGSTShare || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Platform Fee:</span>
-                              <span className="font-medium">₹{order.merchantPayout.platformFeeShare?.toLocaleString()}</span>
+                              <span className="font-medium">₹{(order.merchantPayout.platformFeeShare || 0).toLocaleString()}</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Delivery Share:</span>
-                              <span className="font-medium">₹{order.merchantPayout.deliveryShare?.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Tax (GST):</span>
-                              <span className="font-medium">₹{order.merchantPayout.taxShare?.toLocaleString()}</span>
-                            </div>
+                            {order.merchantPayout.platformDeliveryShare > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Platform Delivery Share:</span>
+                                <span className="font-medium">₹{(order.merchantPayout.platformDeliveryShare || 0).toLocaleString()}</span>
+                              </div>
+                            )}
                           </div>
                           <div className="mt-3 pt-3 border-t flex justify-between font-semibold">
                             <span className="text-gray-700">Total to Remit:</span>
-                            <span className="text-red-700">₹{order.merchantPayout.amountOwePlatform?.toLocaleString()}</span>
+                            <span className="text-red-700">
+                              ₹{(order.merchantPayout.amountOwePlatform || 0).toLocaleString()}
+                            </span>
                           </div>
                         </div>
 

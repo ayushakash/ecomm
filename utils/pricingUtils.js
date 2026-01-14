@@ -91,102 +91,213 @@ class PricingCalculator {
   }
 
   /**
-   * Calculate complete order totals with GST handling
+   * Calculate split GST between merchant and platform portions
+   * @param {number} customerPrice - Final price customer pays per unit
+   * @param {number} merchantBasePrice - Merchant's base cost per unit
+   * @param {number} gstRate - GST rate percentage (e.g., 18)
+   * @param {string} gstMode - 'no-gst' | 'inclusive' | 'exclusive'
+   * @returns {object} { merchantGST, platformGST, totalGST, isDummyGST, merchantBase, platformBase, finalPrice }
+   */
+  calculateSplitGST(customerPrice, merchantBasePrice, gstRate, gstMode) {
+    const rate = gstRate / 100;
+    const platformCommission = customerPrice - merchantBasePrice;
+
+    if (gstMode === 'no-gst') {
+      // Show dummy GST for professional invoice appearance
+      // Use 5% as dummy rate for display purposes
+      const dummyRate = 0.05;
+      const dummyBase = customerPrice / (1 + dummyRate);
+      const dummyGST = customerPrice - dummyBase;
+
+      return {
+        merchantGST: 0,
+        platformGST: 0,
+        totalGST: 0,
+        dummyGST: Math.round(dummyGST * 100) / 100,
+        isDummyGST: true,
+        merchantBase: merchantBasePrice,
+        platformBase: platformCommission,
+        finalPrice: customerPrice
+      };
+    }
+
+    if (gstMode === 'inclusive') {
+      // Extract GST from prices (GST already included in prices)
+      const merchantBase = merchantBasePrice / (1 + rate);
+      const merchantGST = merchantBasePrice - merchantBase;
+      const platformBase = platformCommission / (1 + rate);
+      const platformGST = platformCommission - platformBase;
+      const totalGST = merchantGST + platformGST;
+
+      return {
+        merchantGST: Math.round(merchantGST * 100) / 100,
+        platformGST: Math.round(platformGST * 100) / 100,
+        totalGST: Math.round(totalGST * 100) / 100,
+        dummyGST: 0,
+        isDummyGST: false,
+        merchantBase: Math.round(merchantBase * 100) / 100,
+        platformBase: Math.round(platformBase * 100) / 100,
+        finalPrice: customerPrice
+      };
+    }
+
+    // gstMode === 'exclusive'
+    // Add GST on top of base prices
+    const merchantGST = merchantBasePrice * rate;
+    const platformGST = platformCommission * rate;
+    const totalGST = merchantGST + platformGST;
+    const finalPrice = customerPrice + totalGST;
+
+    return {
+      merchantGST: Math.round(merchantGST * 100) / 100,
+      platformGST: Math.round(platformGST * 100) / 100,
+      totalGST: Math.round(totalGST * 100) / 100,
+      dummyGST: 0,
+      isDummyGST: false,
+      merchantBase: merchantBasePrice,
+      platformBase: platformCommission,
+      finalPrice: Math.round(finalPrice * 100) / 100
+    };
+  }
+
+  /**
+   * Calculate complete order totals with split GST handling
    */
   calculateOrderTotals(items, customerData = {}) {
+    const gstMode = this.settings.gstMode || 'no-gst';
+    const splitGSTEnabled = this.settings.splitGSTEnabled !== false;
+    const deliveryFeeSplit = this.settings.deliveryFeeSplit || { merchantPercent: 100, platformPercent: 0 };
+    const applyGSTOnPlatformFee = this.settings.applyGSTOnPlatformFee !== false;
+
     let subtotal = 0;
     let totalWeight = 0;
-    let totalGST = 0;
-    let subtotalBeforeGST = 0;
+    let totalMerchantGST = 0;
+    let totalPlatformGST = 0;
+    let totalDummyGST = 0;
+    let merchantSubtotal = 0;
+    let platformCommissionSubtotal = 0;
 
-    const displayMode = this.settings.gstDisplayMode || 'exclusive';
-
-    // Calculate subtotal and total weight with GST handling
+    // Calculate per-item with split GST
     for (const item of items) {
-      const price = item.price || 0;
-      const quantity = item.quantity || 0;
+      const customerPrice = item.price || 0; // What customer pays per unit
+      const merchantPrice = item.merchantPrice || (customerPrice * 0.8); // Merchant base cost
       const gstRate = item.gstRate !== undefined ? item.gstRate : 18;
-      const gstType = item.gstType || 'exclusive';
+      const quantity = item.quantity || 0;
 
-      // If display mode is "no-display", treat all prices as final (GST already included)
-      if (displayMode === 'no-display') {
-        // Price is what customer pays - no additional GST
-        subtotal += price * quantity;
+      if (splitGSTEnabled) {
+        // Use split GST calculation
+        const splitGST = this.calculateSplitGST(
+          customerPrice,
+          merchantPrice,
+          gstRate,
+          gstMode
+        );
 
-        // Extract base price and GST for breakdown (if needed for invoice)
-        console.log("GST TYPE",gstType);
-        if (gstType !== 'no-gst') {
-          const rate = gstRate / 100;
-          const basePrice = price / (1 + rate);
-          const gstAmount = price - basePrice;
-
-          subtotalBeforeGST += basePrice * quantity;
-          totalGST += gstAmount * quantity;
-        } else {
-          subtotalBeforeGST += price * quantity;
-        }
+        // Subtotal = what customer pays (includes GST in inclusive mode, excludes in exclusive mode)
+        // splitGST contains the extracted base amounts and GST breakdown
+        subtotal += customerPrice * quantity;
+        merchantSubtotal += splitGST.merchantBase * quantity;
+        platformCommissionSubtotal += splitGST.platformBase * quantity;
+        totalMerchantGST += splitGST.merchantGST * quantity;
+        totalPlatformGST += splitGST.platformGST * quantity;
+        totalDummyGST += splitGST.dummyGST * quantity;
       } else {
-        // Normal GST calculation for inclusive/exclusive modes
-        const gstCalc = this.calculateProductGST(price, gstRate, gstType);
-
-        // For subtotal, use the final price (what customer pays per unit)
-        subtotal += gstCalc.finalPrice * quantity;
-
-        // Track base price (without GST) and GST separately
-        subtotalBeforeGST += gstCalc.basePrice * quantity;
-        totalGST += gstCalc.gstAmount * quantity;
+        // Legacy: single GST calculation (for backward compatibility if needed)
+        subtotal += customerPrice * quantity;
+        merchantSubtotal += merchantPrice * quantity;
+        platformCommissionSubtotal += (customerPrice - merchantPrice) * quantity;
       }
 
       totalWeight += (item.weight || 0) * quantity;
     }
 
-    // Note: Minimum order validation is handled on the frontend
-
-    
-    // For backward compatibility, if items don't have GST info, use old tax calculation
-    console.log("TOTAL GST",totalGST);
-    const tax = totalGST > 0 ? totalGST : this.calculateTax(subtotal);
-    console.log("TAXXX",tax);
-
+    // Calculate delivery charges
     const deliveryCharges = this.calculateDeliveryCharges(
       subtotal,
       totalWeight,
       customerData.distance || 0
     );
-    const platformFee = this.calculatePlatformFee(subtotal);
 
-    // totalAmount = subtotal (already includes GST) + delivery + platform fee
-    // GST is already included in subtotal for all display modes
-    const totalAmount = subtotal + deliveryCharges + platformFee;
-    console.log("final Pricing",{
+    // Split delivery charges between merchant and platform
+    const merchantDeliveryShare = Math.round(deliveryCharges * (deliveryFeeSplit.merchantPercent / 100) * 100) / 100;
+    const platformDeliveryShare = Math.round(deliveryCharges * (deliveryFeeSplit.platformPercent / 100) * 100) / 100;
+
+    // Calculate platform fee
+    const platformFeeBase = this.calculatePlatformFee(subtotal);
+    let platformFeeGST = 0;
+    if (applyGSTOnPlatformFee && gstMode === 'exclusive') {
+      // Apply 18% GST on platform fee in exclusive mode
+      platformFeeGST = Math.round(platformFeeBase * 0.18 * 100) / 100;
+    }
+    const platformFeeTotal = platformFeeBase + platformFeeGST;
+
+    // Calculate total GST
+    const totalGST = totalMerchantGST + totalPlatformGST;
+    const isDummyGST = gstMode === 'no-gst';
+
+    // Calculate total amount customer pays
+    // In no-gst mode: subtotal (base prices) + delivery + platform fee (GST is dummy/for display only)
+    // In inclusive mode: subtotal (GST-inclusive prices) + delivery + platform fee (GST already in subtotal)
+    // In exclusive mode: subtotal (base prices) + GST + delivery + platform fee
+    let totalAmount;
+    if (gstMode === 'exclusive') {
+      // In exclusive mode, add GST on top of base prices
+      totalAmount = subtotal + totalGST + deliveryCharges + platformFeeTotal;
+    } else if (gstMode === 'inclusive') {
+      // In inclusive mode, subtotal already includes GST (don't add again)
+      totalAmount = subtotal + deliveryCharges + platformFeeTotal;
+    } else {
+      // no-gst mode: no GST charged
+      totalAmount = subtotal + deliveryCharges + platformFeeTotal;
+    }
+
+    console.log("🔍 Split GST Calculation:", {
+      gstMode,
       subtotal: Math.round(subtotal * 100) / 100,
-      subtotalBeforeGST: Math.round(subtotalBeforeGST * 100) / 100,
-      tax: Math.round(tax * 100) / 100,
+      merchantGST: Math.round(totalMerchantGST * 100) / 100,
+      platformGST: Math.round(totalPlatformGST * 100) / 100,
+      totalGST: Math.round(totalGST * 100) / 100,
+      isDummyGST,
       deliveryCharges: Math.round(deliveryCharges * 100) / 100,
-      platformFee: Math.round(platformFee * 100) / 100,
-      totalAmount: Math.round(totalAmount * 100) / 100,
-      breakdown: {
-        taxRate: this.settings.taxRate,
-        deliveryConfig: this.settings.deliveryConfig,
-        minimumOrderValue: this.settings.minimumOrderValue,
-        gstIncluded: totalGST > 0,
-        gstDisplayMode: displayMode
-      }
+      platformFee: Math.round(platformFeeTotal * 100) / 100,
+      totalAmount: Math.round(totalAmount * 100) / 100
     });
 
     return {
       subtotal: Math.round(subtotal * 100) / 100,
-      subtotalBeforeGST: Math.round(subtotalBeforeGST * 100) / 100,
-      tax: Math.round(tax * 100) / 100,
+      subtotalBeforeGST: Math.round((merchantSubtotal + platformCommissionSubtotal) * 100) / 100,
+      tax: Math.round(totalGST * 100) / 100,
       deliveryCharges: Math.round(deliveryCharges * 100) / 100,
-      platformFee: Math.round(platformFee * 100) / 100,
+      platformFee: Math.round(platformFeeTotal * 100) / 100,
       totalAmount: Math.round(totalAmount * 100) / 100,
+      // Enhanced GST breakdown
+      gstBreakdown: {
+        mode: gstMode,
+        merchantGST: Math.round(totalMerchantGST * 100) / 100,
+        platformGST: Math.round(totalPlatformGST * 100) / 100,
+        totalGST: Math.round(totalGST * 100) / 100,
+        isDummyGST,
+        dummyGST: Math.round(totalDummyGST * 100) / 100,
+        platformFeeGST: Math.round(platformFeeGST * 100) / 100
+      },
+      // Delivery fee split
+      deliverySplit: {
+        merchantShare: merchantDeliveryShare,
+        platformShare: platformDeliveryShare
+      },
+      // Platform fee breakdown
+      platformFeeBreakdown: {
+        base: Math.round(platformFeeBase * 100) / 100,
+        gst: Math.round(platformFeeGST * 100) / 100,
+        total: Math.round(platformFeeTotal * 100) / 100
+      },
       breakdown: {
         taxRate: this.settings.taxRate,
         deliveryConfig: this.settings.deliveryConfig,
         minimumOrderValue: this.settings.minimumOrderValue,
-        gstIncluded: totalGST > 0,
-        gstDisplayMode: displayMode
+        gstMode,
+        splitGSTEnabled,
+        deliveryFeeSplit
       }
     };
   }
@@ -196,7 +307,7 @@ class PricingCalculator {
    * This calculates the price based on:
    * 1. City-specific pricing (if cityId provided and price exists)
    * 2. priceDisplayMode (admin/merchant/lowest)
-   * 3. gstDisplayMode (inclusive/exclusive)
+   * 3. gstMode (no-gst/inclusive/exclusive)
    * 4. product's individual gstRate and gstType
    *
    * @param {Object} product - Product document
@@ -262,7 +373,7 @@ class PricingCalculator {
         basePrice = product.price;
     }
 
-    // Step 3: Calculate display price based on gstDisplayMode and product's GST settings
+    // Step 3: Calculate display price based on gstMode and product's GST settings
     return this.calculateDisplayPriceWithGST(
       basePrice,
       product.gstRate || 18,
@@ -271,22 +382,22 @@ class PricingCalculator {
   }
 
   /**
-   * Calculate display price based on GST display mode
+   * Calculate display price based on GST mode
    * @param {number} price - The base product price
    * @param {number} gstRate - Product's GST rate
    * @param {string} gstType - Product's GST type (inclusive/exclusive/no-gst)
    * @returns {number} - Price to display to customer
    */
   calculateDisplayPriceWithGST(price, gstRate, gstType) {
-    const displayMode = this.settings.gstDisplayMode || 'exclusive';
+    const displayMode = this.settings.gstMode || 'exclusive';
 
     // If product has no GST, always return the price as-is
     if (gstType === 'no-gst') {
       return price;
     }
 
-    // If display mode is "no-display", show base price without any GST calculation
-    if (displayMode === 'no-display') {
+    // If GST mode is "no-gst", show base price without any GST calculation
+    if (displayMode === 'no-gst') {
       // If price is inclusive, extract base price
       if (gstType === 'inclusive') {
         const rate = gstRate / 100;

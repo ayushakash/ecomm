@@ -343,7 +343,20 @@ const Orders = () => {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-2">₹{order.totalAmount?.toLocaleString()}</td>
+                <td className="px-4 py-2">
+                  {order.merchantPayout ? (
+                    <div className="text-sm">
+                      <div className="font-semibold text-green-600">
+                        ₹{order.merchantPayout.codCollectionAmount?.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Your COD
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm">₹{order.totalAmount?.toLocaleString()}</div>
+                  )}
+                </td>
                 <td className="px-4 py-2">
                   <div className="text-sm">
                     {new Date(order.createdAt).toLocaleDateString()}

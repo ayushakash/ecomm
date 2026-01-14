@@ -21,7 +21,8 @@ router.get('/', verifyToken, async (req, res) => {
         deliveryConfig: settings.deliveryConfig,
         minimumOrderValue: settings.minimumOrderValue,
         priceDisplayMode: settings.priceDisplayMode,
-        gstDisplayMode: settings.gstDisplayMode
+        gstMode: settings.gstMode,
+        applyGSTOnPlatformFee: settings.applyGSTOnPlatformFee
       });
     }
     
@@ -48,11 +49,29 @@ router.put('/', [
   body('gstDisplayMode').optional().isIn(['inclusive', 'exclusive', 'no-display']).withMessage('Invalid GST display mode'),
   body('stockValidationMode').optional().isIn(['admin', 'merchant']).withMessage('Invalid stock validation mode'),
   body('minimumOrderValue').optional().isFloat({ min: 0 }).withMessage('Minimum order value must be positive'),
+  // New GST split settings
+  body('gstMode').optional().isIn(['no-gst', 'inclusive', 'exclusive']).withMessage('Invalid GST mode'),
+  body('splitGSTEnabled').optional().isBoolean().withMessage('splitGSTEnabled must be boolean'),
+  body('deliveryFeeSplit.merchantPercent').optional().isInt({ min: 0, max: 100 }).withMessage('Merchant delivery percent must be 0-100'),
+  body('deliveryFeeSplit.platformPercent').optional().isInt({ min: 0, max: 100 }).withMessage('Platform delivery percent must be 0-100'),
+  body('applyGSTOnPlatformFee').optional().isBoolean().withMessage('applyGSTOnPlatformFee must be boolean'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Additional validation: delivery split percentages must sum to 100
+    if (req.body.deliveryFeeSplit) {
+      const merchantPercent = req.body.deliveryFeeSplit.merchantPercent || 0;
+      const platformPercent = req.body.deliveryFeeSplit.platformPercent || 0;
+      if (merchantPercent + platformPercent !== 100) {
+        return res.status(400).json({
+          message: 'Delivery fee split percentages must sum to 100%',
+          errors: [{ msg: 'merchantPercent + platformPercent must equal 100' }]
+        });
+      }
     }
 
     const settings = await AppSettings.updateSettings(req.body, req.user._id);

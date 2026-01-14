@@ -35,7 +35,7 @@ const Settings = () => {
       enablePincodeGrouping: true
     },
     priceDisplayMode: 'admin',
-    gstDisplayMode: 'exclusive',
+    gstMode: 'exclusive',
     stockValidationMode: 'admin',
     autoReduceStockOnDelivery: true,
     minimumOrderValue: 100,
@@ -386,9 +386,9 @@ const Settings = () => {
                     <label className="flex items-center cursor-pointer p-3 border border-gray-300 rounded-md hover:bg-gray-50">
                       <input
                         type="radio"
-                        name="gstDisplayMode"
+                        name="gstMode"
                         value="inclusive"
-                        checked={formData.gstDisplayMode === 'inclusive'}
+                        checked={formData.gstMode === 'inclusive'}
                         onChange={handleInputChange}
                         className="form-radio h-4 w-4 text-blue-600"
                       />
@@ -405,9 +405,9 @@ const Settings = () => {
                     <label className="flex items-center cursor-pointer p-3 border border-gray-300 rounded-md hover:bg-gray-50">
                       <input
                         type="radio"
-                        name="gstDisplayMode"
+                        name="gstMode"
                         value="exclusive"
-                        checked={formData.gstDisplayMode === 'exclusive'}
+                        checked={formData.gstMode === 'exclusive'}
                         onChange={handleInputChange}
                         className="form-radio h-4 w-4 text-blue-600"
                       />
@@ -424,24 +424,24 @@ const Settings = () => {
                     <label className="flex items-center cursor-pointer p-3 border border-gray-300 rounded-md hover:bg-gray-50">
                       <input
                         type="radio"
-                        name="gstDisplayMode"
-                        value="no-display"
-                        checked={formData.gstDisplayMode === 'no-display'}
+                        name="gstMode"
+                        value="no-gst"
+                        checked={formData.gstMode === 'no-gst'}
                         onChange={handleInputChange}
                         className="form-radio h-4 w-4 text-blue-600"
                       />
                       <div className="ml-3">
                         <span className="text-sm font-medium text-gray-900">
-                          No GST Display (Price is final, GST extracted on invoice)
+                          No GST (Price is final, dummy GST on invoice)
                         </span>
                         <p className="text-xs text-gray-500 mt-1">
-                          Example: Product price ₹100 (18% GST item) → Customer pays ₹100
+                          Example: Product price ₹100 → Customer pays ₹100
                         </p>
                         <p className="text-xs text-gray-500">
-                          Invoice shows: Base ₹84.75 + GST ₹15.25 = Total ₹100
+                          Invoice shows: Base ₹95.24 + GST ₹4.76 = Total ₹100 (dummy, not remitted)
                         </p>
                         <p className="text-xs text-blue-600 mt-1">
-                          💡 Use this when you add products with GST-inclusive prices
+                          💡 Use when you don't want to charge real GST but need professional invoice
                         </p>
                       </div>
                     </label>
@@ -450,9 +450,9 @@ const Settings = () => {
                   <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-md">
                     <p className="text-xs text-gray-700">
                       <strong>Current Selection:</strong>
-                      {formData.gstDisplayMode === 'inclusive' && ' Prices shown will include GST (customers see final price)'}
-                      {formData.gstDisplayMode === 'exclusive' && ' GST will be added at checkout (prices appear lower during browsing)'}
-                      {formData.gstDisplayMode === 'no-display' && ' Prices are final (no GST added at checkout). GST extracted on invoice if requested.'}
+                      {formData.gstMode === 'inclusive' && ' Prices shown will include GST (customers see final price)'}
+                      {formData.gstMode === 'exclusive' && ' GST will be added at checkout (prices appear lower during browsing)'}
+                      {formData.gstMode === 'no-gst' && ' Prices are final (no real GST added). Dummy GST shown on invoice for professional appearance.'}
                     </p>
                   </div>
 
