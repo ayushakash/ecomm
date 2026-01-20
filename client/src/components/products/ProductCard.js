@@ -170,9 +170,9 @@ const ProductCard = ({ product }) => {
 
           {/* Quantity Controls */}
           {product.totalStock > 0 && (
-            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 border border-gray-200">
-              <span className="text-xs font-semibold text-gray-700 ml-1">Qty</span>
-              <div className="flex items-center gap-1.5 flex-1 justify-center">
+            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2 border border-gray-200">
+              <span className="text-xs font-semibold text-gray-700 shrink-0">Qty</span>
+              <div className="flex items-center gap-2 sm:gap-1.5">
                 <button
                   onClick={decrementQuantity}
                   disabled={quantity <= 1}

@@ -528,7 +528,7 @@ router.get('/me', verifyToken, async (req, res) => {
 router.post('/register-merchant', [
   body('contactName').trim().isLength({ min: 2 }).withMessage('Contact name must be at least 2 characters'),
   body('contactPhone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
-  body('contactEmail').optional().isEmail().normalizeEmail().withMessage('Please enter a valid email'),
+  body('contactEmail').trim().notEmpty().withMessage('Email address is required').isEmail().normalizeEmail().withMessage('Please enter a valid email'),
   body('name').trim().isLength({ min: 2 }).withMessage('Business name must be at least 2 characters'),
   body('businessType').notEmpty().withMessage('Business type is required'),
   body('gstNumber').optional().trim(),
@@ -543,8 +543,11 @@ router.post('/register-merchant', [
   body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits')
 ], async (req, res) => {
   try {
+    console.log('📥 Received merchant registration request:', req.body);
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('❌ Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -565,7 +568,7 @@ router.post('/register-merchant', [
     const merchant = new Merchant({
       name: contactName,
       phone: contactPhone,
-      email: contactEmail || undefined, // Use undefined instead of empty string
+      email: contactEmail,
       password: 'temp123456', // Temporary password
       isPhoneVerified: true,
 

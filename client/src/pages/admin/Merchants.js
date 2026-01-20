@@ -41,18 +41,24 @@ const Merchants = () => {
       },
       {
         header: "Contact",
-        accessorKey: "contact.phone",
+        accessorKey: "phone",
         cell: (info) => (
-          <span className="text-gray-700">{info.getValue()}</span>
+          <span className="text-gray-700">{info.getValue() || '-'}</span>
         ),
       },
       {
         header: "Area",
         accessorKey: "area",
+        cell: (info) => (
+          <span className="text-gray-700">{info.getValue() || '-'}</span>
+        ),
       },
       {
         header: "Business Type",
         accessorKey: "businessType",
+        cell: (info) => (
+          <span className="text-gray-700">{info.getValue() || '-'}</span>
+        ),
       },
       {
         header: "Status",
@@ -159,7 +165,7 @@ const Merchants = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900">{merchant.name}</h3>
-                      <p className="text-sm text-gray-500">{merchant.contact?.phone}</p>
+                      <p className="text-sm text-gray-500">{merchant.phone || 'No contact'}</p>
                     </div>
                   </div>
 
@@ -183,13 +189,19 @@ const Merchants = () => {
                 {/* Area */}
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Area</span>
-                  <span className="text-sm font-medium text-gray-900">{merchant.area}</span>
+                  <span className="text-sm font-medium text-gray-900">{merchant.area || '-'}</span>
                 </div>
 
                 {/* Business Type */}
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Business Type</span>
-                  <span className="text-sm font-medium text-gray-900">{merchant.businessType}</span>
+                  <span className="text-sm font-medium text-gray-900">{merchant.businessType || '-'}</span>
+                </div>
+
+                {/* Contact */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Contact</span>
+                  <span className="text-sm font-medium text-gray-900">{merchant.phone || '-'}</span>
                 </div>
               </div>
 

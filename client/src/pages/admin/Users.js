@@ -68,7 +68,10 @@ const Users = () => {
       },
       {
         header: "Area",
-        accessorKey: "area", // ✅ includes Area
+        accessorKey: "area",
+        cell: (info) => (
+          <span className="text-gray-700">{info.getValue() || '-'}</span>
+        ),
       },
       {
         header: "Status",

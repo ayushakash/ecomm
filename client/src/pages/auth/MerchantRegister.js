@@ -49,7 +49,9 @@ const MerchantRegister = () => {
       newErrors.phone = 'Please enter a valid 10-digit mobile number';
     }
 
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email address is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email.trim())) {
       newErrors.email = 'Please enter a valid email address';
     }
 
@@ -155,7 +157,7 @@ const MerchantRegister = () => {
       const merchantData = {
         name: formData.businessName.trim(),
         contactPhone: formData.phone.trim(),
-        contactEmail: formData.email.trim() || '',
+        contactEmail: formData.email.trim(),
         contactName: formData.name.trim(),
         businessType: formData.businessType.trim(),
         gstNumber: formData.gstNumber.trim(),
@@ -169,6 +171,8 @@ const MerchantRegister = () => {
         longitude: formData.longitude ? parseFloat(formData.longitude) : 77.2090,
         otp: formData.otp.trim()
       };
+
+      console.log('📤 Sending merchant registration data:', merchantData);
 
       const response = await fetch('/api/auth/register-merchant', {
         method: 'POST',
@@ -189,7 +193,14 @@ const MerchantRegister = () => {
         // Navigate to pending approval with user data
         navigate('/pending-approval', { state: { user: data.user } });
       } else {
-        throw new Error(data.message || 'Registration failed');
+        // Handle validation errors from backend
+        if (data.errors && Array.isArray(data.errors)) {
+          const errorMessages = data.errors.map(err => err.msg).join(', ');
+          console.error('Validation errors:', data.errors);
+          throw new Error(errorMessages);
+        } else {
+          throw new Error(data.message || 'Registration failed');
+        }
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -307,7 +318,7 @@ const MerchantRegister = () => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address (Optional)
+            Email Address *
           </label>
           <input
             type="email"
@@ -317,6 +328,7 @@ const MerchantRegister = () => {
               errors.email ? 'border-red-300' : 'border-gray-300'
             }`}
             placeholder="Enter email address"
+            required
           />
           {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
         </div>
