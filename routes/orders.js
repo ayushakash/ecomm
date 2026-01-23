@@ -2089,56 +2089,155 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
 // Get unassigned orders (for merchants to claim)
 router.get('/status/unassigned', [verifyToken, requireMerchantOrAdmin], async (req, res) => {
   try {
-  const merchant = await Merchant.findById(req.user._id);
-if (!merchant) {
-  return res.status(400).json({ message: 'Merchant not found' });
-}
+    const merchant = await Merchant.findById(req.user._id);
+    if (!merchant) {
+      return res.status(400).json({ message: 'Merchant not found' });
+    }
 
-const merchantProducts = await MerchantProduct.find({
-  merchantId: merchant._id,   // ✅ use merchant._id, not user._id
-  enabled: true,
-  stock: { $gt: 0 }
-}).select('productId');
+    const merchantProducts = await MerchantProduct.find({
+      merchantId: merchant._id,
+      enabled: true,
+      stock: { $gt: 0 }
+    }).select('productId');
 
     const merchantProductIds = merchantProducts.map(mp => mp.productId.toString());
-  
 
     if (merchantProductIds.length === 0) {
       return res.json([]); // No products in stock, nothing to assign
     }
 
-    // CRITICAL FIX: Get addresses in the same city as the merchant to prevent cross-city orders
-    let cityAddressIds = null;
-    if (merchant.city) {
-      const cityAddresses = await Address.find({
-        city: { $regex: new RegExp(`^${merchant.city}$`, 'i') }
-      }).distinct('_id');
-      cityAddressIds = cityAddresses;
-      console.log(`🏙️ Merchant ${merchant.businessName} in ${merchant.city}: Found ${cityAddressIds.length} addresses in the same city`);
-    }
+    // Get delivery config settings for radius values
+    const AppSettings = require('../models/AppSettings');
+    const { calculateDistance } = require('../utils/locationUtils');
+    const settings = await AppSettings.getSettings();
+    const { maxDeliveryRadius = 10 } = settings.deliveryConfig || {};
 
-    // ✅ Step 2: Find orders containing unassigned items for those products
-    // AND with delivery addresses in the same city as the merchant
-    const orderFilter = {
-      $or: [
-        { orderStatus: 'pending' },
-        { orderStatus: 'processing' } // Include processing orders that might have mixed assigned/unassigned items
-      ],
+    // Check if merchant has valid coordinates (not [0, 0])
+    const hasValidCoords = merchant.location?.coordinates &&
+      merchant.location.coordinates.length === 2 &&
+      !(merchant.location.coordinates[0] === 0 && merchant.location.coordinates[1] === 0);
+
+    console.log(`📍 Merchant ${merchant.businessName}: hasValidCoords=${hasValidCoords}, coords=${merchant.location?.coordinates}, radius=${maxDeliveryRadius}km`);
+
+    let unassignedOrders = [];
+    const orderDistances = new Map(); // Store distances for each order
+
+    // Base filter for unassigned items that merchant can fulfill
+    const baseItemFilter = {
       'items.itemStatus': 'pending',
       'items.assignedMerchantId': null,
       'items.productId': { $in: merchantProductIds }
     };
 
-    // Add city filter if merchant has a city
-    if (cityAddressIds && cityAddressIds.length > 0) {
-      orderFilter.deliveryAddressId = { $in: cityAddressIds };
+    if (hasValidCoords) {
+      // ========== DISTANCE-BASED FILTERING ==========
+      const [merchantLng, merchantLat] = merchant.location.coordinates;
+
+      // Step 1: Find nearby orders using $geoNear aggregation
+      const nearbyOrders = await Order.aggregate([
+        {
+          $geoNear: {
+            near: { type: 'Point', coordinates: [merchantLng, merchantLat] },
+            distanceField: 'calculatedDistance',
+            maxDistance: maxDeliveryRadius * 1000, // km to meters
+            spherical: true,
+            query: {
+              $or: [
+                { orderStatus: 'pending' },
+                { orderStatus: 'processing' }
+              ],
+              ...baseItemFilter
+            }
+          }
+        }
+      ]);
+
+      console.log(`📍 Found ${nearbyOrders.length} nearby orders within ${maxDeliveryRadius}km`);
+
+      // Mark nearby orders with distance and isNearby flag
+      const nearbyOrderIds = nearbyOrders.map(o => o._id.toString());
+      nearbyOrders.forEach(order => {
+        const distanceKm = Math.round((order.calculatedDistance / 1000) * 10) / 10; // Convert m to km, round to 1 decimal
+        orderDistances.set(order._id.toString(), { distance: distanceKm, isNearby: true });
+      });
+
+      // Step 2: Find city-wide orders (beyond radius but same city)
+      let cityOrders = [];
+      if (merchant.city) {
+        cityOrders = await Order.find({
+          'deliveryLocation.city': { $regex: new RegExp(`^${merchant.city}$`, 'i') },
+          $or: [
+            { orderStatus: 'pending' },
+            { orderStatus: 'processing' }
+          ],
+          ...baseItemFilter,
+          _id: { $nin: nearbyOrderIds.map(id => require('mongoose').Types.ObjectId.createFromHexString(id)) }
+        });
+
+        console.log(`🏙️ Found ${cityOrders.length} additional city-wide orders in ${merchant.city}`);
+
+        // Calculate distance for city orders using Haversine
+        cityOrders.forEach(order => {
+          const orderCoords = order.deliveryLocation?.coordinates;
+          let distanceKm = null;
+
+          if (orderCoords && orderCoords.length === 2 && !(orderCoords[0] === 0 && orderCoords[1] === 0)) {
+            const [orderLng, orderLat] = orderCoords;
+            distanceKm = calculateDistance(merchantLat, merchantLng, orderLat, orderLng);
+            distanceKm = Math.round(distanceKm * 10) / 10; // Round to 1 decimal
+          }
+
+          orderDistances.set(order._id.toString(), { distance: distanceKm, isNearby: false });
+        });
+      }
+
+      // Step 3: Combine nearby and city orders, then populate
+      const allOrderIds = [...nearbyOrderIds, ...cityOrders.map(o => o._id.toString())];
+
+      if (allOrderIds.length > 0) {
+        unassignedOrders = await Order.find({
+          _id: { $in: allOrderIds.map(id => require('mongoose').Types.ObjectId.createFromHexString(id)) }
+        })
+          .populate('customerId', 'name phone')
+          .populate('deliveryAddressId', 'fullName phoneNumber addressLine1 addressLine2 landmark area city state pincode addressType title');
+      }
+
+    } else {
+      // ========== FALLBACK: CITY-ONLY MATCHING ==========
+      console.log(`⚠️ Merchant ${merchant.businessName} has no valid coordinates, falling back to city matching`);
+
+      let cityAddressIds = null;
+      if (merchant.city) {
+        const cityAddresses = await Address.find({
+          city: { $regex: new RegExp(`^${merchant.city}$`, 'i') }
+        }).distinct('_id');
+        cityAddressIds = cityAddresses;
+        console.log(`🏙️ Found ${cityAddressIds.length} addresses in ${merchant.city}`);
+      }
+
+      const orderFilter = {
+        $or: [
+          { orderStatus: 'pending' },
+          { orderStatus: 'processing' }
+        ],
+        ...baseItemFilter
+      };
+
+      if (cityAddressIds && cityAddressIds.length > 0) {
+        orderFilter.deliveryAddressId = { $in: cityAddressIds };
+      }
+
+      unassignedOrders = await Order.find(orderFilter)
+        .populate('customerId', 'name phone')
+        .populate('deliveryAddressId', 'fullName phoneNumber addressLine1 addressLine2 landmark area city state pincode addressType title');
+
+      // For city-only fallback, all orders are considered "nearby" (no distance calculation)
+      unassignedOrders.forEach(order => {
+        orderDistances.set(order._id.toString(), { distance: null, isNearby: true });
+      });
     }
 
-    const unassignedOrders = await Order.find(orderFilter)
-    .populate('customerId', 'name phone')
-    .populate('deliveryAddressId', 'fullName phoneNumber addressLine1 addressLine2 landmark area city state pincode addressType title');
-
-    // ✅ Step 3: Filter to show only unassigned items relevant to this merchant
+    // ========== FILTER AND FORMAT RESPONSE ==========
     const { calculateMerchantPayout } = require('../utils/merchantPayoutUtils');
 
     const filteredOrders = await Promise.all(
@@ -2165,20 +2264,42 @@ const merchantProducts = await MerchantProduct.find({
 
         console.log(`  >> Filtered: ${filteredItems.length} items will be shown`);
 
-        // Calculate ESTIMATED merchant payout for these items (even though not accepted yet)
+        // Calculate ESTIMATED merchant payout for these items
         const estimatedPayout = await calculateMerchantPayout(order, merchant._id);
+
+        // Get distance info for this order
+        const distanceInfo = orderDistances.get(order._id.toString()) || { distance: null, isNearby: true };
 
         return {
           ...orderObj,
           items: filteredItems,
-          merchantPayout: estimatedPayout // Add estimated payout for display
+          merchantPayout: estimatedPayout,
+          distance: distanceInfo.distance,
+          isNearby: distanceInfo.isNearby
         };
       })
     );
 
-    const validOrders = filteredOrders.filter(order => order.items.length > 0); // Only return orders that have unassigned items for this merchant
+    // Filter to only valid orders and sort (nearby first, then by distance)
+    const validOrders = filteredOrders
+      .filter(order => order.items.length > 0)
+      .sort((a, b) => {
+        // Nearby orders come first
+        if (a.isNearby && !b.isNearby) return -1;
+        if (!a.isNearby && b.isNearby) return 1;
+        // Within same category, sort by distance (if available)
+        if (a.distance !== null && b.distance !== null) {
+          return a.distance - b.distance;
+        }
+        // If one has distance and one doesn't, distance comes first
+        if (a.distance !== null) return -1;
+        if (b.distance !== null) return 1;
+        return 0;
+      });
 
-    console.log(`\n>> Returning ${validOrders.length} orders to merchant ${merchant.businessName}\n`);
+    const nearbyCount = validOrders.filter(o => o.isNearby).length;
+    const farCount = validOrders.length - nearbyCount;
+    console.log(`\n>> Returning ${validOrders.length} orders to merchant ${merchant.businessName} (${nearbyCount} nearby, ${farCount} city-wide)\n`);
 
     res.json(cleanOrderResponse(validOrders));
   } catch (error) {

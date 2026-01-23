@@ -6,7 +6,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
-  TruckIcon
+  TruckIcon,
+  MapPinIcon
 } from '@heroicons/react/24/outline';
 
 const MerchantOrderCard = ({
@@ -45,6 +46,27 @@ const MerchantOrderCard = ({
               </p>
             </div>
           </div>
+
+          {/* Distance Badge (for new orders) */}
+          {isNewOrder && (
+            <div className="flex flex-col items-end gap-1">
+              {order.distance !== null && order.distance !== undefined && (
+                <span
+                  className={`px-2 py-1 text-xs font-semibold rounded-full flex items-center gap-1 ${
+                    order.isNearby
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-orange-100 text-orange-800'
+                  }`}
+                >
+                  <MapPinIcon className="w-3 h-3" />
+                  {order.distance} km
+                </span>
+              )}
+              {!order.isNearby && (
+                <span className="text-xs text-orange-600 font-medium">Far delivery</span>
+              )}
+            </div>
+          )}
 
           {/* Status Badge */}
           {!isNewOrder && (

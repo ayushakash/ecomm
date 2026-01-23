@@ -295,7 +295,7 @@ const Orders = () => {
           data={unassignedList || []}
           loading={isLoadingNew}
           emptyMessage="No new orders available"
-          tableHeaders={["Order #", "Customer", "Items", "Address", "Amount", "Date", "Actions"]}
+          tableHeaders={["Order #", "Customer", "Items", "Address", "Distance", "Amount", "Date", "Actions"]}
           renderCard={(order) => (
             <MerchantOrderCard
               order={order}
@@ -342,6 +342,26 @@ const Orders = () => {
                       {order.shippingAddress?.city || order.customerArea || ''} {order.shippingAddress?.pincode || ''}
                     </div>
                   </div>
+                </td>
+                <td className="px-4 py-2">
+                  {order.distance !== null && order.distance !== undefined ? (
+                    <div className="flex flex-col items-start">
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          order.isNearby
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-orange-100 text-orange-800'
+                        }`}
+                      >
+                        {order.distance} km
+                      </span>
+                      {!order.isNearby && (
+                        <span className="text-xs text-orange-600 mt-1">Far</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">-</span>
+                  )}
                 </td>
                 <td className="px-4 py-2">
                   {order.merchantPayout ? (
@@ -396,7 +416,7 @@ const Orders = () => {
               {/* Expanded Row - Item Details */}
               {expandedOrder === order._id && (
                 <tr className="bg-gray-50 border-t-2 border-gray-200">
-                  <td colSpan="7" className="px-4 py-4">
+                  <td colSpan="8" className="px-4 py-4">
                     <div className="space-y-4">
                       <h4 className="font-semibold text-gray-900 mb-3">Order Items</h4>
                       <div className="overflow-x-auto">
