@@ -1,15 +1,23 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderAPI } from "../../services/api";
 import { useLocation } from 'react-router-dom';
 import ResponsiveTable from "../../components/ui/ResponsiveTable";
 import MerchantOrderCard from "../../components/ui/MerchantOrderCard";
+import MerchantOrderDetailsModal from "../../components/modals/MerchantOrderDetailsModal";
 
 const Orders = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [tab, setTab] = useState("new"); // "new" or "my" - default to new orders
   const [expandedOrder, setExpandedOrder] = useState(null); // Track which order is expanded
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
+
+  const handleShowDetails = (order) => {
+    setSelectedOrderForDetails(order);
+    setShowDetailsModal(true);
+  };
 
   // Set tab based on URL query parameter
   useEffect(() => {
@@ -302,6 +310,7 @@ const Orders = () => {
               tab={tab}
               getStatusColor={getStatusColor}
               onRespond={handleRespond}
+              onShowDetails={handleShowDetails}
             />
           )}
           renderTableRow={(order) => (
@@ -384,6 +393,12 @@ const Orders = () => {
                 </td>
                 <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex space-x-1">
+                    <button
+                      onClick={() => handleShowDetails(order)}
+                      className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
+                    >
+                      Details
+                    </button>
                     <button
                       onClick={() =>
                         handleRespond(
@@ -474,6 +489,7 @@ const Orders = () => {
               tab={tab}
               getStatusColor={getStatusColor}
               onUpdateStatus={handleUpdateStatus}
+              onShowDetails={handleShowDetails}
             />
           )}
           renderTableRow={(order) => (
@@ -546,6 +562,12 @@ const Orders = () => {
                 </td>
                 <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex space-x-1">
+                    <button
+                      onClick={() => handleShowDetails(order)}
+                      className="bg-indigo-600 text-white px-2 py-1 rounded text-xs hover:bg-indigo-700"
+                    >
+                      Details
+                    </button>
                     {(() => {
                       // Check item statuses (for merchant, all their items should have same status)
                       const allItemIds = order.items.map(item => item._id);
@@ -665,6 +687,13 @@ const Orders = () => {
         />
       )}
       </div>
+
+      {/* Order Details Modal */}
+      <MerchantOrderDetailsModal
+        show={showDetailsModal}
+        onHide={() => setShowDetailsModal(false)}
+        order={selectedOrderForDetails}
+      />
     </div>
   );
 };
