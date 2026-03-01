@@ -190,7 +190,7 @@ async function findNearbyMerchants(address, settings, Merchant) {
   const cityWideCount = allMerchants.length - nearbyCount;
 
   console.log(`✅ Returning ${allMerchants.length} merchants:`);
-  console.log(`   • ${nearbyCount} nearby (${allMerchants[0]?.distance || 'N/A'}km - ${allMerchants[nearbyCount - 1]?.distance || 'N/A'}km)`);
+  console.log(`   • ${nearbyCount} nearby (${allMerchants[0]?.distance ?? 'N/A'}km - ${allMerchants[nearbyCount - 1]?.distance ?? 'N/A'}km)`);
   console.log(`   • ${cityWideCount} city-wide only`);
 
   return allMerchants;

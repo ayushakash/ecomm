@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const Register = () => {
   const [step, setStep] = useState(1); // 1: Enter details, 2: Verify OTP
@@ -10,7 +11,8 @@ const Register = () => {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const { register: registerUser } = useAuth();
+  const [otpSent, setOtpSent] = useState(false);
+  const { setAuthData } = useAuth();
   const navigate = useNavigate();
 
   const validateStep1 = () => {
@@ -37,8 +39,8 @@ const Register = () => {
 
     if (!otp.trim()) {
       newErrors.otp = 'OTP is required';
-    } else if (otp.trim() !== '1234') {
-      newErrors.otp = 'Invalid OTP. Please enter 1234';
+    } else if (!/^\d{4,6}$/.test(otp.trim())) {
+      newErrors.otp = 'Please enter a valid OTP';
     }
 
     setErrors(newErrors);
@@ -50,13 +52,49 @@ const Register = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call to send OTP
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.post('/api/auth/send-otp', {
+        phone: mobile.trim(),
+        purpose: 'registration'
+      });
 
-      toast.success(`OTP sent to +91${mobile}. Please enter 1234 to verify.`);
+      if (response.data.userExists) {
+        toast.error('Account already exists with this number. Please login instead.');
+        return;
+      }
+
+      setOtpSent(true);
+      toast.success('OTP sent to your WhatsApp!');
       setStep(2);
+
+      // Show OTP in development mode (if returned by backend)
+      if (response.data.otp) {
+        console.log('Development OTP:', response.data.otp);
+      }
     } catch (error) {
-      toast.error('Failed to send OTP. Please try again.');
+      console.error('Send OTP error:', error);
+      toast.error(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.post('/api/auth/send-otp', {
+        phone: mobile.trim(),
+        purpose: 'registration'
+      });
+
+      toast.success('OTP resent to your WhatsApp!');
+
+      // Show OTP in development mode (if returned by backend)
+      if (response.data.otp) {
+        console.log('Development OTP:', response.data.otp);
+      }
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+      toast.error(error.response?.data?.message || 'Failed to resend OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -67,22 +105,34 @@ const Register = () => {
 
     setIsLoading(true);
     try {
-      // Create user account with simplified data
-      const userData = {
+      // Call verify-otp-register endpoint
+      const response = await api.post('/api/auth/verify-otp-register', {
         name: name.trim(),
         phone: mobile.trim(),
-        password: 'temp123456', // Temporary password - will be updated when user sets up profile
-        role: 'customer'
-      };
+        otp: otp.trim()
+      });
 
-      const result = await registerUser(userData);
-      if (result.success) {
+      // Set auth data directly (no additional API call needed)
+      if (response.data.accessToken) {
+        setAuthData({
+          user: response.data.user,
+          accessToken: response.data.accessToken,
+          refreshToken: response.data.refreshToken
+        });
         toast.success('Registration successful!');
         navigate('/');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      toast.error('Registration failed. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+      toast.error(errorMessage);
+
+      // Show remaining attempts if available
+      if (error.response?.data?.attemptsRemaining !== undefined) {
+        setErrors({ otp: `${errorMessage} (${error.response.data.attemptsRemaining} attempts remaining)` });
+      } else {
+        setErrors({ otp: errorMessage });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +151,7 @@ const Register = () => {
             Create Account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Quick registration with mobile verification
+            Quick registration with WhatsApp verification
           </p>
         </div>
 
@@ -124,7 +174,7 @@ const Register = () => {
           // Step 1: Enter Details
           <div className="bg-white p-8 rounded-lg shadow-md">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Enter Your Details</h3>
-            <p className="text-sm text-gray-600 mb-6">We'll send you an OTP to verify your mobile number</p>
+            <p className="text-sm text-gray-600 mb-6">We'll send you an OTP on WhatsApp to verify your mobile number</p>
 
             <div className="space-y-4">
               <div>
@@ -170,7 +220,7 @@ const Register = () => {
                 {isLoading ? (
                   <div className="loading-spinner"></div>
                 ) : (
-                  'Send OTP'
+                  'Send OTP via WhatsApp'
                 )}
               </button>
             </div>
@@ -180,15 +230,8 @@ const Register = () => {
           <div className="bg-white p-8 rounded-lg shadow-md">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Verify Mobile Number</h3>
             <p className="text-sm text-gray-600 mb-6">
-              Enter the 4-digit OTP sent to +91{mobile}
+              Enter the OTP sent to your WhatsApp on +91{mobile}
             </p>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
-              <div className="flex items-center">
-                <span className="text-blue-600 mr-2">ℹ️</span>
-                <span className="text-blue-800 text-sm">For demo purposes, please enter: 1234</span>
-              </div>
-            </div>
 
             <div className="space-y-4">
               <div>
@@ -199,26 +242,31 @@ const Register = () => {
                   id="otp"
                   type="text"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  maxLength={4}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  maxLength={6}
                   className={`w-full px-3 py-2 border rounded-md text-center text-lg font-mono tracking-widest focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                     errors.otp ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="1234"
+                  placeholder="Enter OTP"
                 />
                 {errors.otp && <p className="text-red-600 text-sm mt-1">{errors.otp}</p>}
               </div>
 
               <div className="flex justify-between items-center">
                 <button
-                  onClick={() => setStep(1)}
+                  onClick={() => {
+                    setStep(1);
+                    setOtp('');
+                    setErrors({});
+                  }}
                   className="text-sm text-primary-600 hover:text-primary-500"
                 >
-                  ← Change Number
+                  Change Number
                 </button>
                 <button
-                  onClick={handleSendOTP}
-                  className="text-sm text-primary-600 hover:text-primary-500 underline"
+                  onClick={handleResendOTP}
+                  disabled={isLoading}
+                  className="text-sm text-primary-600 hover:text-primary-500 underline disabled:opacity-50"
                 >
                   Resend OTP
                 </button>

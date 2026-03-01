@@ -171,6 +171,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Set auth data directly (for registration flow where tokens are already received)
+  const setAuthData = ({ user: userData, accessToken, refreshToken: refreshTokenValue }) => {
+    setUser(userData);
+    setToken(accessToken);
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshTokenValue);
+    api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+  };
+
   const loginWithOTP = async (phone, otp) => {
     try {
       const response = await api.post('/api/auth/verify-otp-login', { phone, otp });
@@ -212,6 +221,7 @@ export const AuthProvider = ({ children }) => {
     register,
     sendOTP,
     loginWithOTP,
+    setAuthData,
     logout,
     refreshToken,
     updateProfile,

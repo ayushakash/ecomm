@@ -7,24 +7,139 @@ class MSG91Service {
     this.route = process.env.MSG91_ROUTE || '4';
     this.country = process.env.MSG91_COUNTRY || '91';
     this.enabled = process.env.MSG91_OTP_ENABLED === 'true';
+
+    // WhatsApp configuration
+    this.whatsappIntegratedNumber = process.env.MSG91_WHATSAPP_INTEGRATED_NUMBER || '916201176610';
+    this.whatsappOtpTemplate = process.env.MSG91_WHATSAPP_OTP_TEMPLATE || 'loginotp';
   }
 
   /**
-   * Send OTP using MSG91 OTP API
+   * Send OTP via WhatsApp using MSG91 WhatsApp API
+   * @param {string} phone - 10 digit mobile number (without country code)
+   * @param {string} otp - 4-6 digit OTP
+   * @param {string} templateName - WhatsApp template name (optional, defaults to loginotp)
+   * @returns {Promise<Object>}
+   */
+  async sendOTPWhatsApp(phone, otp, templateName = null) {
+    try {
+      if (!this.enabled) {
+        console.log('📱 MSG91 OTP disabled, returning mock success');
+        return { success: true, message: 'OTP sent (mock)', otp, channel: 'mock' };
+      }
+
+      if (!this.authKey) {
+        console.log('📱 MSG91 Auth Key not configured, returning mock success');
+        return { success: true, message: 'OTP sent (mock - no auth key)', otp, channel: 'mock' };
+      }
+
+      const url = 'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/';
+
+      // Format phone number with country code
+      const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`;
+
+      const payload = {
+        integrated_number: this.whatsappIntegratedNumber,
+        content_type: 'template',
+        payload: {
+          messaging_product: 'whatsapp',
+          type: 'template',
+          template: {
+            name: templateName || this.whatsappOtpTemplate,
+            language: {
+              code: 'en',
+              policy: 'deterministic'
+            },
+            namespace: null,
+            to_and_components: [
+              {
+                to: [formattedPhone],
+                components: {
+                  body_1: {
+                    type: 'text',
+                    value: otp
+                  },
+                  button_1: {
+                    subtype: 'url',
+                    type: 'text',
+                    value: otp
+                  }
+                }
+              }
+            ]
+          }
+        }
+      };
+
+      console.log('📤 Sending OTP via MSG91 WhatsApp:', {
+        phone: formattedPhone,
+        otp: otp.substring(0, 2) + '****',
+        template: templateName || this.whatsappOtpTemplate
+      });
+
+      const response = await axios.post(url, payload, {
+        headers: {
+          'authkey': this.authKey,
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+
+      console.log('✅ MSG91 WhatsApp OTP sent successfully:', response.data);
+
+      return {
+        success: true,
+        message: 'OTP sent successfully via WhatsApp',
+        data: response.data,
+        channel: 'whatsapp'
+      };
+
+    } catch (error) {
+      console.error('❌ MSG91 WhatsApp OTP sending failed:', error.response?.data || error.message);
+
+      return {
+        success: false,
+        message: 'Failed to send OTP via WhatsApp',
+        error: error.response?.data || error.message,
+        channel: 'whatsapp'
+      };
+    }
+  }
+
+  /**
+   * Send OTP - main method that uses WhatsApp
+   * @param {string} phone - 10 digit mobile number
+   * @param {string} otp - 4-6 digit OTP
+   * @param {string} purpose - Purpose of OTP (login, registration, etc.)
+   * @returns {Promise<Object>}
+   */
+  async sendOTP(phone, otp, purpose = 'login') {
+    // Use WhatsApp as primary channel
+    const result = await this.sendOTPWhatsApp(phone, otp);
+
+    // Log for debugging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔐 OTP for ${phone}: ${otp} (purpose: ${purpose})`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Send OTP using MSG91 SMS OTP API (fallback/alternative)
    * @param {string} phone - 10 digit mobile number
    * @param {string} otp - 4-6 digit OTP
    * @returns {Promise<Object>}
    */
-  async sendOTP(phone, otp) {
+  async sendOTPSMS(phone, otp) {
     try {
       if (!this.enabled) {
-        console.log('MSG91 OTP disabled, returning mock success');
-        return { success: true, message: 'OTP sent (mock)', otp };
+        console.log('📱 MSG91 OTP disabled, returning mock success');
+        return { success: true, message: 'OTP sent (mock)', otp, channel: 'mock' };
       }
 
-      if (!this.authKey || this.authKey === 'your_msg91_auth_key_here') {
-        console.log('MSG91 Auth Key not configured, returning mock success');
-        return { success: true, message: 'OTP sent (mock - no auth key)', otp };
+      if (!this.authKey) {
+        console.log('📱 MSG91 Auth Key not configured, returning mock success');
+        return { success: true, message: 'OTP sent (mock - no auth key)', otp, channel: 'mock' };
       }
 
       // MSG91 SendOTP API v5
@@ -38,15 +153,14 @@ class MSG91Service {
         otp_expiry: parseInt(process.env.OTP_EXPIRY_MINUTES) || 5,
       };
 
-      // Remove template_id if not set (for testing without DLT)
+      // Remove template_id if not set
       if (!payload.template_id) {
         delete payload.template_id;
       }
 
-      console.log('📤 Sending OTP via MSG91:', {
+      console.log('📤 Sending OTP via MSG91 SMS:', {
         phone: `${this.country}${phone}`,
-        otp: otp.substring(0, 2) + '**',
-        unmaskedOtp:otp
+        otp: otp.substring(0, 2) + '****'
       });
 
       const response = await axios.post(url, payload, {
@@ -57,115 +171,48 @@ class MSG91Service {
         timeout: 10000,
       });
 
-      console.log('✅ MSG91 OTP sent successfully:', response.data);
+      console.log('✅ MSG91 SMS OTP sent successfully:', response.data);
 
       return {
         success: true,
-        message: 'OTP sent successfully',
+        message: 'OTP sent successfully via SMS',
         data: response.data,
+        channel: 'sms'
       };
 
     } catch (error) {
-      console.error('❌ MSG91 OTP sending failed:', error.response?.data || error.message);
+      console.error('❌ MSG91 SMS OTP sending failed:', error.response?.data || error.message);
 
-      // Return success anyway with mock OTP for development
       return {
         success: false,
-        message: 'Failed to send OTP via MSG91',
+        message: 'Failed to send OTP via SMS',
         error: error.response?.data || error.message,
-        mockOTP: otp, // Return OTP anyway for development
+        channel: 'sms'
       };
     }
   }
 
   /**
-   * Verify OTP using MSG91 Verify API
+   * Resend OTP - generates new OTP and sends again
+   * Note: Since we're using WhatsApp templates, we need to generate a new OTP
    * @param {string} phone - 10 digit mobile number
-   * @param {string} otp - 4-6 digit OTP
+   * @param {string} otp - New OTP to send
+   * @param {string} channel - 'whatsapp' or 'sms'
    * @returns {Promise<Object>}
    */
-  async verifyOTP(phone, otp) {
-    try {
-      if (!this.enabled) {
-        return { success: true, message: 'OTP verified (mock)' };
-      }
-
-      const url = `https://control.msg91.com/api/v5/otp/verify`;
-
-      const payload = {
-        authkey: this.authKey,
-        mobile: `${this.country}${phone}`,
-        otp: otp,
-      };
-
-      const response = await axios.post(url, payload, {
-        headers: {
-          'authkey': this.authKey,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
-      });
-
-      console.log('✅ MSG91 OTP verified:', response.data);
-
-      return {
-        success: true,
-        message: 'OTP verified successfully',
-        data: response.data,
-      };
-
-    } catch (error) {
-      console.error('❌ MSG91 OTP verification failed:', error.response?.data || error.message);
-
-      return {
-        success: false,
-        message: 'OTP verification failed',
-        error: error.response?.data || error.message,
-      };
+  async resendOTP(phone, otp, channel = 'whatsapp') {
+    if (channel === 'sms') {
+      return this.sendOTPSMS(phone, otp);
     }
+    return this.sendOTPWhatsApp(phone, otp);
   }
 
   /**
-   * Resend OTP
-   * @param {string} phone - 10 digit mobile number
-   * @param {boolean} isVoiceCall - Send OTP via voice call
-   * @returns {Promise<Object>}
+   * Check if MSG91 OTP is enabled
+   * @returns {boolean}
    */
-  async resendOTP(phone, isVoiceCall = false) {
-    try {
-      const url = `https://control.msg91.com/api/v5/otp/retry`;
-
-      const payload = {
-        authkey: this.authKey,
-        mobile: `${this.country}${phone}`,
-        retrytype: isVoiceCall ? 'voice' : 'text',
-      };
-
-      const response = await axios.post(url, payload, {
-        headers: {
-          'authkey': this.authKey,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
-      });
-
-      console.log('✅ MSG91 OTP resent:', response.data);
-
-      return {
-        success: true,
-        message: 'OTP resent successfully',
-        data: response.data,
-      };
-
-    } catch (error) {
-      console.error('❌ MSG91 OTP resend failed:', error.response?.data || error.message);
-
-      return {
-        success: false,
-        message: 'Failed to resend OTP',
-        error: error.response?.data || error.message,
-      };
-    }
+  isEnabled() {
+    return this.enabled && !!this.authKey;
   }
 }
 

@@ -75,9 +75,19 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Generate and save OTP
 userSchema.methods.generateOTP = function() {
-  // For demo purposes, always use 1234. In production, use: Math.floor(1000 + Math.random() * 9000).toString()
-  this.otp = '1234';
-  this.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  // Use real 6-digit OTP when MSG91_OTP_ENABLED=true, otherwise use 1234 for development
+  const useRealOTP = process.env.MSG91_OTP_ENABLED === 'true';
+
+  if (useRealOTP) {
+    // Generate random 6-digit OTP
+    this.otp = Math.floor(100000 + Math.random() * 900000).toString();
+  } else {
+    // Fallback to 1234 for development/testing
+    this.otp = '1234';
+  }
+
+  const otpExpiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 10;
+  this.otpExpiry = new Date(Date.now() + otpExpiryMinutes * 60 * 1000);
   return this.otp;
 };
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { reverseGeocode } from '../../services/geocodingService';
+import api from '../../services/api';
 
 const MerchantRegister = () => {
   const [step, setStep] = useState(1); // 1: Basic Info, 2: Business Details, 3: OTP Verification
@@ -98,8 +99,8 @@ const MerchantRegister = () => {
 
     if (!formData.otp.trim()) {
       newErrors.otp = 'OTP is required';
-    } else if (formData.otp.trim() !== '1234') {
-      newErrors.otp = 'Invalid OTP. Please enter 1234';
+    } else if (!/^\d{4,6}$/.test(formData.otp.trim())) {
+      newErrors.otp = 'Please enter a valid OTP';
     }
 
     setErrors(newErrors);
@@ -125,24 +126,49 @@ const MerchantRegister = () => {
   const handleSendOTP = async () => {
     setIsLoading(true);
     try {
-      // Send OTP to merchant's phone
-      const response = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: formData.phone.trim() })
+      const response = await api.post('/api/auth/send-otp', {
+        phone: formData.phone.trim(),
+        purpose: 'registration'
       });
 
-      const data = await response.json();
+      if (response.data.userExists) {
+        toast.error('Account already exists with this number. Please login instead.');
+        setIsLoading(false);
+        return;
+      }
 
-      if (response.ok) {
-        setStep(3);
-        toast.success(`OTP sent to +91${formData.phone}. Please enter 1234 to verify.`);
-      } else {
-        throw new Error(data.message || 'Failed to send OTP');
+      setStep(3);
+      toast.success('OTP sent to your WhatsApp!');
+
+      // Show OTP in development mode (if returned by backend)
+      if (response.data.otp) {
+        console.log('Development OTP:', response.data.otp);
       }
     } catch (error) {
       console.error('Send OTP error:', error);
-      toast.error('Failed to send OTP. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.post('/api/auth/send-otp', {
+        phone: formData.phone.trim(),
+        purpose: 'registration'
+      });
+
+      toast.success('OTP resent to your WhatsApp!');
+
+      // Show OTP in development mode (if returned by backend)
+      if (response.data.otp) {
+        console.log('Development OTP:', response.data.otp);
+      }
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+      toast.error(error.response?.data?.message || 'Failed to resend OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -172,39 +198,36 @@ const MerchantRegister = () => {
         otp: formData.otp.trim()
       };
 
-      console.log('📤 Sending merchant registration data:', merchantData);
+      console.log('Sending merchant registration data:', merchantData);
 
-      const response = await fetch('/api/auth/register-merchant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(merchantData)
-      });
+      const response = await api.post('/api/auth/register-merchant', merchantData);
 
-      const data = await response.json();
+      // Save tokens and user data to localStorage
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
 
-      if (response.ok) {
-        // Save tokens and user data to localStorage
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      toast.success('Merchant registration successful! Please wait for admin approval.');
 
-        toast.success('Merchant registration successful! Please wait for admin approval.');
+      // Navigate to pending approval with user data
+      navigate('/pending-approval', { state: { user: response.data.user } });
 
-        // Navigate to pending approval with user data
-        navigate('/pending-approval', { state: { user: data.user } });
-      } else {
-        // Handle validation errors from backend
-        if (data.errors && Array.isArray(data.errors)) {
-          const errorMessages = data.errors.map(err => err.msg).join(', ');
-          console.error('Validation errors:', data.errors);
-          throw new Error(errorMessages);
-        } else {
-          throw new Error(data.message || 'Registration failed');
-        }
-      }
     } catch (error) {
       console.error('Registration error:', error);
-      toast.error(error.message || 'Registration failed. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+
+      // Handle validation errors from backend
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const validationErrors = error.response.data.errors.map(err => err.msg).join(', ');
+        toast.error(validationErrors);
+      } else {
+        toast.error(errorMessage);
+      }
+
+      // Show remaining attempts if available
+      if (error.response?.data?.attemptsRemaining !== undefined) {
+        setErrors({ otp: `${errorMessage} (${error.response.data.attemptsRemaining} attempts remaining)` });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -511,11 +534,11 @@ const MerchantRegister = () => {
             onClick={getLocationFromMap}
             className="text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
-            📍 Get Current Location
+            Get Current Location
           </button>
           {formData.latitude && formData.longitude && (
             <p className="text-sm text-green-600 mt-2">
-              ✅ Location captured: {parseFloat(formData.latitude).toFixed(6)}, {parseFloat(formData.longitude).toFixed(6)}
+              Location captured: {parseFloat(formData.latitude).toFixed(6)}, {parseFloat(formData.longitude).toFixed(6)}
             </p>
           )}
         </div>
@@ -525,14 +548,14 @@ const MerchantRegister = () => {
             onClick={() => setStep(1)}
             className="flex-1 py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
-            ← Back
+            Back
           </button>
           <button
             onClick={handleNext}
             disabled={isLoading}
             className="flex-1 py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
           >
-            {isLoading ? 'Sending OTP...' : 'Send OTP'}
+            {isLoading ? 'Sending OTP...' : 'Send OTP via WhatsApp'}
           </button>
         </div>
       </div>
@@ -542,42 +565,43 @@ const MerchantRegister = () => {
   const renderStep3 = () => (
     <div className="bg-white p-8 rounded-lg shadow-md">
       <h3 className="text-lg font-medium text-gray-900 mb-6">Verify Mobile Number</h3>
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
-        <div className="flex items-center">
-          <span className="text-blue-600 mr-2">ℹ️</span>
-          <span className="text-blue-800 text-sm">For demo purposes, please enter: 1234</span>
-        </div>
-      </div>
+      <p className="text-sm text-gray-600 mb-6">
+        Enter the OTP sent to your WhatsApp on +91{formData.phone}
+      </p>
 
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Enter OTP sent to +91{formData.phone}
+            Enter OTP
           </label>
           <input
             type="text"
             value={formData.otp}
-            onChange={(e) => handleInputChange('otp', e.target.value)}
-            maxLength={4}
+            onChange={(e) => handleInputChange('otp', e.target.value.replace(/\D/g, ''))}
+            maxLength={6}
             className={`w-full px-3 py-2 border rounded-md text-center text-lg font-mono tracking-widest focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
               errors.otp ? 'border-red-300' : 'border-gray-300'
             }`}
-            placeholder="1234"
+            placeholder="Enter OTP"
           />
           {errors.otp && <p className="text-red-600 text-sm mt-1">{errors.otp}</p>}
         </div>
 
         <div className="flex justify-between items-center">
           <button
-            onClick={() => setStep(2)}
+            onClick={() => {
+              setStep(2);
+              setFormData(prev => ({ ...prev, otp: '' }));
+              setErrors({});
+            }}
             className="text-sm text-primary-600 hover:text-primary-500"
           >
-            ← Back to Business Info
+            Back to Business Info
           </button>
           <button
-            onClick={handleSendOTP}
-            className="text-sm text-primary-600 hover:text-primary-500 underline"
+            onClick={handleResendOTP}
+            disabled={isLoading}
+            className="text-sm text-primary-600 hover:text-primary-500 underline disabled:opacity-50"
           >
             Resend OTP
           </button>
@@ -604,7 +628,7 @@ const MerchantRegister = () => {
         <div>
           <div className="flex justify-center">
             <div className="w-12 h-12 bg-primary-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">🏪</span>
+              <span className="text-white font-bold text-xl">M</span>
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">

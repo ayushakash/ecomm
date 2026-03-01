@@ -13,7 +13,6 @@ const Cart = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isLoggedIn = !!user;
-  console.log("ORIFINAL",cart)
 
   // Sync cart prices when component mounts and user is logged in
   useEffect(() => {

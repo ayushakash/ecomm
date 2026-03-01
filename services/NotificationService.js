@@ -64,9 +64,9 @@ class NotificationService {
       // Merchant data (for smart notifications)
       merchantData: eventData.merchantData ? {
         _id: eventData.merchantData._id,
-        name: eventData.merchantData.name,
-        phone: eventData.merchantData.contact?.phone,
-        email: eventData.merchantData.contact?.email,
+        name: eventData.merchantData.name || eventData.merchantData.businessName,
+        phone: eventData.merchantData.phone,  // Direct field, not nested
+        email: eventData.merchantData.email,  // Direct field, not nested
         address: eventData.merchantData.address,
         area: eventData.merchantData.area,
         businessType: eventData.merchantData.businessType,
@@ -529,9 +529,11 @@ class NotificationService {
         merchantData: {
           _id: merchant._id,
           merchantName: merchant.name || merchant.businessName,
-          merchantPhone: merchant.contact?.phone,
-          merchantEmail: merchant.contact?.email,
-          merchantLocation: merchant.location
+          merchantPhone: merchant.phone,  // Direct field
+          merchantEmail: merchant.email,  // Direct field
+          merchantLocation: merchant.location,
+          merchantAddress: merchant.address,
+          merchantArea: merchant.area
         },
         assignmentData: {
           assignedBy: eventData.metadata.assignedBy || 'system',
@@ -542,12 +544,12 @@ class NotificationService {
 
       // Send to n8n with merchant contact data
       const n8nResult = await this.sendToN8n(merchantNotification);
-      notifications.push({ 
-        channel: 'n8n-assigned', 
+      notifications.push({
+        channel: 'n8n-assigned',
         merchantId: merchant._id,
         merchantName: merchant.name || merchant.businessName,
-        merchantPhone: merchant.contact?.phone,
-        ...n8nResult 
+        merchantPhone: merchant.phone,  // Direct field
+        ...n8nResult
       });
 
     } catch (error) {

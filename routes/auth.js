@@ -3,10 +3,26 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Merchant = require('../models/Merchant');
+const OTP = require('../models/OTP');
 const { verifyToken } = require('../middleware/auth');
 const MSG91Service = require('../services/MSG91Service');
 
 const router = express.Router();
+
+// Helper function to generate OTP
+const generateOTPCode = () => {
+  const useRealOTP = process.env.MSG91_OTP_ENABLED === 'true';
+  if (useRealOTP) {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+  return '1234';
+};
+
+// Helper function to get OTP expiry time
+const getOTPExpiry = () => {
+  const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 10;
+  return new Date(Date.now() + expiryMinutes * 60 * 1000);
+};
 
 // Generate JWT tokens
 const generateTokens = (userId) => {
@@ -29,7 +45,8 @@ const generateTokens = (userId) => {
 // @desc    Send OTP to mobile number for login/registration
 // @access  Public
 router.post('/send-otp', [
-  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number')
+  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
+  body('purpose').optional().isIn(['login', 'registration']).withMessage('Invalid purpose')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -37,7 +54,7 @@ router.post('/send-otp', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { phone } = req.body;
+    const { phone, purpose = 'login' } = req.body;
 
     // Check if user exists with this phone number
     let user = await User.findOne({ phone });
@@ -50,8 +67,21 @@ router.post('/send-otp', [
 
     if (!user && !merchant) {
       // No user or merchant exists, generate OTP for registration
-      otp = Math.floor(1000 + Math.random() * 9000).toString();
+      otp = generateOTPCode();
       userExists = false;
+
+      // Store OTP in OTP model for registration verification
+      await OTP.findOneAndDelete({ phone, purpose: 'registration', isUsed: false });
+      await OTP.create({
+        phone,
+        otp,
+        purpose: 'registration',
+        sentVia: 'whatsapp',
+        expiresAt: getOTPExpiry(),
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
     } else if (user) {
       // User exists, generate and save OTP
       otp = user.generateOTP();
@@ -66,22 +96,25 @@ router.post('/send-otp', [
       userRole = 'merchant';
     }
 
-    // Send OTP via MSG91
-    const smsResult = await MSG91Service.sendOTP(phone, otp);
+    // Send OTP via MSG91 WhatsApp
+    const sendResult = await MSG91Service.sendOTP(phone, otp, purpose);
 
-    if (!smsResult.success) {
-      console.warn('⚠️ MSG91 SMS failed, but continuing with generated OTP');
+    if (!sendResult.success && sendResult.channel !== 'mock') {
+      console.warn('⚠️ MSG91 OTP send failed:', sendResult.error);
     }
 
-    // In development, return OTP for testing (remove in production)
+    // In development, return OTP for testing
     const isDevelopment = process.env.NODE_ENV === 'development';
+    const otpDisabled = process.env.MSG91_OTP_ENABLED !== 'true';
 
     return res.json({
-      message: 'OTP sent successfully to your mobile number',
+      message: 'OTP sent successfully to your WhatsApp',
       userExists,
       userRole,
       phone,
-      ...(isDevelopment && { otp: otp }) // Only include OTP in development
+      channel: sendResult.channel || 'whatsapp',
+      // Only include OTP in development OR when OTP service is disabled
+      ...((isDevelopment || otpDisabled) && { otp: otp })
     });
 
   } catch (error) {
@@ -95,7 +128,7 @@ router.post('/send-otp', [
 // @access  Public
 router.post('/verify-otp-phone', [
   body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
-  body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits')
+  body('otp').isLength({ min: 4, max: 6 }).withMessage('OTP must be 4-6 digits')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -150,7 +183,7 @@ router.post('/verify-otp-phone', [
 // @access  Public
 router.post('/verify-otp-login', [
   body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
-  body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits')
+  body('otp').isLength({ min: 4, max: 6 }).withMessage('OTP must be 4-6 digits')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -257,7 +290,7 @@ router.post('/verify-otp-login', [
 router.post('/verify-otp-register', [
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
-  body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits')
+  body('otp').isLength({ min: 4, max: 6 }).withMessage('OTP must be 4-6 digits')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -273,17 +306,45 @@ router.post('/verify-otp-register', [
       return res.status(400).json({ message: 'User already exists with this phone number' });
     }
 
-    // For demo purposes, verify static OTP
-    if (otp !== '1234') {
-      return res.status(400).json({ message: 'Invalid OTP. Please enter 1234' });
+    // Find and verify OTP from OTP model
+    const otpRecord = await OTP.findOne({
+      phone,
+      purpose: 'registration',
+      isUsed: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'OTP expired or not found. Please request a new OTP.' });
     }
+
+    // Check max attempts
+    if (otpRecord.attempts >= 3) {
+      return res.status(400).json({ message: 'Too many failed attempts. Please request a new OTP.' });
+    }
+
+    // Verify OTP
+    if (otpRecord.otp !== otp) {
+      // Increment attempts
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return res.status(400).json({
+        message: 'Invalid OTP. Please try again.',
+        attemptsRemaining: 3 - otpRecord.attempts
+      });
+    }
+
+    // Mark OTP as used
+    otpRecord.isUsed = true;
+    otpRecord.verifiedAt = new Date();
+    await otpRecord.save();
 
     // Create new user with phone as primary identifier
     const user = new User({
       name,
       phone,
-      email: undefined, // Don't set temporary email, leave as undefined
-      password: 'temp123456', // Temporary password, can be updated later
+      email: undefined,
+      password: 'temp123456',
       role: 'customer',
       isPhoneVerified: true
     });
@@ -540,7 +601,7 @@ router.post('/register-merchant', [
   body('pincode').matches(/^\d{6}$/).withMessage('Please enter a valid 6-digit pincode'),
   body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
   body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
-  body('otp').isLength({ min: 4, max: 4 }).withMessage('OTP must be 4 digits')
+  body('otp').isLength({ min: 4, max: 6 }).withMessage('OTP must be 4-6 digits')
 ], async (req, res) => {
   try {
     console.log('📥 Received merchant registration request:', req.body);
@@ -553,23 +614,51 @@ router.post('/register-merchant', [
 
     const { contactName, contactPhone, contactEmail, name, businessType, gstNumber, panNumber, address, area, city, state, pincode, latitude, longitude, otp } = req.body;
 
-    // For registration, verify static OTP since we don't store it for non-existing users
-    if (otp !== '1234') {
-      return res.status(400).json({ message: 'Invalid OTP. Please use the OTP sent to your mobile' });
-    }
-
     // Check if merchant already exists with this phone number
     const existingMerchant = await Merchant.findOne({ phone: contactPhone });
     if (existingMerchant) {
       return res.status(400).json({ message: 'Merchant already exists with this phone number' });
     }
 
+    // Find and verify OTP from OTP model
+    const otpRecord = await OTP.findOne({
+      phone: contactPhone,
+      purpose: 'registration',
+      isUsed: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'OTP expired or not found. Please request a new OTP.' });
+    }
+
+    // Check max attempts
+    if (otpRecord.attempts >= 3) {
+      return res.status(400).json({ message: 'Too many failed attempts. Please request a new OTP.' });
+    }
+
+    // Verify OTP
+    if (otpRecord.otp !== otp) {
+      // Increment attempts
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return res.status(400).json({
+        message: 'Invalid OTP. Please try again.',
+        attemptsRemaining: 3 - otpRecord.attempts
+      });
+    }
+
+    // Mark OTP as used
+    otpRecord.isUsed = true;
+    otpRecord.verifiedAt = new Date();
+    await otpRecord.save();
+
     // Create new merchant directly (no separate User model needed)
     const merchant = new Merchant({
       name: contactName,
       phone: contactPhone,
       email: contactEmail,
-      password: 'temp123456', // Temporary password
+      password: 'temp123456',
       isPhoneVerified: true,
 
       // Merchant-specific fields
@@ -589,7 +678,7 @@ router.post('/register-merchant', [
         type: 'Point',
         coordinates: [longitude, latitude]
       },
-      activeStatus: 'pending' // Will need admin approval
+      activeStatus: 'pending'
     });
 
     await merchant.save();

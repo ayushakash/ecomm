@@ -70,6 +70,9 @@ app.use('/api/merchants/device-token', require('./routes/deviceToken'));
 // Sequential notification routes
 app.use('/api/sequential-notifications', require('./routes/sequentialNotifications'));
 
+// Webhook routes (for n8n and MSG91 callbacks)
+app.use('/api/webhooks', require('./routes/webhooks'));
+
 // Test notification routes
 
 // MSG91 OTP Test routes

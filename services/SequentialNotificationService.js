@@ -15,7 +15,6 @@ class SequentialNotificationService {
     const notifications = [];
 
     try {
-      // Process each item in the order
       for (const item of eventData.orderData.items || []) {
         const sequentialResult = await this.sendSequentialNotifications({
           orderId: eventData.orderData._id,
@@ -40,13 +39,12 @@ class SequentialNotificationService {
     try {
       const { smartMerchantSelection } = require('../utils/geoUtils');
 
-      // Get ranked merchants for this item
       const smartMerchantResult = await smartMerchantSelection({
         orderId: orderId,
         productId: item.productId,
         customerLocation: orderData.deliveryLocation,
         maxDistance: 15,
-        maxMerchants: 5, // Get more merchants for sequential processing
+        maxMerchants: 5,
         requiredQuantity: item.quantity || 1
       });
 
@@ -56,9 +54,8 @@ class SequentialNotificationService {
       }
 
       const { rankedMerchants } = smartMerchantResult;
-      console.log(`Starting sequential notifications for order ${orderId}, item ${itemId}:`, rankedMerchants.length, 'merchants');
+      console.log(`Starting sequential notifications for order ${orderId}, item ${itemId}: ${rankedMerchants.length} merchants`);
 
-      // Create notification queue
       const notificationKey = `${orderId}-${itemId}`;
       this.notificationQueue.set(notificationKey, {
         merchants: rankedMerchants,
@@ -69,7 +66,6 @@ class SequentialNotificationService {
         notifications: []
       });
 
-      // Start with the first (highest ranked) merchant
       const firstNotification = await this.sendNotificationToNextMerchant(notificationKey);
 
       return firstNotification ? [firstNotification] : [];
@@ -81,7 +77,7 @@ class SequentialNotificationService {
   }
 
   /**
-   * Send notification to the next merchant in queue
+   * Send WhatsApp notification via n8n to the next merchant in queue
    */
   async sendNotificationToNextMerchant(notificationKey) {
     try {
@@ -93,7 +89,6 @@ class SequentialNotificationService {
 
       const { merchants, currentIndex, orderData, item } = queueData;
 
-      // Check if we've exhausted all merchants
       if (currentIndex >= merchants.length) {
         console.log(`All merchants exhausted for ${notificationKey}`);
         this.cleanupNotification(notificationKey);
@@ -103,25 +98,30 @@ class SequentialNotificationService {
       const currentMerchant = merchants[currentIndex];
       console.log(`Sending notification to merchant #${currentIndex + 1}: ${currentMerchant.name} (Score: ${currentMerchant.score})`);
 
-      // Get merchant's active device tokens
-      const merchantWithTokens = await Merchant.findById(currentMerchant._id)
-        .select('deviceTokens notificationSettings');
+      // Fetch merchant phone number
+      const merchantDoc = await Merchant.findById(currentMerchant._id).select('phone contact');
 
-      if (!merchantWithTokens || !this.canSendNotification(merchantWithTokens)) {
-        console.log(`Merchant ${currentMerchant.name} not available for notifications, skipping`);
-        // Skip to next merchant
+      if (!merchantDoc) {
+        console.log(`Merchant ${currentMerchant.name} not found in DB, skipping`);
         queueData.currentIndex++;
         return await this.sendNotificationToNextMerchant(notificationKey);
       }
 
-      // Create notification payload
+      const merchantPhone = merchantDoc.phone || merchantDoc.contact?.phone || currentMerchant.phone;
+
+      if (!merchantPhone) {
+        console.log(`Merchant ${currentMerchant.name} has no phone number, skipping`);
+        queueData.currentIndex++;
+        return await this.sendNotificationToNextMerchant(notificationKey);
+      }
+
       const notificationPayload = {
         eventType: 'order_created_smart',
         orderId: orderData._id,
         itemId: item._id,
         merchantData: {
           ...currentMerchant,
-          deviceTokens: merchantWithTokens.deviceTokens.filter(dt => dt.isActive)
+          phone: merchantPhone
         },
         customerLocation: orderData.deliveryLocation,
         orderData: orderData,
@@ -140,10 +140,10 @@ class SequentialNotificationService {
         }
       };
 
-      // Send push notification via n8n
       const n8nResult = await notificationService.sendToN8n(notificationPayload);
+      console.log(`📲 WhatsApp sent to ${currentMerchant.name} (${merchantPhone}) via n8n`);
 
-      // Track the active notification
+      // Track active notification for timeout/response handling
       this.activeNotifications.set(notificationKey, {
         merchantId: currentMerchant._id,
         merchantName: currentMerchant.name,
@@ -153,7 +153,6 @@ class SequentialNotificationService {
         }, this.responseTimeout)
       });
 
-      // Store notification result
       queueData.notifications.push({
         merchantId: currentMerchant._id,
         merchantName: currentMerchant.name,
@@ -196,7 +195,6 @@ class SequentialNotificationService {
         return false;
       }
 
-      // Verify this response is from the current merchant
       if (activeNotification.merchantId.toString() !== merchantId.toString()) {
         console.log(`Response from wrong merchant for ${notificationKey}`);
         return false;
@@ -205,27 +203,19 @@ class SequentialNotificationService {
       console.log(`Merchant ${activeNotification.merchantName} ${action}ed order ${orderId}, item ${itemId}`);
 
       if (action === 'accept') {
-        // Merchant accepted - stop the sequential process
-        console.log(`Order ${orderId}, item ${itemId} accepted by ${activeNotification.merchantName}`);
         this.cleanupNotification(notificationKey);
         return true;
       } else if (action === 'reject') {
-        // Merchant rejected - move to next merchant
-        console.log(`Order ${orderId}, item ${itemId} rejected by ${activeNotification.merchantName}`);
-
-        // Clear current notification
         if (activeNotification.timeout) {
           clearTimeout(activeNotification.timeout);
         }
         this.activeNotifications.delete(notificationKey);
 
-        // Move to next merchant
         queueData.currentIndex++;
 
-        // Send to next merchant after a small delay
         setTimeout(async () => {
           await this.sendNotificationToNextMerchant(notificationKey);
-        }, 2000); // 2 second delay between notifications
+        }, 2000);
 
         return true;
       }
@@ -247,13 +237,9 @@ class SequentialNotificationService {
       const queueData = this.notificationQueue.get(notificationKey);
       if (!queueData) return;
 
-      // Clear active notification
       this.activeNotifications.delete(notificationKey);
-
-      // Move to next merchant
       queueData.currentIndex++;
 
-      // Send to next merchant
       await this.sendNotificationToNextMerchant(notificationKey);
 
     } catch (error) {
@@ -262,80 +248,22 @@ class SequentialNotificationService {
   }
 
   /**
-   * Check if merchant can receive notifications
-   */
-  canSendNotification(merchant) {
-    // Check if push notifications are enabled
-    if (!merchant.notificationSettings?.pushEnabled || !merchant.notificationSettings?.newOrders) {
-      return false;
-    }
-
-    // Check if merchant has active device tokens
-    const hasActiveTokens = merchant.deviceTokens?.some(dt => dt.isActive && dt.token);
-    if (!hasActiveTokens) {
-      return false;
-    }
-
-    // Check quiet hours if enabled
-    if (merchant.notificationSettings?.quietHoursEnabled) {
-      const now = new Date();
-      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      const quietStart = merchant.notificationSettings.quietHoursStart;
-      const quietEnd = merchant.notificationSettings.quietHoursEnd;
-
-      if (this.isTimeInQuietHours(currentTime, quietStart, quietEnd)) {
-        console.log(`Merchant in quiet hours: ${quietStart} - ${quietEnd}`);
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Check if current time is within quiet hours
-   */
-  isTimeInQuietHours(currentTime, startTime, endTime) {
-    if (!startTime || !endTime) return false;
-
-    const [currentHour, currentMinute] = currentTime.split(':').map(Number);
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
-
-    const currentMinutes = currentHour * 60 + currentMinute;
-    const startMinutes = startHour * 60 + startMinute;
-    const endMinutes = endHour * 60 + endMinute;
-
-    if (startMinutes <= endMinutes) {
-      // Same day range
-      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-    } else {
-      // Crosses midnight
-      return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
-    }
-  }
-
-  /**
    * Cleanup notification data
    */
   cleanupNotification(notificationKey) {
     try {
-      // Clear timeout
       const activeNotification = this.activeNotifications.get(notificationKey);
       if (activeNotification?.timeout) {
         clearTimeout(activeNotification.timeout);
       }
 
-      // Remove from active notifications
       this.activeNotifications.delete(notificationKey);
 
-      // Keep queue data for analytics but mark as completed
       const queueData = this.notificationQueue.get(notificationKey);
       if (queueData) {
         queueData.completedAt = new Date();
         queueData.isCompleted = true;
 
-        // Remove completed notifications after 1 hour
         setTimeout(() => {
           this.notificationQueue.delete(notificationKey);
         }, 60 * 60 * 1000);

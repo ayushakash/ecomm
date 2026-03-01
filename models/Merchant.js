@@ -183,8 +183,19 @@ merchantSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Generate and save OTP (same as User schema)
 merchantSchema.methods.generateOTP = function() {
-  this.otp = '1234'; // For demo purposes
-  this.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  // Use real 6-digit OTP when MSG91_OTP_ENABLED=true, otherwise use 1234 for development
+  const useRealOTP = process.env.MSG91_OTP_ENABLED === 'true';
+
+  if (useRealOTP) {
+    // Generate random 6-digit OTP
+    this.otp = Math.floor(100000 + Math.random() * 900000).toString();
+  } else {
+    // Fallback to 1234 for development/testing
+    this.otp = '1234';
+  }
+
+  const otpExpiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 10;
+  this.otpExpiry = new Date(Date.now() + otpExpiryMinutes * 60 * 1000);
   return this.otp;
 };
 

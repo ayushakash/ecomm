@@ -114,7 +114,6 @@ const Checkout = () => {
     queryFn: () => orderAPI.calculateCartTotals(cartItems, formData.customerArea, selectedAddress?._id),
     enabled: cart.length > 0
   });
-  console.log("PRICING DATAAAA",pricingData)
 
   // Fetch saved addresses
   const { data: addressesData, isLoading: addressesLoading, refetch: refetchAddresses } = useQuery({
@@ -174,7 +173,6 @@ const Checkout = () => {
     const createOrderMutation = useMutation({
     mutationFn: (orderData) => orderAPI.createOrder(orderData),
     onSuccess: (res) => {
-      console.log("✅ Order created:", res.data);
 
       const newOrder = res.data.order || res.data;
 
@@ -654,7 +652,6 @@ const Checkout = () => {
       totalAmount: finalPricing.totalAmount
     };
 
-    console.log('Order data being sent:', JSON.stringify(orderData, null, 2));
     createOrderMutation.mutate(orderData);
   };
 
