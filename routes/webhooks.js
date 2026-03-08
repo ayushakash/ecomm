@@ -154,6 +154,73 @@ router.post('/merchant-response', verifyWebhookSecret, async (req, res) => {
 });
 
 /**
+ * @route   GET /api/webhooks/merchant-order-action
+ * @desc    Handle merchant accept/reject via WhatsApp CTA button tap (opens in browser)
+ * @access  Public (URL opened in merchant's browser from WhatsApp)
+ */
+router.get('/merchant-order-action', async (req, res) => {
+  const { action, data } = req.query;
+
+  const sendHTML = (title, message, color) => res.send(`
+    <!DOCTYPE html><html><head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>${title}</title>
+    <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f9fafb;}
+    .card{background:#fff;border-radius:16px;padding:40px 32px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:360px;width:90%;}
+    .icon{font-size:48px;margin-bottom:16px;} h1{color:${color};margin:0 0 8px;font-size:22px;} p{color:#6b7280;margin:0;font-size:15px;}</style>
+    </head><body><div class="card"><div class="icon">${color === '#16a34a' ? '✅' : '❌'}</div>
+    <h1>${title}</h1><p>${message}</p></div></body></html>
+  `);
+
+  try {
+    if (!action || !data) return sendHTML('Invalid Link', 'This link is missing required information.', '#dc2626');
+    if (!['accept', 'reject'].includes(action)) return sendHTML('Invalid Action', 'Unknown action requested.', '#dc2626');
+
+    // data format: orderId.itemId.merchantPhone
+    const parts = data.split('.');
+    if (parts.length < 3) return sendHTML('Invalid Link', 'Order data is malformed.', '#dc2626');
+
+    const merchantPhone = parts[parts.length - 1];
+    const itemId = parts[parts.length - 2];
+    const orderId = parts.slice(0, parts.length - 2).join('.');
+
+    const merchant = await Merchant.findOne({ phone: merchantPhone });
+    if (!merchant) return sendHTML('Not Found', 'Merchant account not found.', '#dc2626');
+
+    const order = await Order.findById(orderId);
+    if (!order) return sendHTML('Not Found', 'Order not found or already processed.', '#dc2626');
+
+    const item = order.items.find(i => i._id.toString() === itemId);
+    if (!item) return sendHTML('Not Found', 'Order item not found.', '#dc2626');
+
+    if (item.itemStatus !== 'pending') {
+      return sendHTML(
+        'Already Processed',
+        `This order has already been ${item.itemStatus}.`,
+        '#f59e0b'
+      );
+    }
+
+    await SequentialNotificationService.handleMerchantResponse(orderId, itemId, merchant._id, action);
+
+    if (action === 'accept') {
+      item.itemStatus = 'assigned';
+      item.assignedMerchant = merchant._id;
+      item.assignedAt = new Date();
+      await order.save();
+      console.log(`✅ Order ${orderId} item ${itemId} accepted by ${merchant.name} via URL button`);
+      return sendHTML('Order Accepted!', `You have accepted order #${order.orderNumber}. The customer will be notified.`, '#16a34a');
+    } else {
+      console.log(`❌ Order ${orderId} item ${itemId} rejected by ${merchant.name} via URL button`);
+      return sendHTML('Order Rejected', `You have rejected order #${order.orderNumber}. We will notify the next available merchant.`, '#6b7280');
+    }
+  } catch (error) {
+    console.error('❌ merchant-order-action error:', error);
+    return sendHTML('Error', 'Something went wrong. Please try again.', '#dc2626');
+  }
+});
+
+/**
  * @route   POST /api/webhooks/msg91-whatsapp
  * @desc    Handle MSG91 WhatsApp callbacks (button clicks, message status)
  * @access  Webhook

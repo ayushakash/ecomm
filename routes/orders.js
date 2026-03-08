@@ -1107,8 +1107,9 @@ router.put('/:id/cancel', [verifyToken, requireCustomer], async (req, res) => {
 
     // Cancel all items immediately
     for (const item of order.items) {
-      item.itemStatus = 'cancelled'; // Fixed: was item.status, should be item.itemStatus
+      item.itemStatus = 'cancelled';
     }
+    order.paymentStatus = 'cancelled';
 
     await order.save();
     res.json({ message: 'Order cancelled successfully', order: cleanOrderResponse(order) });
@@ -1186,6 +1187,7 @@ router.put('/admin/:id/cancel', [verifyToken, requireAdmin], async (req, res) =>
     for (const item of order.items) {
       item.itemStatus = 'cancelled';
     }
+    order.paymentStatus = 'cancelled';
 
     await order.save();
     res.json({ message: 'Order cancelled successfully by admin', order: cleanOrderResponse(order) });

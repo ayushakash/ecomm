@@ -149,8 +149,8 @@ const OrderDetail = () => {
               <span className="font-medium">₹{order.tax}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Delivery Charge:</span>
-              <span className="font-medium">₹{order.deliveryCharge}</span>
+              <span className="text-gray-600">Delivery Charge{order.deliveryCharge === 0 ? ' (Free)' : ''}:</span>
+              <span className="font-medium">{order.deliveryCharge === 0 ? '₹0' : `₹${order.deliveryCharge}`}</span>
             </div>
             <div className="flex justify-between text-lg font-bold border-t border-gray-200 pt-2">
               <span className="text-gray-900">Total:</span>
@@ -172,18 +172,38 @@ const OrderDetail = () => {
               <p className="font-medium text-gray-900">{order.customerPhone}</p>
             </div>
             <div className="md:col-span-2">
-              <p className="text-sm text-gray-600">Address</p>
-              <p className="font-medium text-gray-900">{order.customerAddress}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Area</p>
-              <p className="font-medium text-gray-900">{order.customerArea}</p>
+              <p className="text-sm text-gray-600">Deliver To</p>
+              {order.deliveryAddressId ? (
+                <p className="font-medium text-gray-900">
+                  {order.deliveryAddressId.addressLine1}
+                  {order.deliveryAddressId.addressLine2 && `, ${order.deliveryAddressId.addressLine2}`}
+                  {order.deliveryAddressId.landmark && ` (Near ${order.deliveryAddressId.landmark})`}
+                  {`, ${order.deliveryAddressId.area}, ${order.deliveryAddressId.city}, ${order.deliveryAddressId.state} - ${order.deliveryAddressId.pincode}`}
+                </p>
+              ) : (
+                <p className="font-medium text-gray-900">
+                  {order.customerAddress}{order.customerArea && `, ${order.customerArea}`}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-sm text-gray-600">Payment Method</p>
               <p className="font-medium text-gray-900">
                 {order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment'}
               </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Payment Status</p>
+              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
+                order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
+                order.paymentStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
+                order.paymentStatus === 'refunded' ? 'bg-blue-100 text-blue-700' :
+                'bg-yellow-100 text-yellow-700'
+              }`}>
+                {order.paymentStatus === 'paid' ? 'Paid' :
+                 order.paymentStatus === 'cancelled' ? 'Cancelled' :
+                 order.paymentStatus === 'refunded' ? 'Refunded' : 'Pending (COD)'}
+              </span>
             </div>
           </div>
         </div>

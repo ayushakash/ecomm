@@ -174,7 +174,7 @@ const Cart = () => {
                               updateQuantity(item.cartKey, newQty);
                             }}
                             min="1"
-                            className="w-10 text-center text-sm font-semibold border-x border-gray-300 py-1 focus:outline-none"
+                            className="w-10 text-center text-sm font-semibold border-x border-gray-300 py-1 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             onClick={() => updateQuantity(item.cartKey, item.quantity + 1)}
@@ -337,13 +337,6 @@ const Cart = () => {
                 </button>
               </div>
 
-              {/* Trust indicators */}
-              <div className="mt-6 pt-6 border-t-2 border-gray-100">
-                <div className="flex items-center text-sm text-gray-600 bg-green-50 p-3 rounded-xl">
-                  <ShieldCheckIcon className="h-5 w-5 mr-2 text-green-600" />
-                  <span className="font-medium">Secure checkout with SSL encryption</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>

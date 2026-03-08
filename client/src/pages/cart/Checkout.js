@@ -716,6 +716,13 @@ const Checkout = () => {
               </span>
               <span className="font-medium">₹{Math.round(finalPricing.deliveryCharges).toLocaleString()}</span>
             </div>
+            {pricingData?.breakdown?.deliveryConfig?.type === 'threshold' &&
+             pricingData.breakdown.deliveryConfig.freeDeliveryThreshold > 0 &&
+             finalPricing.subtotal < pricingData.breakdown.deliveryConfig.freeDeliveryThreshold && (
+              <div className="text-xs text-primary-700 bg-primary-50 rounded-lg px-3 py-2">
+                Add ₹{(pricingData.breakdown.deliveryConfig.freeDeliveryThreshold - finalPricing.subtotal).toLocaleString()} more for free delivery
+              </div>
+            )}
             {finalPricing.platformFee && finalPricing.platformFee > 0 && (
               <div className="flex justify-between">
                 <span className="text-gray-600">Platform Fee:</span>

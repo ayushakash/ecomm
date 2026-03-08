@@ -179,6 +179,11 @@ const Addresses = () => {
                           <p className="font-medium text-gray-700">
                             {address.area}, {address.city}, {address.state} - {address.pincode}
                           </p>
+                          {address.coordinates?.latitude && address.coordinates?.longitude && (
+                            <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-2 py-1 inline-block mt-1">
+                              📍 GPS: {address.coordinates.latitude.toFixed(4)}, {address.coordinates.longitude.toFixed(4)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
