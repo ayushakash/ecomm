@@ -184,8 +184,23 @@ router.get('/merchant-order-action', async (req, res) => {
     const itemId = parts[parts.length - 2];
     const orderId = parts.slice(0, parts.length - 2).join('.');
 
-    const merchant = await Merchant.findOne({ phone: merchantPhone });
-    if (!merchant) return sendHTML('Not Found', 'Merchant account not found.', '#dc2626');
+    console.log('🔗 merchant-order-action:', { action, orderId, itemId, merchantPhone, rawData: data });
+
+    // Try phone as-is, then strip country code prefix (91), then add it
+    const phoneVariants = [
+      merchantPhone,
+      merchantPhone.replace(/^91/, ''),
+      merchantPhone.startsWith('91') ? merchantPhone : `91${merchantPhone}`
+    ];
+    let merchant = null;
+    for (const phone of phoneVariants) {
+      merchant = await Merchant.findOne({ phone });
+      if (merchant) break;
+    }
+    if (!merchant) {
+      console.error('❌ Merchant not found for phone variants:', phoneVariants);
+      return sendHTML('Not Found', 'Merchant account not found.', '#dc2626');
+    }
 
     const order = await Order.findById(orderId);
     if (!order) return sendHTML('Not Found', 'Order not found or already processed.', '#dc2626');

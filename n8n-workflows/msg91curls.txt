@@ -168,6 +168,48 @@ curl --location --request POST
 }'
 
 
+merchant new order (to merchant with accept/reject buttons)
+NOTE: button_1 = Accept (index 0), button_2 = Reject (index 1)
+      data value = orderId.itemId.merchantPhone (dot-separated)
+
+curl --location --request POST \
+  'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/' \
+  --header 'Content-Type: application/json' \
+  --header 'authkey: <authkey>' \
+  --data-raw '{
+    "integrated_number": "916201176610",
+    "content_type": "template",
+    "payload": {
+        "messaging_product": "whatsapp",
+        "type": "template",
+        "template": {
+            "name": "merchantneworder_uat",
+            "language": {
+                "code": "en",
+                "policy": "deterministic"
+            },
+            "namespace": "2d94a314_a4ca_45d8_a3a5_3970af9d866a",
+            "to_and_components": [
+                {
+                    "to": ["91<merchant_phone>"],
+                    "components": {
+                        "body_1": { "type": "text", "value": "ORD-001" },
+                        "body_2": { "type": "text", "value": "2x Cement, 1x Sand" },
+                        "body_3": { "type": "text", "value": "1500" },
+                        "body_4": { "type": "text", "value": "Cash on Delivery" },
+                        "body_5": { "type": "text", "value": "Koramangala" },
+                        "body_6": { "type": "text", "value": "123 Main St, Bangalore" },
+                        "body_7": { "type": "text", "value": "2.5" },
+                        "button_1": { "type": "text", "subtype": "url", "index": "0", "value": "<orderId>.<itemId>.<merchantPhone>" },
+                        "button_2": { "type": "text", "subtype": "url", "index": "1", "value": "<orderId>.<itemId>.<merchantPhone>" }
+                    }
+                }
+            ]
+        }
+    }
+}'
+
+
 merchant order acceptance
 
 curl --location --request POST
