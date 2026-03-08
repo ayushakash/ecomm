@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { addressAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import AddressFormModal from '../../components/modals/AddressFormModal';
 import {
   MapPinIcon,
   PlusIcon,
@@ -10,13 +11,11 @@ import {
   TrashIcon,
   HomeIcon,
   BuildingOfficeIcon,
-  StarIcon,
   XMarkIcon,
-  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
 const Profile = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, sendLinkPhoneOTP, linkPhone, sendChangeEmailOTP, verifyChangeEmail } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -25,57 +24,19 @@ const Profile = () => {
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    address: user?.address || '',
-    area: user?.area || ''
   });
-  const [addressForm, setAddressForm] = useState({
-    title: '',
-    fullName: '',
-    phoneNumber: '',
-    addressLine1: '',
-    addressLine2: '',
-    landmark: '',
-    area: '',
-    city: '',
-    state: '',
-    pincode: '',
-    addressType: 'home'
-  });
-  const [addressErrors, setAddressErrors] = useState({});
+
+  // OTP verification state
+  const [otpStep, setOtpStep] = useState(null); // null | 'phone' | 'email'
+  const [otpValue, setOtpValue] = useState('');
+  const [pendingPhone, setPendingPhone] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
 
   // Fetch addresses
   const { data: addressesData, isLoading: addressesLoading, refetch } = useQuery({
     queryKey: ['addresses'],
     queryFn: () => addressAPI.getAllAddresses(),
-  });
-
-  // Create address mutation
-  const createAddressMutation = useMutation({
-    mutationFn: (addressData) => addressAPI.createAddress(addressData),
-    onSuccess: () => {
-      toast.success('Address added successfully!');
-      setShowAddModal(false);
-      resetAddressForm();
-      refetch();
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to add address');
-    }
-  });
-
-  // Update address mutation
-  const updateAddressMutation = useMutation({
-    mutationFn: ({ id, data }) => addressAPI.updateAddress(id, data),
-    onSuccess: () => {
-      toast.success('Address updated successfully!');
-      setShowEditModal(false);
-      setEditingAddress(null);
-      resetAddressForm();
-      refetch();
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to update address');
-    }
   });
 
   // Delete address mutation
@@ -102,100 +63,6 @@ const Profile = () => {
     }
   });
 
-  const resetAddressForm = () => {
-    setAddressForm({
-      title: '',
-      fullName: '',
-      phoneNumber: '',
-      addressLine1: '',
-      addressLine2: '',
-      landmark: '',
-      area: '',
-      city: '',
-      state: '',
-      pincode: '',
-      addressType: 'home'
-    });
-    setAddressErrors({});
-  };
-
-  // Validation function - matches backend validation in Address model
-  const validateAddressForm = () => {
-    const errors = {};
-
-    // Title validation - Backend: required, max 50 chars
-    if (!addressForm.title.trim()) {
-      errors.title = 'Address title is required';
-    } else if (addressForm.title.trim().length > 50) {
-      errors.title = 'Address title cannot exceed 50 characters';
-    }
-
-    // Full Name validation - Backend: required, max 100 chars
-    if (!addressForm.fullName.trim()) {
-      errors.fullName = 'Full name is required';
-    } else if (addressForm.fullName.trim().length > 100) {
-      errors.fullName = 'Full name cannot exceed 100 characters';
-    }
-
-    // Phone Number validation - Backend: required, must be Indian format [6-9]\d{9}
-    if (!addressForm.phoneNumber.trim()) {
-      errors.phoneNumber = 'Phone number is required';
-    } else {
-      const cleanPhone = addressForm.phoneNumber.replace(/\s/g, '');
-      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-        errors.phoneNumber = 'Please enter a valid Indian phone number (10 digits starting with 6-9)';
-      }
-    }
-
-    // Address Line 1 validation - Backend: required, max 200 chars
-    if (!addressForm.addressLine1.trim()) {
-      errors.addressLine1 = 'Address line 1 is required';
-    } else if (addressForm.addressLine1.trim().length > 200) {
-      errors.addressLine1 = 'Address line 1 cannot exceed 200 characters';
-    }
-
-    // Address Line 2 validation - Backend: optional, max 200 chars
-    if (addressForm.addressLine2 && addressForm.addressLine2.trim().length > 200) {
-      errors.addressLine2 = 'Address line 2 cannot exceed 200 characters';
-    }
-
-    // Landmark validation - Backend: optional, max 100 chars
-    if (addressForm.landmark && addressForm.landmark.trim().length > 100) {
-      errors.landmark = 'Landmark cannot exceed 100 characters';
-    }
-
-    // Area validation - Backend: required, max 100 chars
-    if (!addressForm.area.trim()) {
-      errors.area = 'Area is required';
-    } else if (addressForm.area.trim().length > 100) {
-      errors.area = 'Area cannot exceed 100 characters';
-    }
-
-    // City validation - Backend: required, max 50 chars
-    if (!addressForm.city.trim()) {
-      errors.city = 'City is required';
-    } else if (addressForm.city.trim().length > 50) {
-      errors.city = 'City cannot exceed 50 characters';
-    }
-
-    // State validation - Backend: required, max 50 chars
-    if (!addressForm.state.trim()) {
-      errors.state = 'State is required';
-    } else if (addressForm.state.trim().length > 50) {
-      errors.state = 'State cannot exceed 50 characters';
-    }
-
-    // Pincode validation - Backend: required, must be 6 digits
-    if (!addressForm.pincode.trim()) {
-      errors.pincode = 'Pincode is required';
-    } else if (!/^\d{6}$/.test(addressForm.pincode.replace(/\s/g, ''))) {
-      errors.pincode = 'Please enter a valid 6-digit pincode';
-    }
-
-    setAddressErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
   const getAddressIcon = (type) => {
     switch (type) {
       case 'home':
@@ -209,12 +76,80 @@ const Profile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      await updateProfile(formData);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
+    const phoneChanged = formData.phone && formData.phone !== user?.phone;
+    const emailChanged = formData.email && formData.email !== user?.email;
+
+    // Save name immediately if it changed (name never needs OTP)
+    if (formData.name !== user?.name) {
+      await updateProfile({ name: formData.name });
     }
+
+    // If phone changed — trigger phone OTP flow
+    if (phoneChanged) {
+      setIsSendingOtp(true);
+      const result = await sendLinkPhoneOTP(formData.phone);
+      setIsSendingOtp(false);
+      if (result.success) {
+        setPendingPhone(formData.phone);
+        setOtpStep('phone');
+        setOtpValue('');
+      }
+      return;
+    }
+
+    // If email changed — trigger email OTP flow
+    if (emailChanged) {
+      setIsSendingOtp(true);
+      const result = await sendChangeEmailOTP(formData.email);
+      setIsSendingOtp(false);
+      if (result.success) {
+        setPendingEmail(formData.email);
+        setOtpStep('email');
+        setOtpValue('');
+      }
+      return;
+    }
+
+    // Nothing sensitive changed
+    setIsEditing(false);
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpStep === 'phone') {
+      const result = await linkPhone(pendingPhone, otpValue);
+      if (result.success) {
+        setOtpStep(null);
+        setIsEditing(false);
+        // Check if email also changed
+        if (formData.email !== user?.email) {
+          setIsSendingOtp(true);
+          const emailResult = await sendChangeEmailOTP(formData.email);
+          setIsSendingOtp(false);
+          if (emailResult.success) {
+            setPendingEmail(formData.email);
+            setOtpStep('email');
+            setOtpValue('');
+          }
+        }
+      }
+    } else if (otpStep === 'email') {
+      const result = await verifyChangeEmail(pendingEmail, otpValue);
+      if (result.success) {
+        setOtpStep(null);
+        setIsEditing(false);
+      }
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsSendingOtp(true);
+    if (otpStep === 'phone') {
+      await sendLinkPhoneOTP(pendingPhone);
+    } else if (otpStep === 'email') {
+      await sendChangeEmailOTP(pendingEmail);
+    }
+    setIsSendingOtp(false);
+    setOtpValue('');
   };
 
   const handleInputChange = (e) => {
@@ -225,25 +160,12 @@ const Profile = () => {
   };
 
   const handleAddNew = () => {
-    resetAddressForm();
+    setEditingAddress(null);
     setShowAddModal(true);
   };
 
   const handleEdit = (address) => {
     setEditingAddress(address);
-    setAddressForm({
-      title: address.title || '',
-      fullName: address.fullName || '',
-      phoneNumber: address.phoneNumber || '',
-      addressLine1: address.addressLine1 || '',
-      addressLine2: address.addressLine2 || '',
-      landmark: address.landmark || '',
-      area: address.area || '',
-      city: address.city || '',
-      state: address.state || '',
-      pincode: address.pincode || '',
-      addressType: address.addressType || 'home'
-    });
     setShowEditModal(true);
   };
 
@@ -253,528 +175,275 @@ const Profile = () => {
     }
   };
 
-  const handleAddressSubmit = (e) => {
-    e.preventDefault();
-    if (!validateAddressForm()) {
-      toast.error('Please fix the errors in the form');
-      return;
-    }
-    if (editingAddress) {
-      updateAddressMutation.mutate({
-        id: editingAddress._id,
-        data: addressForm
-      });
-    } else {
-      createAddressMutation.mutate(addressForm);
-    }
+  const closeAddressModal = () => {
+    setShowAddModal(false);
+    setShowEditModal(false);
+    setEditingAddress(null);
   };
 
-  const handleAddressInputChange = (e) => {
-    setAddressForm({
-      ...addressForm,
-      [e.target.name]: e.target.value
-    });
-  };
+  const initials = user?.name
+    ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : '?';
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header with solid color */}
-        <div className="bg-primary-700 rounded-xl shadow-lg p-6 sm:p-8 mb-6 text-white">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold mb-1">My Profile</h1>
-              <p className="text-gray-100 text-sm">Manage your personal information</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+
+        {/* Profile Card */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          {/* Accent strip */}
+          <div className="h-1.5 bg-primary-700" />
+
+          <div className="p-5">
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
+              <div className="w-14 h-14 rounded-full bg-primary-700 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span className="text-white text-lg font-bold tracking-wide">{initials}</span>
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-gray-900 truncate">{user?.name || '—'}</p>
+                {user?.email && <p className="text-xs text-gray-500 truncate mt-0.5">{user.email}</p>}
+                {user?.phone && <p className="text-xs text-gray-500 mt-0.5">{user.phone}</p>}
+              </div>
+
+              {/* Edit toggle — small pill button */}
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors flex-shrink-0 ${
+                  isEditing
+                    ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100'
+                    : 'border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                {isEditing
+                  ? <><XMarkIcon className="w-3.5 h-3.5" /> Cancel</>
+                  : <><PencilIcon className="w-3.5 h-3.5" /> Edit</>
+                }
+              </button>
             </div>
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="bg-white text-secondary-600 px-5 py-2.5 rounded-xl hover:bg-secondary-50 font-semibold shadow-md transition-all duration-200 transform hover:scale-105 self-start sm:self-auto"
-            >
-              {isEditing ? '✕ Cancel' : '✏️ Edit Profile'}
-            </button>
+
+            {/* OTP verification step */}
+            {otpStep && (
+              <div className="mt-5 pt-5 border-t border-gray-100">
+                <div className="bg-primary-50 border border-primary-200 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-primary-900 mb-1">
+                    {otpStep === 'phone' ? 'Verify new phone number' : 'Verify new email address'}
+                  </p>
+                  <p className="text-xs text-primary-700 mb-4">
+                    We sent a 6-digit code to{' '}
+                    <span className="font-semibold">
+                      {otpStep === 'phone' ? pendingPhone : pendingEmail}
+                    </span>. Enter it below to confirm.
+                  </p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otpValue}
+                    onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Enter 6-digit code"
+                    className="w-full px-3 py-2 text-sm text-center tracking-widest font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none mb-3"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setOtpStep(null); setOtpValue(''); }}
+                      className="flex-1 py-2 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={isSendingOtp}
+                      className="px-3 py-2 text-xs font-semibold text-primary-700 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors disabled:opacity-50"
+                    >
+                      Resend
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      disabled={otpValue.length < 4}
+                      className="flex-1 py-2 text-xs font-semibold text-white bg-primary-700 hover:bg-primary-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Verify
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Inline edit form */}
+            {isEditing && !otpStep && (
+              <form onSubmit={handleSubmit} className="mt-5 pt-5 border-t border-gray-100 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Email
+                      {formData.email !== user?.email && (
+                        <span className="ml-1 text-amber-600">(will be verified)</span>
+                      )}
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Phone
+                      {formData.phone !== user?.phone && (
+                        <span className="ml-1 text-amber-600">(will be verified)</span>
+                      )}
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      maxLength={10}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSendingOtp}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-primary-700 hover:bg-primary-800 rounded-lg transition-colors disabled:opacity-60"
+                  >
+                    {isSendingOtp ? 'Sending code...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8">
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Addresses Card */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                👤 Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-600 transition-all duration-200"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                📧 Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-600 transition-all duration-200"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                📱 Phone Number
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-600 transition-all duration-200"
-              />
-            </div>
-          </div>
-
-          {isEditing && (
-            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:space-x-4 pt-4">
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold transition-all duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-3 bg-primary-700 hover:bg-primary-800 text-white rounded-xl font-semibold shadow-lg transition-all duration-200 transform hover:scale-105"
-              >
-                💾 Save Changes
-              </button>
-            </div>
-          )}
-        </form>
-      </div>
-
-      {/* Mobile Addresses Section */}
-      <div className="mt-8">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-primary-700">📍 My Addresses</h2>
-              <p className="text-sm text-gray-500 mt-1">Manage your delivery locations</p>
+              <h2 className="text-sm font-bold text-gray-900">Saved Addresses</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Manage your delivery locations</p>
             </div>
             <button
               onClick={handleAddNew}
-              className="inline-flex items-center px-5 py-3 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 self-start sm:self-auto"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-primary-800 text-white rounded-lg text-xs font-semibold transition-colors"
             >
-              <PlusIcon className="w-5 h-5 mr-2" />
-              Add New Address
+              <PlusIcon className="w-3.5 h-3.5" />
+              Add New
             </button>
           </div>
 
           {addressesLoading ? (
-            <div className="flex justify-center items-center h-32">
-              <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600"></div>
+            <div className="flex justify-center items-center h-20">
+              <span className="text-2xl animate-bounce">🏗️</span>
             </div>
           ) : addressesData?.addresses?.length > 0 ? (
-            <div className="space-y-4">
+            <div className="divide-y divide-gray-100">
               {addressesData.addresses.map((address) => {
                 const AddressIcon = getAddressIcon(address.addressType);
                 return (
-                  <div key={address._id} className="border-2 border-gray-200 rounded-xl p-5 hover:border-secondary-400 hover:shadow-lg transition-all duration-200 bg-white">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-primary-100 rounded-xl shadow-sm">
-                        <AddressIcon className="w-6 h-6 text-primary-700" />
+                  <div key={address._id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <AddressIcon className="w-4 h-4 text-primary-700" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-bold text-gray-900 truncate text-lg">
-                            {address.title}
-                          </h3>
-                          {address.isDefault && (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-success-600 text-white flex-shrink-0 shadow-sm">
-                              <StarIcon className="w-3 h-3 mr-0.5" />
-                              Default
-                            </span>
-                          )}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <span className="text-sm font-semibold text-gray-900 truncate">{address.title}</span>
+                            <span className="text-xs text-gray-400 capitalize">{address.addressType}</span>
+                            {address.isDefault && (
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">Default</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            <button
+                              onClick={() => handleEdit(address)}
+                              className="p-1.5 text-gray-400 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+                            >
+                              <PencilIcon className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(address)}
+                              disabled={deleteAddressMutation.isLoading}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                            >
+                              <TrashIcon className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-500 capitalize mb-3 font-medium">{address.addressType}</p>
-                        <p className="text-sm text-gray-700 font-semibold mb-1">{address.fullName}</p>
-                        <p className="text-sm text-gray-600 mb-2">📞 {address.phoneNumber}</p>
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {address.addressLine1}
-                          {address.addressLine2 && `, ${address.addressLine2}`}
+                        <p className="text-xs text-gray-600 mt-1">{address.fullName} · {address.phoneNumber}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                          {address.addressLine1}{address.addressLine2 && `, ${address.addressLine2}`}
+                          {address.landmark && ` · Near ${address.landmark}`}
                         </p>
-                        {address.landmark && (
-                          <p className="text-xs text-gray-500 mt-1">📍 Near: {address.landmark}</p>
+                        <p className="text-xs text-gray-500">{address.area}, {address.city} - {address.pincode}</p>
+                        {!address.isDefault && (
+                          <button
+                            onClick={() => setDefaultMutation.mutate(address._id)}
+                            disabled={setDefaultMutation.isLoading}
+                            className="mt-2 text-xs text-primary-700 hover:text-primary-800 font-semibold transition-colors disabled:opacity-40"
+                          >
+                            Set as default
+                          </button>
                         )}
-                        <p className="text-sm text-gray-700 font-medium mt-2">
-                          {address.area}, {address.city}, {address.state} - {address.pincode}
-                        </p>
                       </div>
-                    </div>
-
-                    {/* Address Actions */}
-                    <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
-                      {!address.isDefault && (
-                        <button
-                          onClick={() => setDefaultMutation.mutate(address._id)}
-                          disabled={setDefaultMutation.isLoading}
-                          className="flex-1 text-sm text-green-600 hover:text-white hover:bg-green-500 font-semibold py-2 rounded-lg transition-all duration-200 disabled:opacity-50"
-                        >
-                          ⭐ Set as Default
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleEdit(address)}
-                        className="p-2.5 text-blue-600 hover:text-white hover:bg-blue-500 rounded-lg transition-all duration-200"
-                      >
-                        <PencilIcon className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(address)}
-                        disabled={deleteAddressMutation.isLoading}
-                        className="p-2.5 text-red-600 hover:text-white hover:bg-red-500 rounded-lg transition-all duration-200 disabled:opacity-50"
-                      >
-                        <TrashIcon className="w-5 h-5" />
-                      </button>
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="text-center py-16">
-              <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MapPinIcon className="w-10 h-10 text-primary-700" />
+            <div className="text-center py-10 px-4">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <MapPinIcon className="w-6 h-6 text-gray-400" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">No addresses found</h3>
-              <p className="text-sm text-gray-600 mb-6">Add your first delivery address to get started</p>
+              <p className="text-sm font-semibold text-gray-700 mb-1">No addresses saved</p>
+              <p className="text-xs text-gray-400 mb-4">Add a delivery address to get started</p>
               <button
                 onClick={handleAddNew}
-                className="inline-flex items-center px-6 py-3 bg-primary-700 hover:bg-primary-800 text-white rounded-xl text-sm font-semibold shadow-lg transition-all duration-200 transform hover:scale-105"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-lg text-sm font-semibold transition-colors"
               >
-                <PlusIcon className="w-5 h-5 mr-2" />
-                Add Your First Address
+                <PlusIcon className="w-4 h-4" />
+                Add Address
               </button>
             </div>
           )}
         </div>
+
       </div>
-      </div>
 
-      {/* Add/Edit Address Modal */}
-      {(showAddModal || showEditModal) && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-t-xl md:rounded-xl shadow-lg max-w-2xl w-full mx-0 md:mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-                  {editingAddress ? 'Edit Address' : 'Add New Address'}
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setShowEditModal(false);
-                    setEditingAddress(null);
-                    resetAddressForm();
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XMarkIcon className="w-6 h-6" />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddressSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Address Title
-                      </label>
-                      <span className="text-xs text-gray-500">{addressForm.title.length}/50</span>
-                    </div>
-                    <input
-                      type="text"
-                      name="title"
-                      value={addressForm.title}
-                      onChange={handleAddressInputChange}
-                      placeholder="e.g., Home, Office"
-                      maxLength="50"
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        addressErrors.title ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    {addressErrors.title && (
-                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                        <span>⚠️</span> {addressErrors.title}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Address Type
-                    </label>
-                    <select
-                      name="addressType"
-                      value={addressForm.addressType}
-                      onChange={handleAddressInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="home">🏠 Home</option>
-                      <option value="office">🏢 Office</option>
-                      <option value="other">📍 Other</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Full Name
-                      </label>
-                      <span className="text-xs text-gray-500">{addressForm.fullName.length}/100</span>
-                    </div>
-                    <input
-                      type="text"
-                      name="fullName"
-                      value={addressForm.fullName}
-                      onChange={handleAddressInputChange}
-                      maxLength="100"
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        addressErrors.fullName ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    {addressErrors.fullName && (
-                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                        <span>⚠️</span> {addressErrors.fullName}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      name="phoneNumber"
-                      value={addressForm.phoneNumber}
-                      onChange={handleAddressInputChange}
-                      placeholder="10-digit (6-9 start)"
-                      maxLength="10"
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        addressErrors.phoneNumber ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    {addressErrors.phoneNumber && (
-                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                        <span>⚠️</span> {addressErrors.phoneNumber}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address Line 1
-                  </label>
-                  <input
-                    type="text"
-                    name="addressLine1"
-                    value={addressForm.addressLine1}
-                    onChange={handleAddressInputChange}
-                    placeholder="House/Flat number, Street name"
-                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      addressErrors.addressLine1 ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                    }`}
-                  />
-                  {addressErrors.addressLine1 && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                      <span>⚠️</span> {addressErrors.addressLine1}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Address Line 2 (Optional)
-                    </label>
-                    <span className="text-xs text-gray-500">{addressForm.addressLine2.length}/200</span>
-                  </div>
-                  <input
-                    type="text"
-                    name="addressLine2"
-                    value={addressForm.addressLine2}
-                    onChange={handleAddressInputChange}
-                    placeholder="Apartment, suite, etc."
-                    maxLength="200"
-                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      addressErrors.addressLine2 ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                    }`}
-                  />
-                  {addressErrors.addressLine2 && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                      <span>⚠️</span> {addressErrors.addressLine2}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Area/Locality
-                    </label>
-                    <input
-                      type="text"
-                      name="area"
-                      value={addressForm.area}
-                      onChange={handleAddressInputChange}
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        addressErrors.area ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    {addressErrors.area && (
-                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                        <span>⚠️</span> {addressErrors.area}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={addressForm.city}
-                      onChange={handleAddressInputChange}
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        addressErrors.city ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    {addressErrors.city && (
-                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                        <span>⚠️</span> {addressErrors.city}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Pincode
-                    </label>
-                    <input
-                      type="text"
-                      name="pincode"
-                      value={addressForm.pincode}
-                      onChange={handleAddressInputChange}
-                      placeholder="000000"
-                      maxLength="6"
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        addressErrors.pincode ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    {addressErrors.pincode && (
-                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                        <span>⚠️</span> {addressErrors.pincode}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      State
-                    </label>
-                    <input
-                      type="text"
-                      name="state"
-                      value={addressForm.state}
-                      onChange={handleAddressInputChange}
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        addressErrors.state ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    {addressErrors.state && (
-                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                        <span>⚠️</span> {addressErrors.state}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Landmark (Optional)
-                      </label>
-                      <span className="text-xs text-gray-500">{addressForm.landmark.length}/100</span>
-                    </div>
-                    <input
-                      type="text"
-                      name="landmark"
-                      value={addressForm.landmark}
-                      onChange={handleAddressInputChange}
-                      placeholder="Near a landmark"
-                      maxLength="100"
-                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        addressErrors.landmark ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    {addressErrors.landmark && (
-                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                        <span>⚠️</span> {addressErrors.landmark}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setShowEditModal(false);
-                      setEditingAddress(null);
-                      resetAddressForm();
-                    }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createAddressMutation.isLoading || updateAddressMutation.isLoading || Object.keys(addressErrors).length > 0}
-                    className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                      Object.keys(addressErrors).length > 0
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    } ${(createAddressMutation.isLoading || updateAddressMutation.isLoading) ? 'opacity-50' : ''}`}
-                  >
-                    {(createAddressMutation.isLoading || updateAddressMutation.isLoading)
-                      ? 'Saving...'
-                      : editingAddress
-                      ? 'Update Address'
-                      : 'Save Address'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddressFormModal
+        isOpen={showAddModal || showEditModal}
+        onClose={closeAddressModal}
+        onSuccess={refetch}
+        editingAddress={editingAddress}
+      />
     </div>
   );
 };

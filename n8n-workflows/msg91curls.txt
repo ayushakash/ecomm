@@ -1,0 +1,223 @@
+LOGIN/SIGNUP
+curl --location --request POST
+  'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/'
+  --header 'Content-Type: application/json'
+  --header 'authkey: <authkey>'
+  --data-raw '{
+    "integrated_number": "916201176610",
+    "content_type": "template",
+    "payload": {
+        "messaging_product": "whatsapp",
+        "type": "template",
+        "template": {
+            "name": "loginotp",
+            "language": {
+                "code": "en",
+                "policy": "deterministic"
+            },
+            "namespace": "2d94a314_a4ca_45d8_a3a5_3970af9d866a",
+            "to_and_components": [
+                {
+                    "to": [
+                        "<list_of_phone_numbers>"
+                    ],
+                    "components": {
+                        "body_1": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "button_1": {
+                            "subtype": "url",
+                            "type": "text",
+                            "value": "<{{url text variable}}>"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}'
+
+order confirmation user 
+curl --location --request POST
+  'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/'
+  --header 'Content-Type: application/json'
+  --header 'authkey: <authkey>'
+  --data-raw '{
+    "integrated_number": "916201176610",
+    "content_type": "template",
+    "payload": {
+        "messaging_product": "whatsapp",
+        "type": "template",
+        "template": {
+            "name": "orderconfirmation",
+            "language": {
+                "code": "en",
+                "policy": "deterministic"
+            },
+            "namespace": "2d94a314_a4ca_45d8_a3a5_3970af9d866a",
+            "to_and_components": [
+                {
+                    "to": [
+                        "<list_of_phone_numbers>"
+                    ],
+                    "components": {
+                        "body_1": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_2": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_3": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_4": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_5": {
+                            "type": "text",
+                            "value": "value1"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}'
+
+orderdispatched user
+curl --location --request POST
+  'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/'
+  --header 'Content-Type: application/json'
+  --header 'authkey: <authkey>'
+  --data-raw '{
+    "integrated_number": "916201176610",
+    "content_type": "template",
+    "payload": {
+        "messaging_product": "whatsapp",
+        "type": "template",
+        "template": {
+            "name": "orderdispatched",
+            "language": {
+                "code": "en",
+                "policy": "deterministic"
+            },
+            "namespace": "2d94a314_a4ca_45d8_a3a5_3970af9d866a",
+            "to_and_components": [
+                {
+                    "to": [
+                        "<list_of_phone_numbers>"
+                    ],
+                    "components": {
+                        "body_1": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_2": {
+                            "type": "text",
+                            "value": "value1"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}'
+
+order delivered
+curl --location --request POST
+  'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/'
+  --header 'Content-Type: application/json'
+  --header 'authkey: <authkey>'
+  --data-raw '{
+    "integrated_number": "916201176610",
+    "content_type": "template",
+    "payload": {
+        "messaging_product": "whatsapp",
+        "type": "template",
+        "template": {
+            "name": "orderdelivery",
+            "language": {
+                "code": "en",
+                "policy": "deterministic"
+            },
+            "namespace": "2d94a314_a4ca_45d8_a3a5_3970af9d866a",
+            "to_and_components": [
+                {
+                    "to": [
+                        "<list_of_phone_numbers>"
+                    ],
+                    "components": {
+                        "body_1": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_2": {
+                            "type": "text",
+                            "value": "value1"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}'
+
+
+merchant order acceptance
+
+curl --location --request POST
+  'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/'
+  --header 'Content-Type: application/json'
+  --header 'authkey: <authkey>'
+  --data-raw '{
+    "integrated_number": "916201176610",
+    "content_type": "template",
+    "payload": {
+        "messaging_product": "whatsapp",
+        "type": "template",
+        "template": {
+            "name": "merchantorderacceptance",
+            "language": {
+                "code": "en",
+                "policy": "deterministic"
+            },
+            "namespace": "2d94a314_a4ca_45d8_a3a5_3970af9d866a",
+            "to_and_components": [
+                {
+                    "to": [
+                        "<list_of_phone_numbers>"
+                    ],
+                    "components": {
+                        "body_1": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_2": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_3": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_4": {
+                            "type": "text",
+                            "value": "value1"
+                        },
+                        "body_5": {
+                            "type": "text",
+                            "value": "value1"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}'
+
+

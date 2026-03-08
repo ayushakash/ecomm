@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation as useRouterLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
-import { LocationProvider, useLocation } from './contexts/LocationContext';
-import LocationPermissionModal from './components/location/LocationPermissionModal';
+import { LocationProvider } from './contexts/LocationContext';
 import analytics from './services/analytics';
 
 // Layout Components
@@ -160,9 +160,8 @@ function AppRoutes() {
   );
 }
 
-// Wrapper component to access LocationContext
+// Wrapper component to track analytics
 function AppContent() {
-  const { showLocationModal, requestLocationPermission, skipLocationPermission } = useLocation();
   const location = useRouterLocation();
 
   // Initialize analytics on app load
@@ -175,30 +174,22 @@ function AppContent() {
     analytics.trackPageView(location.pathname, document.title);
   }, [location]);
 
-  return (
-    <>
-      <AppRoutes />
-      <LocationPermissionModal
-        isOpen={showLocationModal}
-        onEnableLocation={requestLocationPermission}
-        onSkip={skipLocationPermission}
-        onClose={skipLocationPermission}
-      />
-    </>
-  );
+  return <AppRoutes />;
 }
 
 function App() {
   return (
-    <HelmetProvider>
-      <AuthProvider>
-        <LocationProvider>
-          <CartProvider>
-            <AppContent />
-          </CartProvider>
-        </LocationProvider>
-      </AuthProvider>
-    </HelmetProvider>
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
+      <HelmetProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <CartProvider>
+              <AppContent />
+            </CartProvider>
+          </LocationProvider>
+        </AuthProvider>
+      </HelmetProvider>
+    </GoogleOAuthProvider>
   );
 }
 

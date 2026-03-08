@@ -1,0 +1,321 @@
+{
+  "instructions": {
+    "url": "http://localhost:5678/webhook/order-events",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "note": "Send each payload separately in Postman. All notifications will go to 918553545862."
+  },
+
+  "1_order_created_smart": {
+    "description": "Merchant gets new order notification (order_created_smart)",
+    "eventType": "order_created_smart",
+    "orderId": "6991bcaa5416c77c0648c845",
+    "itemId": "6991bcaa5416c77c0648c846",
+    "timestamp": "2026-02-15T12:31:38.628Z",
+    "orderData": {
+      "orderNumber": "ORD2602150001",
+      "customerId": "68cebcc6cd79e2fe7030db6e",
+      "customerName": "Ayush Akash",
+      "customerPhone": "8553545862",
+      "customerAddress": "241/b new ag co operative colony kadru, ranchi",
+      "customerArea": "kadru",
+      "totalAmount": 957.51,
+      "subtotal": 754,
+      "tax": 135.72,
+      "deliveryCharge": 50,
+      "orderStatus": "pending",
+      "paymentStatus": "pending",
+      "paymentMethod": "cod",
+      "deliveryInstructions": "",
+      "expectedDeliveryDate": "2026-02-22T12:31:38.567Z",
+      "items": [
+        {
+          "_id": "6991bcaa5416c77c0648c846",
+          "productId": "6939c86a5a54c337c9961707",
+          "productName": "Birla white",
+          "quantity": 2,
+          "totalPrice": 754,
+          "itemStatus": "pending"
+        }
+      ]
+    },
+    "triggeredBy": null,
+    "customerLocation": {
+      "type": "Point",
+      "coordinates": [85.324, 23.3441],
+      "address": "241/b new ag co operative colony kadru, ranchi",
+      "area": "kadru",
+      "pincode": "834002",
+      "city": "Ranchi",
+      "state": "jharkhand"
+    },
+    "merchantData": {
+      "_id": "68cebe54610090c69adc5fbb",
+      "name": "Ayush Akash",
+      "phone": "8553545862",
+      "address": "Mishra Traders , new ag co opertaive colony kadru Ranchi",
+      "area": "Kadru",
+      "businessType": "Building Materials",
+      "distance": 5.13,
+      "score": 58,
+      "priority": "low"
+    },
+    "smartData": {
+      "distance": 5.13,
+      "score": 58,
+      "priority": "low",
+      "rank": 1,
+      "totalMerchants": 1,
+      "isSequential": true
+    },
+    "notificationRules": {}
+  },
+
+  "2_order_created": {
+    "description": "Customer gets order confirmation (order_created)",
+    "eventType": "order_created",
+    "orderId": "6991bcaa5416c77c0648c845",
+    "timestamp": "2026-02-15T12:31:38.600Z",
+    "orderData": {
+      "orderNumber": "ORD2602150001",
+      "customerId": "68cebcc6cd79e2fe7030db6e",
+      "customerName": "Ayush Akash",
+      "customerPhone": "8553545862",
+      "customerAddress": "241/b new ag co operative colony kadru, ranchi",
+      "customerArea": "kadru",
+      "totalAmount": 957.51,
+      "subtotal": 754,
+      "tax": 135.72,
+      "deliveryCharge": 50,
+      "orderStatus": "pending",
+      "paymentStatus": "pending",
+      "paymentMethod": "cod",
+      "deliveryInstructions": "",
+      "expectedDeliveryDate": "2026-02-22T12:31:38.567Z",
+      "items": [
+        {
+          "_id": "6991bcaa5416c77c0648c846",
+          "productId": "6939c86a5a54c337c9961707",
+          "productName": "Birla white",
+          "quantity": 2,
+          "totalPrice": 754,
+          "itemStatus": "pending"
+        }
+      ]
+    },
+    "triggeredBy": {
+      "userId": "68cebcc6cd79e2fe7030db6e",
+      "userType": "customer",
+      "userName": "Ayush Akash",
+      "userEmail": "ayushakash9@gmail.com",
+      "userPhone": "8553545862"
+    },
+    "merchantData": null,
+    "notificationRules": {
+      "notifyCustomer": true,
+      "notifyMerchant": true,
+      "notifyAdmin": false,
+      "channels": ["n8n"]
+    }
+  },
+
+  "3_order_assigned": {
+    "description": "Customer gets notified merchant accepted order (order_assigned)",
+    "eventType": "order_assigned",
+    "orderId": "6991bcaa5416c77c0648c845",
+    "timestamp": "2026-02-15T12:32:57.295Z",
+    "orderData": {
+      "orderNumber": "ORD2602150001",
+      "customerId": "68cebcc6cd79e2fe7030db6e",
+      "customerName": "Ayush Akash",
+      "customerPhone": "8553545862",
+      "customerAddress": "241/b new ag co operative colony kadru, ranchi",
+      "customerArea": "kadru",
+      "totalAmount": 957.51,
+      "subtotal": 754,
+      "tax": 135.72,
+      "deliveryCharge": 50,
+      "orderStatus": "assigned",
+      "paymentStatus": "pending",
+      "paymentMethod": "cod",
+      "deliveryInstructions": "",
+      "expectedDeliveryDate": "2026-02-22T12:31:38.567Z",
+      "items": [
+        {
+          "_id": "6991bcaa5416c77c0648c846",
+          "productId": "6939c86a5a54c337c9961707",
+          "productName": "Birla white",
+          "quantity": 2,
+          "totalPrice": 754,
+          "itemStatus": "assigned"
+        }
+      ]
+    },
+    "triggeredBy": {
+      "userId": "68cebe54610090c69adc5fbb",
+      "userType": "merchant",
+      "userName": "Ayush Akash",
+      "userPhone": "8553545862"
+    },
+    "merchantData": {
+      "_id": "68cebe54610090c69adc5fbb"
+    },
+    "assignmentData": {
+      "assignedBy": "merchant",
+      "itemId": "6991bcaa5416c77c0648c846",
+      "assignedAt": "2026-02-15T12:32:57.295Z"
+    },
+    "notificationRules": {
+      "notifyCustomer": false,
+      "notifyMerchant": true,
+      "notifyAdmin": true,
+      "channels": ["n8n"]
+    }
+  },
+
+  "4_order_accepted": {
+    "description": "Merchant gets order details after clicking Start Processing (order_accepted)",
+    "eventType": "order_accepted",
+    "orderId": "6991bcaa5416c77c0648c845",
+    "timestamp": "2026-02-15T12:33:46.765Z",
+    "orderData": {
+      "orderNumber": "ORD2602150001",
+      "customerId": "68cebcc6cd79e2fe7030db6e",
+      "customerName": "Ayush Akash",
+      "customerPhone": "8553545862",
+      "customerAddress": "241/b new ag co operative colony kadru, ranchi",
+      "customerArea": "kadru",
+      "totalAmount": 957.51,
+      "subtotal": 754,
+      "tax": 135.72,
+      "deliveryCharge": 50,
+      "orderStatus": "processing",
+      "paymentStatus": "pending",
+      "paymentMethod": "cod",
+      "deliveryInstructions": "",
+      "expectedDeliveryDate": "2026-02-15T14:03:46.754Z",
+      "items": [
+        {
+          "_id": "6991bcaa5416c77c0648c846",
+          "productId": "6939c86a5a54c337c9961707",
+          "productName": "Birla white",
+          "quantity": 2,
+          "totalPrice": 754,
+          "itemStatus": "processing"
+        }
+      ]
+    },
+    "triggeredBy": {
+      "userId": "68cebe54610090c69adc5fbb",
+      "userType": "merchant",
+      "userName": "Ayush Akash",
+      "userEmail": "traders.mishra1968@gmail.com",
+      "userPhone": "8553545862"
+    },
+    "merchantData": null,
+    "notificationRules": {
+      "notifyCustomer": true,
+      "notifyMerchant": false,
+      "notifyAdmin": true,
+      "channels": ["n8n"]
+    }
+  },
+
+  "5_order_shipped": {
+    "description": "Customer gets dispatched notification (order_shipped)",
+    "eventType": "order_shipped",
+    "orderId": "6991bcaa5416c77c0648c845",
+    "timestamp": "2026-02-15T12:34:10.234Z",
+    "orderData": {
+      "orderNumber": "ORD2602150001",
+      "customerId": "68cebcc6cd79e2fe7030db6e",
+      "customerName": "Ayush Akash",
+      "customerPhone": "8553545862",
+      "customerAddress": "241/b new ag co operative colony kadru, ranchi",
+      "customerArea": "kadru",
+      "totalAmount": 957.51,
+      "subtotal": 754,
+      "tax": 135.72,
+      "deliveryCharge": 50,
+      "orderStatus": "shipped",
+      "paymentStatus": "pending",
+      "paymentMethod": "cod",
+      "deliveryInstructions": "",
+      "expectedDeliveryDate": "2026-02-15T14:03:46.754Z",
+      "items": [
+        {
+          "_id": "6991bcaa5416c77c0648c846",
+          "productId": "6939c86a5a54c337c9961707",
+          "productName": "Birla white",
+          "quantity": 2,
+          "totalPrice": 754,
+          "itemStatus": "shipped"
+        }
+      ]
+    },
+    "triggeredBy": {
+      "userId": "68cebe54610090c69adc5fbb",
+      "userType": "merchant",
+      "userName": "Ayush Akash",
+      "userEmail": "traders.mishra1968@gmail.com",
+      "userPhone": "8553545862"
+    },
+    "merchantData": null,
+    "notificationRules": {
+      "notifyCustomer": true,
+      "notifyMerchant": false,
+      "notifyAdmin": false,
+      "channels": ["n8n"]
+    }
+  },
+
+  "6_order_delivered": {
+    "description": "Customer gets delivery confirmation (order_delivered)",
+    "eventType": "order_delivered",
+    "orderId": "6991bcaa5416c77c0648c845",
+    "timestamp": "2026-02-15T12:34:37.430Z",
+    "orderData": {
+      "orderNumber": "ORD2602150001",
+      "customerId": "68cebcc6cd79e2fe7030db6e",
+      "customerName": "Ayush Akash",
+      "customerPhone": "8553545862",
+      "customerAddress": "241/b new ag co operative colony kadru, ranchi",
+      "customerArea": "kadru",
+      "totalAmount": 957.51,
+      "subtotal": 754,
+      "tax": 135.72,
+      "deliveryCharge": 50,
+      "orderStatus": "delivered",
+      "paymentStatus": "pending",
+      "paymentMethod": "cod",
+      "deliveryInstructions": "",
+      "expectedDeliveryDate": "2026-02-15T14:03:46.754Z",
+      "items": [
+        {
+          "_id": "6991bcaa5416c77c0648c846",
+          "productId": "6939c86a5a54c337c9961707",
+          "productName": "Birla white",
+          "quantity": 2,
+          "totalPrice": 754,
+          "itemStatus": "delivered"
+        }
+      ]
+    },
+    "triggeredBy": {
+      "userId": "68cebe54610090c69adc5fbb",
+      "userType": "merchant",
+      "userName": "Ayush Akash",
+      "userEmail": "traders.mishra1968@gmail.com",
+      "userPhone": "8553545862"
+    },
+    "merchantData": null,
+    "notificationRules": {
+      "notifyCustomer": true,
+      "notifyMerchant": true,
+      "notifyAdmin": false,
+      "channels": ["n8n"]
+    }
+  }
+}

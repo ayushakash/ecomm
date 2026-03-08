@@ -1,0 +1,115 @@
+eventType:order_created_smart
+orderId:6991ce564b441ae308f0b8b9
+itemId:6991ce564b441ae308f0b8ba
+timestamp:2026-02-15T13:47:02.531Z
+orderData
+orderNumber:ORD2602150002
+customerId:68cebcc6cd79e2fe7030db6e
+customerName:Ayush Akash
+customerPhone:6201176610
+customerAddress:241/b new ag co operative colony kadru, ranchi
+customerArea:kadru
+totalAmount:1133.24
+subtotal:900
+tax:162
+deliveryCharge:50
+orderStatus:pending
+paymentStatus:pending
+paymentMethod:cod
+deliveryInstructions:empty
+expectedDeliveryDate:2026-02-22T13:47:02.475Z
+items
+0
+_id:6991ce564b441ae308f0b8ba
+productId:69581bd100642f3de1117c17
+productName:Zasasd
+quantity:3
+totalPrice:900
+itemStatus:pending
+triggeredBy:null
+customerLocation
+type:Point
+coordinates
+0:85.324
+1:23.3441
+address:241/b new ag co operative colony kadru, ranchi, children's park, kadru, Ranchi, jharkhand - 834002
+area:kadru
+pincode:834002
+city:Ranchi
+state:jharkhand
+isCurrentLocation:false
+receiverName:ayush akash
+receiverPhone:6201176610
+merchantData
+_id:68cebe54610090c69adc5fbb
+name:Ayush Akash
+phone:9431171468
+email:traders.mishra1968@gmail.com
+address:Mishra Traders , new ag co opertaive colony kadru Ranchi
+area:Kadru
+businessType:Building Materials
+location
+type:Point
+coordinates
+0:85.3386
+1:23.3882
+distance:5.13
+score:45
+priority:low
+smartData
+distance:5.13
+score:45
+priority:low
+rank:1
+totalMerchants:1
+isSequential:true
+notificationRules:{empty object}
+
+
+
+
+
+and 
+
+
+
+eventType:order_created
+orderId:6991ce564b441ae308f0b8b9
+timestamp:2026-02-15T13:47:02.501Z
+orderData
+orderNumber:ORD2602150002
+customerId:68cebcc6cd79e2fe7030db6e
+customerName:Ayush Akash
+customerPhone:6201176610
+customerAddress:241/b new ag co operative colony kadru, ranchi
+customerArea:kadru
+totalAmount:1133.24
+subtotal:900
+tax:162
+deliveryCharge:50
+orderStatus:pending
+paymentStatus:pending
+paymentMethod:cod
+deliveryInstructions:empty
+expectedDeliveryDate:2026-02-22T13:47:02.475Z
+items
+0
+_id:6991ce564b441ae308f0b8ba
+productId:69581bd100642f3de1117c17
+productName:Zasasd
+quantity:3
+totalPrice:900
+itemStatus:pending
+triggeredBy
+userId:68cebcc6cd79e2fe7030db6e
+userType:customer
+userName:Ayush Akash
+userEmail:ayushakash9@gmail.com
+userPhone:6201176610
+merchantData:null
+notificationRules
+notifyCustomer:true
+notifyMerchant:true
+notifyAdmin:false
+channels
+0:n8n

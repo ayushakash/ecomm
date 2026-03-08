@@ -38,8 +38,10 @@ const Products = () => {
     price: 0,
     stock: 0,
     enabled: true,
-    gstRate: 18, // Default 18% GST
-    gstType: "exclusive", // Default exclusive GST
+    gstRate: 18,
+    gstType: "exclusive",
+    bulkMinQty: 10,
+    variants: [], // [{label, price, stock}]
   });
   const [newCategory, setNewCategory] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -73,6 +75,7 @@ const Products = () => {
         enabled: true,
         gstRate: 18,
         gstType: "exclusive",
+        variants: [],
       });
       setSelectedFiles([]);
       setIsAddModalOpen(false);
@@ -242,6 +245,8 @@ const Products = () => {
       enabled: product.enabled || false,
       gstRate: product.gstRate || 18,
       gstType: product.gstType || "exclusive",
+      bulkMinQty: product.bulkMinQty || 10,
+      variants: product.variants || [],
     });
     setSelectedFiles([]);
     setEditModal({ open: true, product });
@@ -282,12 +287,24 @@ const Products = () => {
       header: "Base Price",
       cell: (info) => {
         const row = info.row.original;
+        const hasVariants = row.variants && row.variants.length > 0;
+        const gstLabel = row.gstType === 'no-gst' ? 'No GST' : row.gstType === 'inclusive' ? `${row.gstRate}% GST (final price)` : `${row.gstRate}% GST (base price)`;
+        if (hasVariants) {
+          return (
+            <div className="space-y-0.5">
+              {row.variants.map(v => (
+                <div key={v.label} className="text-xs text-gray-700">
+                  <span className="font-medium">{v.label}</span> — ₹{v.price}
+                </div>
+              ))}
+              <div className="text-xs text-gray-400">{gstLabel}</div>
+            </div>
+          );
+        }
         return (
           <div>
             <div className="text-sm font-medium text-gray-900">₹{info.getValue()}</div>
-            <div className="text-xs text-gray-500">
-              {row.gstType === 'no-gst' ? 'No GST' : `${row.gstRate}% GST (${row.gstType})`}
-            </div>
+            <div className="text-xs text-gray-500">{gstLabel}</div>
           </div>
         );
       }
@@ -358,6 +375,8 @@ const Products = () => {
       enabled: true,
       gstRate: 18,
       gstType: "exclusive",
+      bulkMinQty: 10,
+      variants: [],
     });
     setSelectedFiles([]);
     setIsAddModalOpen(true);
@@ -417,7 +436,7 @@ const Products = () => {
                   <span className="font-semibold text-gray-900">₹{product.price}</span>
                   <span className="text-sm text-gray-500 ml-1">per {product.unit}</span>
                   <div className="text-xs text-gray-500">
-                    {product.gstType === 'no-gst' ? 'No GST' : `${product.gstRate}% GST (${product.gstType})`}
+                    {product.gstType === 'no-gst' ? 'No GST' : product.gstType === 'inclusive' ? `${product.gstRate}% GST (final price)` : `${product.gstRate}% GST (base price)`}
                   </div>
                 </div>
               </div>
@@ -734,47 +753,158 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
               className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
           </div>
+          {formData.variants.length > 0 ? (
+            <div className="col-span-2 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-sm text-blue-700">
+              <span>💡</span>
+              <span>Price &amp; Stock are set per variant below — no base price needed.</span>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Price</label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Stock</label>
+                <input
+                  type="number"
+                  name="stock"
+                  value={formData.stock}
+                  onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                />
+              </div>
+            </>
+          )}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Price</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Bulk Order Min Qty
+              <span className="ml-1 text-xs text-gray-400 font-normal">(WhatsApp shown above this qty)</span>
+            </label>
             <input
               type="number"
-              name="price"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Stock</label>
-            <input
-              type="number"
-              name="stock"
-              value={formData.stock}
-              onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) })}
+              min={1}
+              value={formData.bulkMinQty}
+              onChange={(e) => setFormData({ ...formData, bulkMinQty: parseInt(e.target.value) || 10 })}
               className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
           </div>
         </div>
+        {/* ── Variants Section ── */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <label className="block text-sm font-semibold text-gray-800">
+                Size / Variants
+              </label>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Add sizes with individual prices (e.g. TMT 8mm, 10mm). Leave empty if product has no variants.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setFormData({
+                  ...formData,
+                  variants: [...formData.variants, { label: "", price: 0, stock: 0 }],
+                })
+              }
+              className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700"
+            >
+              + Add Size
+            </button>
+          </div>
+
+          {formData.variants.length === 0 ? (
+            <p className="text-xs text-gray-400 italic text-center py-2">No variants — product has a single price above.</p>
+          ) : (
+            <div className="space-y-2">
+              {/* Header */}
+              <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-1">
+                <span className="col-span-4">Label (size/grade)</span>
+                <span className="col-span-3">Price (₹)</span>
+                <span className="col-span-3">Stock</span>
+                <span className="col-span-2"></span>
+              </div>
+              {formData.variants.map((variant, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="e.g. 8mm"
+                    value={variant.label}
+                    onChange={(e) => {
+                      const updated = [...formData.variants];
+                      updated[idx] = { ...updated[idx], label: e.target.value };
+                      setFormData({ ...formData, variants: updated });
+                    }}
+                    className="col-span-4 border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <input
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    value={variant.price}
+                    onChange={(e) => {
+                      const updated = [...formData.variants];
+                      updated[idx] = { ...updated[idx], price: parseFloat(e.target.value) || 0 };
+                      setFormData({ ...formData, variants: updated });
+                    }}
+                    className="col-span-3 border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <input
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    value={variant.stock}
+                    onChange={(e) => {
+                      const updated = [...formData.variants];
+                      updated[idx] = { ...updated[idx], stock: parseInt(e.target.value) || 0 };
+                      setFormData({ ...formData, variants: updated });
+                    }}
+                    className="col-span-3 border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = formData.variants.filter((_, i) => i !== idx);
+                      setFormData({ ...formData, variants: updated });
+                    }}
+                    className="col-span-2 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg p-1.5 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">GST Configuration</label>
 
           {/* GST Type */}
           <div className="mb-3">
-            <label className="block text-sm text-gray-600 mb-1">GST Type</label>
+            <label className="block text-sm text-gray-600 mb-1">How did you enter the price?</label>
             <select
               name="gstType"
               value={formData.gstType}
               onChange={(e) => setFormData({ ...formData, gstType: e.target.value })}
               className="block w-full border border-gray-300 rounded-md p-2"
             >
-              <option value="exclusive">Exclusive (GST added to price)</option>
-              <option value="inclusive">Inclusive (GST included in price)</option>
-              <option value="no-gst">No GST (Tax exempted)</option>
+              <option value="exclusive">Base price — GST not included (system will add GST on top)</option>
+              <option value="inclusive">Final price — GST already included in the amount</option>
+              <option value="no-gst">No GST — customer pays exactly what you entered</option>
             </select>
             <p className="text-xs text-gray-500 mt-1">
-              {formData.gstType === 'exclusive' && 'GST will be added on top of the base price'}
-              {formData.gstType === 'inclusive' && 'Price already includes GST'}
-              {formData.gstType === 'no-gst' && 'No GST will be applied'}
+              {formData.gstType === 'exclusive' && '💡 e.g. You entered ₹55. Customer will pay ₹55 + GST.'}
+              {formData.gstType === 'inclusive' && '💡 e.g. You entered ₹65 (GST already baked in). Customer pays ₹65.'}
+              {formData.gstType === 'no-gst' && '💡 e.g. You entered ₹65. Customer pays exactly ₹65. No GST charged.'}
             </p>
           </div>
 

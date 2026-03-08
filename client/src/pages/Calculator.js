@@ -686,7 +686,7 @@ const Calculator = () => {
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
             >
               {availableCities.length === 0 ? (
                 <option value="">Loading cities...</option>
@@ -710,7 +710,7 @@ const Calculator = () => {
                 onClick={() => setPricingMode('market')}
                 className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                   pricingMode === 'market'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-primary-700 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -720,7 +720,7 @@ const Calculator = () => {
                 onClick={() => setPricingMode('custom')}
                 className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                   pricingMode === 'custom'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-primary-700 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -747,7 +747,7 @@ const Calculator = () => {
           )}
 
           {loadingPrices && (
-            <div className="mt-3 text-center text-sm text-blue-600">
+            <div className="mt-3 text-center text-sm text-primary-700">
               Loading prices...
             </div>
           )}
@@ -759,8 +759,8 @@ const Calculator = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Project Details</h2>
 
             <div className="space-y-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-blue-800">
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-primary-800">
                   <strong>💡 Tip:</strong> Enter <strong>Length & Breadth</strong> (for actual dimensions)
                   <strong> OR </strong> <strong>Area</strong> (assumes square footprint)
                 </p>
@@ -775,7 +775,7 @@ const Calculator = () => {
                     type="number"
                     value={formData.length}
                     onChange={(e) => setFormData({ ...formData, length: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="optional if area provided"
                   />
                 </div>
@@ -788,7 +788,7 @@ const Calculator = () => {
                     type="number"
                     value={formData.breadth}
                     onChange={(e) => setFormData({ ...formData, breadth: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="optional if area provided"
                   />
                 </div>
@@ -802,7 +802,7 @@ const Calculator = () => {
                   type="number"
                   value={formData.area}
                   onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="optional if length & breadth provided"
                 />
               </div>
@@ -817,7 +817,7 @@ const Calculator = () => {
                   max="10"
                   value={formData.floors}
                   onChange={(e) => setFormData({ ...formData, floors: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
 
@@ -827,7 +827,7 @@ const Calculator = () => {
                   id="includeFooting"
                   checked={formData.includeFooting}
                   onChange={(e) => setFormData({ ...formData, includeFooting: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-primary-700 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <label htmlFor="includeFooting" className="ml-2 block text-sm text-gray-700">
                   Include footing materials
@@ -847,7 +847,7 @@ const Calculator = () => {
                       type="number"
                       value={formData.priceCement}
                       onChange={(e) => setFormData({ ...formData, priceCement: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="e.g., 350"
                     />
                   </div>
@@ -860,7 +860,7 @@ const Calculator = () => {
                       type="number"
                       value={formData.priceSteel}
                       onChange={(e) => setFormData({ ...formData, priceSteel: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="e.g., 72"
                     />
                   </div>
@@ -873,7 +873,7 @@ const Calculator = () => {
                       type="number"
                       value={formData.priceSand}
                       onChange={(e) => setFormData({ ...formData, priceSand: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="e.g., 40"
                     />
                   </div>
@@ -886,7 +886,7 @@ const Calculator = () => {
                       type="number"
                       value={formData.priceAgg}
                       onChange={(e) => setFormData({ ...formData, priceAgg: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="e.g., 70"
                     />
                   </div>
@@ -899,7 +899,7 @@ const Calculator = () => {
                       type="number"
                       value={formData.priceBricks}
                       onChange={(e) => setFormData({ ...formData, priceBricks: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="e.g., 10000"
                     />
                   </div>
@@ -912,7 +912,7 @@ const Calculator = () => {
                 className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
                   isCalculating
                     ? 'bg-green-500 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-primary-700 hover:bg-primary-800'
                 } text-white`}
               >
                 {isCalculating ? (
@@ -973,7 +973,7 @@ const Calculator = () => {
                     </div>
                   </div>
                   {results.assumedSquare && (
-                    <p className="mt-2 text-xs text-blue-600">
+                    <p className="mt-2 text-xs text-primary-700">
                       ℹ️ Square footprint assumed from area
                     </p>
                   )}
@@ -981,52 +981,52 @@ const Calculator = () => {
 
                 <div className="space-y-4">
                   {/* Structure Materials Section */}
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+                  <div className="bg-primary-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-primary-900 mb-3 flex items-center">
                       🏗️ Structure Materials
                     </h4>
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                      <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">Cement</p>
                           <p className="text-sm text-gray-600">{results.structureMaterials.cement.quantity} bags (50kg)</p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-gray-500">₹{results.structureMaterials.cement.pricePerUnit}/bag</p>
-                          <p className="font-bold text-blue-600">₹{results.structureMaterials.cement.cost}</p>
+                          <p className="font-bold text-primary-700">₹{results.structureMaterials.cement.cost}</p>
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                      <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">Steel (TMT Bars)</p>
                           <p className="text-sm text-gray-600">{results.structureMaterials.steel.quantity} kg</p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-gray-500">₹{results.structureMaterials.steel.pricePerUnit}/kg</p>
-                          <p className="font-bold text-blue-600">₹{results.structureMaterials.steel.cost}</p>
+                          <p className="font-bold text-primary-700">₹{results.structureMaterials.steel.cost}</p>
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                      <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">Sand (M-Sand)</p>
                           <p className="text-sm text-gray-600">{results.structureMaterials.sand.quantity} cu.ft</p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-gray-500">₹{results.structureMaterials.sand.pricePerUnit}/cu.ft</p>
-                          <p className="font-bold text-blue-600">₹{results.structureMaterials.sand.cost}</p>
+                          <p className="font-bold text-primary-700">₹{results.structureMaterials.sand.cost}</p>
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                      <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">Aggregate (20mm)</p>
                           <p className="text-sm text-gray-600">{results.structureMaterials.aggregate.quantity} cu.ft</p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-gray-500">₹{results.structureMaterials.aggregate.pricePerUnit}/cu.ft</p>
-                          <p className="font-bold text-blue-600">₹{results.structureMaterials.aggregate.cost}</p>
+                          <p className="font-bold text-primary-700">₹{results.structureMaterials.aggregate.cost}</p>
                         </div>
                       </div>
 
@@ -1037,14 +1037,14 @@ const Calculator = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-gray-500">₹{results.structureMaterials.bricks.pricePerUnit}/brick</p>
-                          <p className="font-bold text-blue-600">₹{results.structureMaterials.bricks.cost}</p>
+                          <p className="font-bold text-primary-700">₹{results.structureMaterials.bricks.cost}</p>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="mt-3 pt-3 border-t border-blue-300 flex justify-between items-center">
-                      <p className="font-semibold text-blue-900">Structure Subtotal:</p>
-                      <p className="font-bold text-lg text-blue-900">₹{results.structureMaterials.totalCost}</p>
+                    <div className="mt-3 pt-3 border-t border-primary-300 flex justify-between items-center">
+                      <p className="font-semibold text-primary-900">Structure Subtotal:</p>
+                      <p className="font-bold text-lg text-primary-900">₹{results.structureMaterials.totalCost}</p>
                     </div>
                   </div>
 
@@ -1123,8 +1123,8 @@ const Calculator = () => {
                   <span>Download Report</span>
                 </button>
 
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">
+                <div className="mt-6 p-4 bg-primary-50 rounded-lg">
+                  <p className="text-sm text-primary-800">
                     <strong>Note:</strong> These are approximate estimates. Actual requirements may vary based on design, wastage, and site conditions. Prices shown are indicative for Ranchi, Jharkhand market.
                   </p>
                 </div>
@@ -1134,12 +1134,12 @@ const Calculator = () => {
         </div>
 
         {/* CTA Section */}
-        <div className="mt-12 bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-2xl p-8 text-center text-white">
+        <div className="mt-12 bg-gradient-to-r from-primary-700 to-primary-900 rounded-xl shadow-2xl p-8 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Ready to Buy Construction Materials?</h2>
           <p className="text-lg mb-6">Get quality materials delivered to your site in Ranchi</p>
           <a
             href="/products"
-            className="inline-block bg-white text-blue-600 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+            className="inline-block bg-white text-primary-700 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200"
           >
             Browse Products
           </a>

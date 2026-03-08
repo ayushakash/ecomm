@@ -125,6 +125,13 @@ const AppSettingsSchema = new mongoose.Schema({
     default: 100
   },
 
+  // Bulk order WhatsApp number (with country code) — shown publicly on product pages
+  bulkOrderPhone: {
+    type: String,
+    default: ''
+  },
+
+
   // GST Mode Configuration
   gstMode: {
     type: String,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
@@ -12,7 +13,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [otpSent, setOtpSent] = useState(false);
-  const { setAuthData } = useAuth();
+  const { setAuthData, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const validateStep1 = () => {
@@ -283,6 +284,32 @@ const Register = () => {
                   'Verify & Register'
                 )}
               </button>
+            </div>
+          </div>
+        )}
+
+        {step === 1 && (
+          <div className="mt-4">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-gray-50 text-gray-500">Or sign up with</span>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-center">
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  loginWithGoogle(credentialResponse.credential);
+                }}
+                onError={() => {
+                  toast.error('Google sign-up failed. Please try again.');
+                }}
+                width="360"
+                text="signup_with"
+                shape="rectangular"
+              />
             </div>
           </div>
         )}

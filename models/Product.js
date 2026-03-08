@@ -29,6 +29,7 @@ const productSchema = new mongoose.Schema({
     default: "piece"
   },
   weight: { type: Number, default: 0, min: 0 }, // weight in kg for delivery calculations
+  bulkMinQty: { type: Number, default: 10, min: 1 }, // minimum qty to show bulk WhatsApp option
 
   // 🌍 City-specific pricing
   cityPricing: [{
@@ -62,7 +63,15 @@ const productSchema = new mongoose.Schema({
     enum: ['inclusive', 'exclusive', 'no-gst'],
     default: 'exclusive',
     required: true
-  }
+  },
+
+  // 📦 Variants (e.g. TMT bar sizes: 8mm, 10mm, 12mm)
+  variants: [{
+    label: { type: String, required: true, trim: true }, // "8mm", "10mm", "Fe500"
+    price: { type: Number, required: true, min: 0 },
+    stock: { type: Number, default: 0, min: 0 },
+    sku:   { type: String, trim: true }
+  }]
 
 }, { timestamps: true });
 

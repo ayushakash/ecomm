@@ -84,6 +84,6 @@ if [ "$VERSION" != "latest" ]; then
     echo "  • $DOCKER_USERNAME/$FRONTEND_IMAGE:latest"
 fi
 echo ""
-echo "🔗 View on Docker Hub:"
-echo "  • https://hub.docker.com/r/$DOCKER_USERNAME/$BACKEND_IMAGE"
-echo "  • https://hub.docker.com/r/$DOCKER_USERNAME/$FRONTEND_IMAGE"
+echo "🚀 To deploy on server:"
+echo "  ssh root@143.110.181.250"
+echo "  cd /root/ecomm && ./deploy.sh"

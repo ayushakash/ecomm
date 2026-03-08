@@ -1,0 +1,27 @@
+{
+  "name": "ecommerce-e2e-tests",
+  "version": "1.0.0",
+  "description": "Playwright E2E tests for construction e-commerce platform",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:customer": "playwright test tests/customer --headed",
+    "test:merchant": "playwright test tests/merchant --headed",
+    "test:admin": "playwright test tests/admin --headed",
+    "test:auth": "playwright test tests/auth --headed",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen http://localhost:3000"
+  },
+  "keywords": [
+    "playwright",
+    "e2e",
+    "testing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.57.0"
+  }
+}

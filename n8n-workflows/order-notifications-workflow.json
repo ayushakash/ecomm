@@ -1,0 +1,594 @@
+{
+  "name": "Chardeevari Order Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-events",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-order-events",
+      "name": "Order Events Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "order-events"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-order-created",
+              "leftValue": "={{ $json.body.eventType }}",
+              "rightValue": "order_created",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-order-created",
+      "name": "Is Order Created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-order-created-smart",
+              "leftValue": "={{ $json.body.eventType }}",
+              "rightValue": "order_created_smart",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-merchant-notification",
+      "name": "Is Merchant Notification?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-order-assigned",
+              "leftValue": "={{ $json.body.eventType }}",
+              "rightValue": "order_assigned",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-order-assigned",
+      "name": "Is Order Assigned?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-order-shipped",
+              "leftValue": "={{ $json.body.eventType }}",
+              "rightValue": "order_shipped",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-order-shipped",
+      "name": "Is Order Shipped?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 800]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-order-delivered",
+              "leftValue": "={{ $json.body.eventType }}",
+              "rightValue": "order_delivered",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-order-delivered",
+      "name": "Is Order Delivered?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 1000]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-order-accepted",
+              "leftValue": "={{ $json.body.eventType }}",
+              "rightValue": "order_accepted",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-order-accepted",
+      "name": "Is Order Accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 1200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "authkey",
+              "value": "={{ $env.MSG91_AUTH_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"integrated_number\": \"916201176610\",\n  \"content_type\": \"template\",\n  \"payload\": {\n    \"messaging_product\": \"whatsapp\",\n    \"type\": \"template\",\n    \"template\": {\n      \"name\": \"orderconfirmation\",\n      \"language\": {\n        \"code\": \"en\",\n        \"policy\": \"deterministic\"\n      },\n      \"namespace\": \"2d94a314_a4ca_45d8_a3a5_3970af9d866a\",\n      \"to_and_components\": [\n        {\n          \"to\": [\"91{{ $json.body.orderData.customerPhone }}\"],\n          \"components\": {\n            \"body_1\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.customerName || 'Customer' }}\" },\n            \"body_2\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.orderNumber }}\" },\n            \"body_3\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.items ? $json.body.orderData.items.map(i => i.quantity + 'x ' + i.productName).join(', ') : 'Items' }}\" },\n            \"body_4\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.totalAmount }}\" },\n            \"body_5\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.customerAddress || 'Address' }}\" }\n          }\n        }\n      ]\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "send-order-confirmation",
+      "name": "Send Order Confirmation to Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "authkey",
+              "value": "={{ $env.MSG91_AUTH_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "options": {}
+      },
+      "id": "send-merchant-new-order",
+      "name": "Send New Order to Merchant (TODO)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [800, 400],
+      "notes": "TODO: Replace with merchantneworder template once created in MSG91. Will include accept/reject buttons."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "authkey",
+              "value": "={{ $env.MSG91_AUTH_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "options": {}
+      },
+      "id": "send-merchant-order-accepted",
+      "name": "Skip - No Notification on Assign",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [800, 600],
+      "notes": "order_assigned does not send any notification. Merchant already got notified via order_created_smart."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "authkey",
+              "value": "={{ $env.MSG91_AUTH_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"integrated_number\": \"916201176610\",\n  \"content_type\": \"template\",\n  \"payload\": {\n    \"messaging_product\": \"whatsapp\",\n    \"type\": \"template\",\n    \"template\": {\n      \"name\": \"orderdispatched\",\n      \"language\": {\n        \"code\": \"en\",\n        \"policy\": \"deterministic\"\n      },\n      \"namespace\": \"2d94a314_a4ca_45d8_a3a5_3970af9d866a\",\n      \"to_and_components\": [\n        {\n          \"to\": [\"91{{ $json.body.orderData.customerPhone }}\"],\n          \"components\": {\n            \"body_1\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.customerName || 'Customer' }}\" },\n            \"body_2\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.orderNumber }}\" }\n          }\n        }\n      ]\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "send-order-dispatched",
+      "name": "Send Order Dispatched to Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 800]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "authkey",
+              "value": "={{ $env.MSG91_AUTH_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"integrated_number\": \"916201176610\",\n  \"content_type\": \"template\",\n  \"payload\": {\n    \"messaging_product\": \"whatsapp\",\n    \"type\": \"template\",\n    \"template\": {\n      \"name\": \"orderdelivery\",\n      \"language\": {\n        \"code\": \"en\",\n        \"policy\": \"deterministic\"\n      },\n      \"namespace\": \"2d94a314_a4ca_45d8_a3a5_3970af9d866a\",\n      \"to_and_components\": [\n        {\n          \"to\": [\"91{{ $json.body.orderData.customerPhone }}\"],\n          \"components\": {\n            \"body_1\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.customerName || 'Customer' }}\" },\n            \"body_2\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.orderNumber }}\" }\n          }\n        }\n      ]\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "send-order-delivered",
+      "name": "Send Order Delivered to Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 1000]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "authkey",
+              "value": "={{ $env.MSG91_AUTH_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"integrated_number\": \"916201176610\",\n  \"content_type\": \"template\",\n  \"payload\": {\n    \"messaging_product\": \"whatsapp\",\n    \"type\": \"template\",\n    \"template\": {\n      \"name\": \"merchantorderacceptance\",\n      \"language\": {\n        \"code\": \"en\",\n        \"policy\": \"deterministic\"\n      },\n      \"namespace\": \"2d94a314_a4ca_45d8_a3a5_3970af9d866a\",\n      \"to_and_components\": [\n        {\n          \"to\": [\"91{{ $json.body.triggeredBy.userPhone }}\"],\n          \"components\": {\n            \"body_1\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.orderNumber }}\" },\n            \"body_2\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.customerName || 'Customer' }}\" },\n            \"body_3\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.customerAddress || 'Address' }}\" },\n            \"body_4\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.customerPhone }}\" },\n            \"body_5\": { \"type\": \"text\", \"value\": \"{{ $json.body.orderData.items ? $json.body.orderData.items.map(i => i.quantity + 'x ' + i.productName).join(', ') : 'Items' }}\" }\n          }\n        }\n      ]\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "send-order-accepted-to-merchant",
+      "name": "Send Order Acceptance to Merchant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 1200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Event processed', eventType: $json.body.eventType } }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "msg91-callback",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-msg91-callback",
+      "name": "MSG91 Button Callback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 1300],
+      "webhookId": "msg91-callback"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the button payload from MSG91 callback\nconst payload = $input.first().json;\n\n// MSG91 sends button click data in different formats\n// Check for the button payload\nlet buttonPayload = payload.button?.payload || payload.interactive?.button_reply?.id || payload.payload || payload.text || '';\n\n// Parse action from payload: ACCEPT_orderId_itemId or REJECT_orderId_itemId\nconst parts = buttonPayload.split('_');\n\nif (parts.length >= 3) {\n  const action = parts[0]; // ACCEPT or REJECT\n  const orderId = parts[1];\n  const itemId = parts[2];\n  const merchantPhone = (payload.from || payload.sender || '').replace(/^91/, '');\n  \n  return {\n    json: {\n      action: action.toLowerCase(),\n      orderId: orderId,\n      itemId: itemId,\n      merchantPhone: merchantPhone,\n      originalPayload: payload\n    }\n  };\n}\n\n// If not a valid button click, return null action\nreturn {\n  json: {\n    action: null,\n    error: 'Invalid button payload',\n    originalPayload: payload\n  }\n};"
+      },
+      "id": "parse-button-payload",
+      "name": "Parse Button Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 1300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-has-action",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid-action",
+      "name": "Has Valid Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 1300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:5000/api/webhooks/merchant-response",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-webhook-secret",
+              "value": "={{ $env.WEBHOOK_SECRET || 'chardeevari-webhook-secret-2024' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"{{ $json.action }}\",\n  \"orderId\": \"{{ $json.orderId }}\",\n  \"itemId\": \"{{ $json.itemId }}\",\n  \"merchantPhone\": \"{{ $json.merchantPhone }}\"\n}",
+        "options": {}
+      },
+      "id": "call-merchant-response",
+      "name": "Call Merchant Response Endpoint",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [950, 1250]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Callback processed', action: $json.action } }}",
+        "options": {}
+      },
+      "id": "respond-callback-success",
+      "name": "Respond Callback Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1200, 1300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, message: 'Invalid callback' } }}",
+        "options": {}
+      },
+      "id": "respond-callback-invalid",
+      "name": "Respond Invalid Callback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [950, 1400]
+    }
+  ],
+  "connections": {
+    "Order Events Webhook": {
+      "main": [
+        [
+          { "node": "Is Order Created?", "type": "main", "index": 0 },
+          { "node": "Is Merchant Notification?", "type": "main", "index": 0 },
+          { "node": "Is Order Assigned?", "type": "main", "index": 0 },
+          { "node": "Is Order Shipped?", "type": "main", "index": 0 },
+          { "node": "Is Order Delivered?", "type": "main", "index": 0 },
+          { "node": "Is Order Accepted?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Is Order Created?": {
+      "main": [
+        [{ "node": "Send Order Confirmation to Customer", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Is Merchant Notification?": {
+      "main": [
+        [{ "node": "Send New Order to Merchant (TODO)", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Is Order Assigned?": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Is Order Accepted?": {
+      "main": [
+        [{ "node": "Send Order Acceptance to Merchant", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Is Order Shipped?": {
+      "main": [
+        [{ "node": "Send Order Dispatched to Customer", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Is Order Delivered?": {
+      "main": [
+        [{ "node": "Send Order Delivered to Customer", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Send Order Confirmation to Customer": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send New Order to Merchant (TODO)": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Order Acceptance to Merchant": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Order Dispatched to Customer": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Order Delivered to Customer": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "Skip - No Notification on Assign": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Order Acceptance to Merchant": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "MSG91 Button Callback": {
+      "main": [
+        [{ "node": "Parse Button Payload", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Button Payload": {
+      "main": [
+        [{ "node": "Has Valid Action?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Valid Action?": {
+      "main": [
+        [{ "node": "Call Merchant Response Endpoint", "type": "main", "index": 0 }],
+        [{ "node": "Respond Invalid Callback", "type": "main", "index": 0 }]
+      ]
+    },
+    "Call Merchant Response Endpoint": {
+      "main": [
+        [{ "node": "Respond Callback Success", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "4"
+}
+
+

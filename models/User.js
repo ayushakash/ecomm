@@ -48,6 +48,15 @@ const userSchema = new mongoose.Schema({
   refreshToken: {
     type: String
   },
+  googleId: {
+    type: String,
+    sparse: true
+  },
+  authProvider: {
+    type: String,
+    enum: ['phone', 'google'],
+    default: 'phone'
+  },
 }, {
   timestamps: true
 });

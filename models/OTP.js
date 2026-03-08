@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const otpSchema = new mongoose.Schema({
   phone: {
     type: String,
-    required: true,
+    index: true
+  },
+  email: {
+    type: String,
     index: true
   },
   otp: {
@@ -13,7 +16,7 @@ const otpSchema = new mongoose.Schema({
   purpose: {
     type: String,
     required: true,
-    enum: ['login', 'registration', 'password_reset', 'phone_verification', 'order_confirmation']
+    enum: ['login', 'registration', 'password_reset', 'phone_verification', 'order_confirmation', 'phone_link', 'email_change']
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -30,7 +33,7 @@ const otpSchema = new mongoose.Schema({
   },
   sentVia: {
     type: String,
-    enum: ['sms', 'whatsapp'],
+    enum: ['sms', 'whatsapp', 'email'],
     required: true
   },
   msg91Response: {

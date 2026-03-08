@@ -1,25 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { StarIcon, ShoppingCartIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/solid';
+import { ShoppingCartIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/solid';
 import { productAPI } from '../../services/api';
 import { useCart } from '../../contexts/CartContext';
 import { toast } from 'react-hot-toast';
 import analytics from '../../services/analytics';
 import SEO from '../../components/SEO/SEO';
+import { PageSpinner } from '../../components/ui/Spinner';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const { addToCart, getCartItem } = useCart();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedVariant, setSelectedVariant] = useState(null);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
     queryFn: () => productAPI.getById(id)
   });
 
-  const cartItem = getCartItem(id);
+  const hasVariants = product?.variants && product.variants.length > 0;
+
+  // cart item depends on whether we have a variant selected
+  const cartItem = hasVariants
+    ? getCartItem(id, selectedVariant?.label)
+    : getCartItem(id);
+
+  // Active price and stock — from variant if selected, else product
+  const activePrice = selectedVariant ? selectedVariant.price : product?.price;
+  const activeStock = selectedVariant
+    ? selectedVariant.stock
+    : (product?.totalStock || product?.stock || 0);
 
   // Track product view when product loads
   useEffect(() => {
@@ -29,21 +43,34 @@ const ProductDetail = () => {
   }, [product]);
 
   const handleAddToCart = () => {
-    if (!product || product.totalStock <= 0) {
+    if (hasVariants && !selectedVariant) {
+      toast.error('Please select a size first');
+      return;
+    }
+    if (!product || activeStock <= 0) {
       toast.error('Product is out of stock');
       return;
     }
-
-    addToCart(product, quantity);
-
-    // Track add to cart event
+    addToCart(product, quantity, null, selectedVariant);
     analytics.trackAddToCart(product, quantity);
-
     toast.success(`Added ${quantity} ${quantity === 1 ? 'item' : 'items'} to cart`);
   };
 
+  const handleBuyNow = () => {
+    if (hasVariants && !selectedVariant) {
+      toast.error('Please select a size first');
+      return;
+    }
+    if (!product || activeStock <= 0) {
+      toast.error('Product is out of stock');
+      return;
+    }
+    addToCart(product, quantity, null, selectedVariant);
+    navigate('/cart');
+  };
+
   const incrementQuantity = () => {
-    if (quantity < (product?.totalStock || product?.stock || 1)) {
+    if (quantity < activeStock) {
       setQuantity(prev => prev + 1);
     }
   };
@@ -54,12 +81,15 @@ const ProductDetail = () => {
     }
   };
 
+  const handleQuantityInput = (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (!val || val < 1) return setQuantity(1);
+    setQuantity(Math.min(val, activeStock));
+  };
+
+
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <PageSpinner />;
   }
 
   if (error) {
@@ -100,9 +130,9 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Image Gallery */}
           <div className="sticky top-8">
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Main Image */}
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+              <div className="relative aspect-square overflow-hidden bg-gray-50">
                 <img
                   src={product.images?.[selectedImageIndex] || product.images?.[0] || '/placeholder-product.jpg'}
                   alt={`${product.name} - Image ${selectedImageIndex + 1}`}
@@ -126,14 +156,14 @@ const ProductDetail = () => {
 
               {/* Image Thumbnails */}
               {product.images && product.images.length > 1 && (
-                <div className="flex gap-3 mt-6 overflow-x-auto pb-2">
+                <div className="flex gap-2 p-3 overflow-x-auto">
                   {product.images.map((image, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedImageIndex(index)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-xl border-2 overflow-hidden transition-all ${
+                      className={`flex-shrink-0 w-16 h-16 rounded-lg border-2 overflow-hidden transition-all ${
                         selectedImageIndex === index
-                          ? 'border-primary-500 ring-2 ring-primary-200 scale-105'
+                          ? 'border-primary-500'
                           : 'border-gray-200 hover:border-primary-300'
                       }`}
                     >
@@ -172,197 +202,170 @@ const ProductDetail = () => {
           </div>
 
           {/* Product Info */}
-          <div className="space-y-8">
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
-              {/* Breadcrumb */}
-              <div className="flex items-center text-sm text-gray-600 mb-6">
-                <Link to="/" className="hover:text-primary-600">Home</Link>
-                <span className="mx-2">›</span>
-                <Link to="/products" className="hover:text-primary-600">Products</Link>
-                <span className="mx-2">›</span>
-                <span className="text-gray-900 font-semibold">{product.category?.name}</span>
-              </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
 
-              <h1 className="text-4xl font-black text-gray-900 mb-6 leading-tight">{product.name}</h1>
+            {/* Category tag */}
+            {product.category?.name && (
+              <span className="inline-block px-3 py-1 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full uppercase tracking-wide">
+                {product.category.name}
+              </span>
+            )}
 
-              {/* Category & Quality Badge */}
-              <div className="flex items-center gap-6 mb-8">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full">
-                  <span className="text-sm font-medium text-gray-700">
-                    {product.category?.name || 'Product'}
-                  </span>
-                </div>
-                <div className="text-green-600 font-semibold flex items-center gap-1">
-                  ✅ Verified Quality
-                </div>
-              </div>
+            {/* Name */}
+            <h1 className="text-2xl font-bold text-gray-900 leading-snug">{product.name}</h1>
 
-              {/* Price Section */}
-              <div className="mb-8 p-6 bg-gradient-to-r from-primary-50 to-primary-100 rounded-2xl border border-primary-200">
-                <div className="flex items-center gap-4 mb-2">
-                  <span className="text-4xl font-black text-gray-900">
-                    ₹{product.price?.toLocaleString()}
+            {/* Price */}
+            <div className="flex items-baseline gap-2">
+              {hasVariants && !selectedVariant ? (
+                <>
+                  <span className="text-sm text-gray-400 font-medium">From</span>
+                  <span className="text-2xl font-bold text-gray-900">
+                    ₹{Math.min(...product.variants.map(v => v.price)).toLocaleString()}
                   </span>
-                  <span className="text-xl text-gray-400 line-through">
-                    ₹{(product.price * 1.2)?.toLocaleString()}
-                  </span>
-                  <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                    17% OFF
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">per {product.unit}</span>
-                  <span className="text-green-600 font-bold">
-                    You save ₹{((product.price * 0.2) || 0).toLocaleString()}
-                  </span>
-                </div>
-              </div>
+                  {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl font-bold text-gray-900">₹{activePrice?.toLocaleString()}</span>
+                  {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
+                </>
+              )}
             </div>
 
-            {/* Product Features */}
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Product Highlights</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-green-600 text-xl">✓</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">Premium Quality</div>
-                    <div className="text-sm text-gray-600">ISI certified materials</div>
-                  </div>
+            {/* Variant Size Picker */}
+            {hasVariants && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Select Size
+                  {!selectedVariant && <span className="ml-1 text-red-500 text-xs">(required)</span>}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {product.variants.map((variant) => (
+                    <button
+                      key={variant.label}
+                      onClick={() => {
+                        setSelectedVariant(variant);
+                        setQuantity(1);
+                      }}
+                      disabled={variant.stock <= 0}
+                      className={`px-4 py-2 rounded-lg border-2 text-sm font-semibold transition-all ${
+                        selectedVariant?.label === variant.label
+                          ? 'border-primary-600 bg-primary-50 text-primary-700'
+                          : variant.stock <= 0
+                            ? 'border-gray-200 text-gray-300 cursor-not-allowed line-through'
+                            : 'border-gray-300 text-gray-700 hover:border-primary-400 hover:bg-primary-50'
+                      }`}
+                    >
+                      {variant.label}
+                      {variant.stock <= 0 && <span className="block text-xs font-normal">Out of stock</span>}
+                    </button>
+                  ))}
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 text-xl">🚚</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">Fast Delivery</div>
-                    <div className="text-sm text-gray-600">60-90 minutes</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                    <span className="text-purple-600 text-xl">🔒</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">Secure Payment</div>
-                    <div className="text-sm text-gray-600">100% safe checkout</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                    <span className="text-orange-600 text-xl">📞</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">24/7 Support</div>
-                    <div className="text-sm text-gray-600">Expert assistance</div>
-                  </div>
-                </div>
+                {selectedVariant && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Stock: {selectedVariant.stock} {product.unit} available
+                  </p>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Purchase Section */}
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
-              <div className="space-y-6">
-                {/* Description */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
-                  <p className="text-gray-600">{product.description}</p>
-                </div>
+            {/* Out of stock badge */}
+            {activeStock <= 0 && (!hasVariants || selectedVariant) && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">
+                Out of Stock
+              </span>
+            )}
 
-                {/* Specifications */}
-                {product.specifications && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Specifications</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {Object.entries(product.specifications).map(([key, value]) => (
-                        <div key={key}>
-                          <span className="font-medium text-gray-700">{key}:</span>
-                          <span className="ml-2 text-gray-600">{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {/* Description */}
+            {product.description && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-1">Description</p>
+                <p className="text-sm text-gray-600 leading-relaxed">{product.description}</p>
+              </div>
+            )}
 
-                {/* Stock Status */}
-                <div className="mb-6">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    (product.totalStock || product.stock) > 0 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {(product.totalStock || product.stock) > 0 
-                      ? `In Stock (${product.totalStock || product.stock} available)` 
-                      : 'Out of Stock'}
-                  </span>
-                </div>
-
-                {/* Cart Status - Show if already in cart */}
-                {cartItem && (
-                  <div className="mb-4 bg-green-50 border-2 border-green-200 rounded-xl p-4">
-                    <div className="flex items-center justify-center gap-2 text-green-700 font-semibold">
-                      <ShoppingCartIcon className="h-5 w-5" />
-                      <span>Currently in Cart: {cartItem.quantity} items</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Quantity Selector - Always show if stock available */}
-                {(product.totalStock || product.stock) > 0 && (
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {cartItem ? 'Add More Quantity' : 'Select Quantity'}
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={decrementQuantity}
-                        disabled={quantity <= 1}
-                        className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <MinusIcon className="h-5 w-5" />
-                      </button>
-                      <span className="w-16 text-center text-xl font-semibold">{quantity}</span>
-                      <button
-                        onClick={incrementQuantity}
-                        disabled={quantity >= (product.totalStock || product.stock)}
-                        className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <PlusIcon className="h-5 w-5" />
-                      </button>
-                      <div className="ml-4 text-gray-600">
-                        Available: {product.totalStock || product.stock}
+            {/* Specifications */}
+            {product.specifications && Object.values(product.specifications).some(Boolean) && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">Specifications</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  {Object.entries(product.specifications).map(([key, value]) =>
+                    value ? (
+                      <div key={key} className="flex gap-1 text-sm">
+                        <span className="text-gray-500 capitalize">{key}:</span>
+                        <span className="text-gray-800 font-medium">{value}</span>
                       </div>
-                    </div>
-                  </div>
-                )}
+                    ) : null
+                  )}
+                </div>
+              </div>
+            )}
 
-                {/* Add to Cart Button - Always show */}
+            {/* Quantity + Actions */}
+            {/* For variant products: show actions only after a size is selected (or always show disabled state) */}
+            <div className="space-y-4 pt-2 border-t border-gray-100">
+              {activeStock > 0 && (!hasVariants || selectedVariant) && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-700">Qty</span>
+                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                    <button
+                      onClick={decrementQuantity}
+                      disabled={quantity <= 1}
+                      className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                    >
+                      <MinusIcon className="h-4 w-4" />
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={activeStock}
+                      value={quantity}
+                      onChange={handleQuantityInput}
+                      className="w-12 text-center text-sm font-semibold border-x border-gray-300 py-2 focus:outline-none"
+                    />
+                    <button
+                      onClick={incrementQuantity}
+                      disabled={quantity >= activeStock}
+                      className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3">
                 <button
                   onClick={handleAddToCart}
-                  disabled={(product.totalStock || product.stock) === 0}
-                  className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center transition-colors duration-200"
+                  disabled={hasVariants && !selectedVariant}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-primary-600 text-primary-700 rounded-xl text-sm font-semibold hover:bg-primary-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <ShoppingCartIcon className="h-5 w-5 mr-2" />
-                  {(product.totalStock || product.stock) === 0
-                    ? 'Out of Stock'
-                    : cartItem
-                      ? `Add ${quantity} More to Cart`
-                      : `Add ${quantity} to Cart`
-                  }
+                  <ShoppingCartIcon className="h-4 w-4" />
+                  {cartItem ? 'Add More' : 'Add to Cart'}
                 </button>
-
-                {/* View Cart Link - Show if already in cart */}
-                {cartItem && (
-                  <Link
-                    to="/cart"
-                    className="block mt-3 text-center text-primary-700 hover:text-primary-800 font-semibold hover:underline transition-colors"
-                  >
-                    View Cart →
-                  </Link>
-                )}
+                <button
+                  onClick={handleBuyNow}
+                  disabled={hasVariants && !selectedVariant}
+                  className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Buy Now
+                </button>
               </div>
+
+              {hasVariants && !selectedVariant && (
+                <p className="text-xs text-center text-amber-600 font-medium">
+                  ↑ Select a size above to continue
+                </p>
+              )}
+
+              {cartItem && (
+                <Link
+                  to="/cart"
+                  className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  View Cart ({cartItem.quantity} in cart) →
+                </Link>
+              )}
             </div>
           </div>
         </div>

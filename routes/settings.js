@@ -7,6 +7,19 @@ const { getPricingCalculator } = require('../utils/pricingUtils');
 const router = express.Router();
 
 /**
+ * GET /api/settings/public
+ * No auth — returns ONLY bulkOrderPhone from AppSettings, nothing else.
+ */
+router.get('/public', async (req, res) => {
+  try {
+    const settings = await AppSettings.findOne().select('bulkOrderPhone').lean();
+    res.json({ bulkOrderPhone: settings?.bulkOrderPhone || '' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
  * GET /api/settings
  * Get current app settings
  */
@@ -55,6 +68,7 @@ router.put('/', [
   body('deliveryFeeSplit.merchantPercent').optional().isInt({ min: 0, max: 100 }).withMessage('Merchant delivery percent must be 0-100'),
   body('deliveryFeeSplit.platformPercent').optional().isInt({ min: 0, max: 100 }).withMessage('Platform delivery percent must be 0-100'),
   body('applyGSTOnPlatformFee').optional().isBoolean().withMessage('applyGSTOnPlatformFee must be boolean'),
+  body('bulkOrderPhone').optional().isString().trim().withMessage('bulkOrderPhone must be a string'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

@@ -1,0 +1,417 @@
+ecommerce> db.merchants.find()
+[
+  {
+    _id: ObjectId('6956ac996b2e3d200a593192'),
+    name: 'Ayush Merchant',
+    email: 'tradersmishra1968@gmail.com',
+    password: '$2a$12$P76q2fep1Ph.JO92hqWcuuVlm59VM2AzWi9OIXk8.eM9m9FJY4bP6',
+    phone: '9431171468',
+    role: 'merchant',
+    isActive: true,
+    isPhoneVerified: true,
+    businessName: 'Mishra traders',
+    contactPersonName: 'Ayush Merchant',
+    area: 'Kadru',
+    address: '241/b new ag co operative colony kadru',
+    city: 'Ranchi',
+    state: 'Karnataka',
+    pincode: '560068',
+    businessType: 'Building Materials',
+    activeStatus: 'approved',
+    documents: { gstNumber: '', panNumber: '' },
+    rating: 0,
+    totalOrders: 0,
+    completedOrders: 0,
+    location: { type: 'Point', coordinates: [ 77.6143205, 12.8640741 ] },
+    availability: {
+      workingHours: {
+        start: '09:00',
+        end: '18:00',
+        days: [ 'mon', 'tue', 'wed', 'thu', 'fri', 'sat' ]
+      },
+      isActive: true,
+      maxDailyOrders: 10,
+      currentDayOrders: 0
+    },
+    notificationSettings: {
+      pushEnabled: true,
+      newOrders: true,
+      orderUpdates: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '08:00',
+      quietHoursEnabled: false
+    },
+    deviceTokens: [],
+    createdAt: ISODate('2026-01-01T17:19:21.961Z'),
+    updatedAt: ISODate('2026-01-23T18:59:01.016Z'),
+    __v: 0,
+    refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTU2YWM5OTZiMmUzZDIwMGE1OTMxOTIiLCJpYXQiOjE3NjkxOTQ3NDEsImV4cCI6MTc2OTc5OTU0MX0.PUEyrSvWC7l2zP3ypJbHqYiuoaAz944NieIs15ok-JQ'
+  },
+  {
+    _id: ObjectId('6967c7d4b772e86aad5c9785'),
+    name: 'Anjali Pathak',
+    email: 'anjali@gmail.com',
+    password: '$2a$12$Kzev1WcDXZ3nEvW/qKOLReR6WCfZ9z0hSLrbNqLsF4IXiHnSqwMKS',
+    phone: '9430731516',
+    role: 'merchant',
+    isActive: true,
+    isPhoneVerified: true,
+    businessName: 'Anjali Enterprises',
+    contactPersonName: 'Anjali Pathak',
+    area: 'Beguru',
+    address: 'Yelenahalli, Beguru, Yelenahalli, Bengaluru South City Corporation, Bengaluru, Bangalore South, Bengaluru Urban, Karnataka, 560076, India',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    pincode: '560076',
+    businessType: 'Building Materials',
+    activeStatus: 'approved',
+    documents: { gstNumber: '', panNumber: '' },
+    rating: 0,
+    totalOrders: 0,
+    completedOrders: 0,
+    location: { type: 'Point', coordinates: [ 77.6143161, 12.8640672 ] },
+    availability: {
+      workingHours: {
+        start: '09:00',
+        end: '18:00',
+        days: [ 'mon', 'tue', 'wed', 'thu', 'fri', 'sat' ]
+      },
+      isActive: true,
+      maxDailyOrders: 10,
+      currentDayOrders: 0
+    },
+    notificationSettings: {
+      pushEnabled: true,
+      newOrders: true,
+      orderUpdates: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '08:00',
+      quietHoursEnabled: false
+    },
+    deviceTokens: [],
+    createdAt: ISODate('2026-01-14T16:44:04.547Z'),
+    updatedAt: ISODate('2026-01-23T18:58:55.508Z'),
+    __v: 0,
+    refreshToken: null
+  }
+]
+
+
+orders 
+ecommerce> db.orders.find()
+[
+  {
+    _id: ObjectId('6973c46a4ee71bbb14f44d9f'),
+    orderNumber: 'ORD2601230001',
+    customerId: ObjectId('6958216e6b2e3d200a593273'),
+    customerName: 'Mishra',
+    customerPhone: '8553545862',
+    customerAddress: '241/b new ag co operative colony, werwerwer',
+    customerArea: 'Kadru',
+    deliveryAddressId: ObjectId('695b566b966588974f181e9e'),
+    deliveryLocation: {
+      type: 'Point',
+      coordinates: [ 77.61657326723169, 12.915582436095887 ],
+      address: '241/b new ag co operative colony, werwerwer, Kadru, ranchi, Karnataka - 560062',
+      area: 'Kadru',
+      pincode: '560062',
+      city: 'ranchi',
+      state: 'Karnataka',
+      isCurrentLocation: false,
+      receiverName: 'Mishra',
+      receiverPhone: '8553545862'
+    },
+    items: [
+      {
+        productId: ObjectId('695b55e3966588974f181e2a'),
+        productName: 'Acc Cement',
+        quantity: 3,
+        unitPrice: 350,
+        totalPrice: 1050,
+        merchantUnitPrice: 300,
+        merchantTotalPrice: 900,
+        unit: 'bag',
+        assignedMerchantId: null,
+        sku: 'CEM-GEN-0001',
+        weight: 0,
+        itemStatus: 'pending',
+        rejectedBy: [],
+        _id: ObjectId('6973c46a4ee71bbb14f44da0')
+      }
+    ],
+    subtotal: 1050,
+    subtotalBeforeGST: 1050,
+    tax: 0,
+    deliveryCharge: 0,
+    platformFee: 21,
+    totalAmount: 1071,
+    pricingBreakdown: {
+      taxRate: 0.18,
+      deliveryConfig: {
+        type: 'threshold',
+        fixedCharge: 50,
+        freeDeliveryThreshold: 1000,
+        chargeForBelowThreshold: 50,
+        perKmRate: 5,
+        baseDistance: 5,
+        perKgRate: 10,
+        freeWeightLimit: 50,
+        maxDeliveryRadius: 10,
+        maxExpandedRadius: 25,
+        minimumMerchantsBeforeExpand: 3,
+        fallbackStrategy: 'expand',
+        enablePincodeGrouping: true
+      },
+      minimumOrderValue: 500
+    },
+    gstBreakdown: {
+      mode: 'no-gst',
+      merchantGST: 0,
+      platformGST: 0,
+      totalGST: 0,
+      isDummyGST: true,
+      platformFeeGST: 0
+    },
+    deliverySplit: { merchantShare: 0, platformShare: 0 },
+    orderStatus: 'pending',
+    paymentStatus: 'pending',
+    requireGSTBill: false,
+    paymentMethod: 'cod',
+    deliveryInstructions: '',
+    expectedDeliveryDate: ISODate('2026-01-30T18:56:42.229Z'),
+    statusHistory: [
+      {
+        status: 'pending',
+        timestamp: ISODate('2026-01-23T18:56:42.242Z'),
+        _id: ObjectId('6973c46a4ee71bbb14f44da2')
+      }
+    ],
+    lifecycle: [
+      {
+        eventType: 'order_created',
+        timestamp: ISODate('2026-01-23T18:56:42.295Z'),
+        triggeredBy: {
+          userId: ObjectId('6958216e6b2e3d200a593273'),
+          userType: 'customer',
+          userName: 'Mishra',
+          userPhone: '6201176610'
+        },
+        metadata: {
+          orderNumber: 'ORD2601230001',
+          totalAmount: 1071,
+          requestBody: {
+            customerName: 'Mishra',
+            customerPhone: '8553545862',
+            customerAddress: '241/b new ag co operative colony, werwerwer',
+            customerArea: 'Kadru',
+            paymentMethod: 'cod',
+            deliveryInstructions: '',
+            deliveryLocation: null,
+            addressId: '695b566b966588974f181e9e',
+            requireGSTBill: false,
+            items: [
+              {
+                productId: '695b55e3966588974f181e2a',
+                productName: 'Acc Cement',
+                unitPrice: 350,
+                quantity: 3,
+                unit: 'bag',
+                sku: 'CEM-GEN-0001',
+                totalPrice: 1050
+              }
+            ],
+            subtotal: 1050,
+            tax: 0,
+            deliveryCharge: 0,
+            totalAmount: 1071
+          },
+          ipAddress: '106.192.236.164',
+          userAgent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36',
+          itemCount: 1,
+          totalWeight: 0,
+          paymentMethod: 'cod'
+        },
+        notificationSent: { n8n: { sent: false, error: 'n8n not configured' } },
+        eventDescription: 'Order ORD2601230001 was created',
+        _id: ObjectId('6973c46a4ee71bbb14f44da7')
+      }
+    ],
+    merchantPayouts: [],
+    createdAt: ISODate('2026-01-23T18:56:42.239Z'),
+    updatedAt: ISODate('2026-01-23T18:56:42.367Z'),
+    __v: 0
+  },
+  {
+    _id: ObjectId('6973c4e04ee71bbb14f44e53'),
+    orderNumber: 'ORD2601230002',
+    customerId: ObjectId('6958216e6b2e3d200a593273'),
+    customerName: 'Mishra',
+    customerPhone: '8553545862',
+    customerAddress: '241/b new ag co operative colony, werwerwer',
+    customerArea: 'Kadru',
+    deliveryAddressId: ObjectId('695b566b966588974f181e9e'),
+    deliveryLocation: {
+      type: 'Point',
+      coordinates: [ 77.61657326723169, 12.915582436095887 ],
+      address: '241/b new ag co operative colony, werwerwer, Kadru, ranchi, Karnataka - 560062',
+      area: 'Kadru',
+      pincode: '560062',
+      city: 'ranchi',
+      state: 'Karnataka',
+      isCurrentLocation: false,
+      receiverName: 'Mishra',
+      receiverPhone: '8553545862'
+    },
+    items: [
+      {
+        productId: ObjectId('696fac0db772e86aad5c9fa9'),
+        productName: 'Ultra tech',
+        quantity: 3,
+        unitPrice: 350,
+        totalPrice: 1050,
+        merchantUnitPrice: 330,
+        merchantTotalPrice: 990,
+        unit: 'bag',
+        assignedMerchantId: null,
+        sku: 'CEM-GEN-0002',
+        weight: 0,
+        itemStatus: 'pending',
+        rejectedBy: [],
+        _id: ObjectId('6973c4e04ee71bbb14f44e54')
+      }
+    ],
+    subtotal: 1050,
+    subtotalBeforeGST: 1050,
+    tax: 0,
+    deliveryCharge: 0,
+    platformFee: 21,
+    totalAmount: 1071,
+    pricingBreakdown: {
+      taxRate: 0.18,
+      deliveryConfig: {
+        type: 'threshold',
+        fixedCharge: 50,
+        freeDeliveryThreshold: 1000,
+        chargeForBelowThreshold: 50,
+        perKmRate: 5,
+        baseDistance: 5,
+        perKgRate: 10,
+        freeWeightLimit: 50,
+        maxDeliveryRadius: 10,
+        maxExpandedRadius: 25,
+        minimumMerchantsBeforeExpand: 3,
+        fallbackStrategy: 'expand',
+        enablePincodeGrouping: true
+      },
+      minimumOrderValue: 500
+    },
+    gstBreakdown: {
+      mode: 'no-gst',
+      merchantGST: 0,
+      platformGST: 0,
+      totalGST: 0,
+      isDummyGST: true,
+      platformFeeGST: 0
+    },
+    deliverySplit: { merchantShare: 0, platformShare: 0 },
+    orderStatus: 'pending',
+    paymentStatus: 'pending',
+    requireGSTBill: false,
+    paymentMethod: 'cod',
+    deliveryInstructions: '',
+    expectedDeliveryDate: ISODate('2026-01-30T18:58:40.296Z'),
+    statusHistory: [
+      {
+        status: 'pending',
+        timestamp: ISODate('2026-01-23T18:58:40.307Z'),
+        _id: ObjectId('6973c4e04ee71bbb14f44e56')
+      }
+    ],
+    lifecycle: [
+      {
+        eventType: 'order_created',
+        timestamp: ISODate('2026-01-23T18:58:40.348Z'),
+        triggeredBy: {
+          userId: ObjectId('6958216e6b2e3d200a593273'),
+          userType: 'customer',
+          userName: 'Mishra',
+          userPhone: '6201176610'
+        },
+        metadata: {
+          orderNumber: 'ORD2601230002',
+          totalAmount: 1071,
+          requestBody: {
+            customerName: 'Mishra',
+            customerPhone: '8553545862',
+            customerAddress: '241/b new ag co operative colony, werwerwer',
+            customerArea: 'Kadru',
+            paymentMethod: 'cod',
+            deliveryInstructions: '',
+            deliveryLocation: null,
+            addressId: '695b566b966588974f181e9e',
+            requireGSTBill: false,
+            items: [
+              {
+                productId: '696fac0db772e86aad5c9fa9',
+                productName: 'Ultra tech',
+                unitPrice: 350,
+                quantity: 3,
+                unit: 'bag',
+                sku: 'CEM-GEN-0002',
+                totalPrice: 1050
+              }
+            ],
+            subtotal: 1050,
+            tax: 0,
+            deliveryCharge: 0,
+            totalAmount: 1071
+          },
+          ipAddress: '106.192.224.164',
+          userAgent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36',
+          itemCount: 1,
+          totalWeight: 0,
+          paymentMethod: 'cod'
+        },
+        notificationSent: { n8n: { sent: false, error: 'n8n not configured' } },
+        eventDescription: 'Order ORD2601230002 was created',
+        _id: ObjectId('6973c4e04ee71bbb14f44e5b')
+      }
+    ],
+    merchantPayouts: [],
+    createdAt: ISODate('2026-01-23T18:58:40.304Z'),
+    updatedAt: ISODate('2026-01-23T18:58:40.409Z'),
+    __v: 0
+  }
+]
+
+users data 
+ecommerce> db.users.find()
+[
+  {
+    _id: ObjectId('6956a6eef13dc8748cb17523'),
+    name: 'Admin User',
+    email: 'ayushakash9@gmail.com',
+    password: '$2a$12$9EIcMF2Oj3s.kFMZJSIrBekVyRwRHtyzKclJYnrvY3SnUcBLGo91G',
+    role: 'admin',
+    phone: '9876543210',
+    isActive: true,
+    isPhoneVerified: true,
+    createdAt: ISODate('2026-01-01T16:55:10.084Z'),
+    updatedAt: ISODate('2026-01-23T19:00:40.352Z'),
+    __v: 0,
+    refreshToken: null
+  },
+  {
+    _id: ObjectId('6958216e6b2e3d200a593273'),
+    name: 'Mishra',
+    password: '$2a$12$RruocxyqqfMjlzoHMdmH.eXyfvrCAXULukx6QGX1BlzUNNsIG8UAG',
+    role: 'customer',
+    phone: '6201176610',
+    isActive: true,
+    isPhoneVerified: true,
+    createdAt: ISODate('2026-01-02T19:50:06.675Z'),
+    updatedAt: ISODate('2026-01-23T18:56:24.985Z'),
+    __v: 0,
+    refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTU4MjE2ZTZiMmUzZDIwMGE1OTMyNzMiLCJpYXQiOjE3NjkxOTQ1ODQsImV4cCI6MTc2OTc5OTM4NH0.ZClb3Y1WhHEomPwEtkMAW_9ONwSDFRj4QHKiNkQjie0'
+  }
+]

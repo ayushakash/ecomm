@@ -80,6 +80,8 @@ export const authAPI = {
   logout: () => api.post('/api/auth/logout'),
   refresh: (refreshToken) => api.post('/api/auth/refresh', { refreshToken }),
   me: () => api.get('/api/auth/me'),
+  sendChangeEmailOTP: (email) => api.post('/api/auth/change-email/send-otp', { email }),
+  verifyChangeEmail: (email, otp) => api.post('/api/auth/change-email/verify', { email, otp }),
 };
 
 export const userAPI = {
@@ -143,6 +145,7 @@ export const orderAPI = {
 };
 
 export const settingsAPI = {
+  getPublic: () => api.get('/api/settings/public').then(res => res.data),
   getSettings: () => api.get('/api/settings').then(res => res.data),
   updateSettings: (settings) => api.put('/api/settings', settings).then(res => res.data),
   calculatePricing: (items, customerData) => api.post('/api/settings/calculate-pricing', { items, customerData }).then(res => res.data),

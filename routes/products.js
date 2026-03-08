@@ -48,7 +48,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { category, name, description, images, specifications, tags, price, unit, gstRate, gstType } = req.body;
+      const { category, name, description, images, specifications, tags, price, unit, gstRate, gstType, variants, bulkMinQty } = req.body;
 
       console.log('📥 Received images:', images);
       console.log('📥 Images type:', typeof images);
@@ -72,10 +72,12 @@ router.post(
           images: processedImages,
           specifications: specifications || {},
           tags: tags || [],
-          price: price || 0,   // Admin-defined selling price
-          unit: unit || "",     // Admin-defined unit
-          gstRate: gstRate !== undefined ? gstRate : 18,  // Default 18% if not provided
-          gstType: gstType || 'exclusive',  // Default exclusive if not provided
+          price: price || 0,
+          unit: unit || "",
+          gstRate: gstRate !== undefined ? gstRate : 18,
+          gstType: gstType || 'exclusive',
+          variants: variants || [],
+          bulkMinQty: bulkMinQty || 10,
           enabled: true,
         });
 
@@ -89,18 +91,10 @@ router.post(
 
       // ---------------- Merchant Flow ----------------
       if (req.user.role === "merchant") {
-        console.log("REQ BODY", req.body);
-        const { productId, price, stock } = req.body;
+        const { productId, price, stock, variantPricing } = req.body;
 
         if (!productId) {
-          return res
-            .status(400)
-            .json({ message: "Product ID (from master catalog) is required" });
-        }
-        if (price === undefined || stock === undefined) {
-          return res
-            .status(400)
-            .json({ message: "Price and Stock are required" });
+          return res.status(400).json({ message: "Product ID (from master catalog) is required" });
         }
 
         const product = await Product.findById(productId);
@@ -108,22 +102,40 @@ router.post(
           return res.status(404).json({ message: "Product not found in catalog" });
         }
 
+        const hasVariants = product.variants && product.variants.length > 0;
+
+        // Validate based on product type
+        if (hasVariants) {
+          if (!variantPricing || variantPricing.length === 0) {
+            return res.status(400).json({ message: "Please set price and stock for each variant" });
+          }
+        } else {
+          if (price === undefined || stock === undefined) {
+            return res.status(400).json({ message: "Price and Stock are required" });
+          }
+        }
+
         const merchant = await Merchant.findById(req.user._id);
         if (!merchant) {
           return res.status(400).json({ message: "Merchant profile not found" });
         }
-        console.log(merchant._id, product._id);
+
         let merchantProduct = await MerchantProduct.findOne({
           merchantId: merchant._id,
           productId: product._id,
         });
 
         if (merchantProduct) {
-          merchantProduct.price = price;
-          merchantProduct.stock = stock;
+          if (hasVariants) {
+            merchantProduct.variantPricing = variantPricing;
+            merchantProduct.price = 0;
+            merchantProduct.stock = 0;
+          } else {
+            merchantProduct.price = price;
+            merchantProduct.stock = stock;
+          }
           merchantProduct.enabled = true;
           await merchantProduct.save();
-          console.log("UPDATED", merchantProduct);
           return res.status(200).json({
             message: "✅ Merchant product updated successfully",
             merchantProduct: await merchantProduct.populate("productId"),
@@ -133,8 +145,9 @@ router.post(
         merchantProduct = new MerchantProduct({
           merchantId: merchant._id,
           productId: product._id,
-          price,
-          stock,
+          price: hasVariants ? 0 : price,
+          stock: hasVariants ? 0 : stock,
+          variantPricing: hasVariants ? variantPricing : [],
         });
 
         await merchantProduct.save();
@@ -360,7 +373,7 @@ router.get('/master-products', verifyToken, async (req, res) => {
     }
 
     const products = await Product.find(filter)
-      .select("_id name") // only id + name for dropdown
+      .select("_id name variants") // id + name + variants for merchant pricing
       .sort({ name: 1 })
       .skip(skip)
       .limit(parseInt(limit))
@@ -479,7 +492,7 @@ router.put('/:id', [
     const allowedUpdates = [
       'name', 'description', 'category', 'price', 'unit', 'stock',
       'enabled', 'images', 'specifications', 'tags', 'minOrderQuantity', 'deliveryTime',
-      'gstRate', 'gstType'
+      'gstRate', 'gstType', 'variants', 'bulkMinQty'
     ];
 
     allowedUpdates.forEach(field => {
@@ -536,20 +549,21 @@ body('stock')
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { stock, price, enabled } = req.body;
+    const { stock, price, enabled, variantPricing } = req.body;
 
     // Find merchant
     const merchant = await Merchant.findById(req.user._id);
     if (!merchant) return res.status(400).json({ message: "Merchant profile not found" });
 
     // Find merchant product
-    const merchantProduct = await MerchantProduct.findOne({ 
+    const merchantProduct = await MerchantProduct.findOne({
       merchantId: merchant._id,
       productId: req.params.id
     });
     if (!merchantProduct) return res.status(404).json({ message: "Merchant product not found" });
 
     // Update only fields provided
+    if (variantPricing !== undefined) merchantProduct.variantPricing = variantPricing;
     if (stock !== undefined) merchantProduct.stock = stock;
     if (price !== undefined) merchantProduct.price = price;
     if (enabled !== undefined) merchantProduct.enabled = enabled;
@@ -681,10 +695,12 @@ router.get('/merchant/my', [verifyToken, requireMerchantOrAdmin], async (req, re
         specifications: mp.productId.specifications,
         tags: mp.productId.tags,
         unit: mp.productId.unit,
-        price: mp.price,              // Merchant's price
-        myStock: mp.stock,            // Merchant's stock
-        enabled: mp.enabled,          // Merchant's enabled status
-        merchantProductId: mp._id     // Reference to MerchantProduct
+        variants: mp.productId.variants || [],       // master product variant definitions
+        price: mp.price,
+        myStock: mp.stock,
+        variantPricing: mp.variantPricing || [],     // merchant's per-variant pricing
+        enabled: mp.enabled,
+        merchantProductId: mp._id
       }));
 
     res.json({

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { PageSpinner } from '../../components/ui/Spinner';
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderAPI } from "../../services/api";
@@ -77,9 +78,7 @@ const OrderHistory = () => {
   // Show loading spinner during initial load or when refetching without cached data
   if (isLoading || (isFetching && !orderList)) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <PageSpinner />
     );
   }
 

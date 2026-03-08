@@ -14,13 +14,13 @@ import {
 const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const { selectedAddress, addresses, setSelectedAddress, locationInfo, selectedCity, fetchMerchantsByCity, clearSelectedCity } = useLocation();
+  const { selectedAddress, addresses, setSelectedAddress, selectedCity, fetchMerchantsByCity, requestLocationPermission } = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [locationMenuOpen, setLocationMenuOpen] = useState(false);
-  const [citySearchOpen, setCitySearchOpen] = useState(false);
   const [citySearchQuery, setCitySearchQuery] = useState('');
   const [availableCities, setAvailableCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   // Fetch available cities on component mount
   useEffect(() => {
@@ -38,21 +38,52 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
     fetchCities();
   }, []);
 
-  // Close city search dropdown when clicking outside
+  // Close location dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (citySearchOpen && !event.target.closest('.city-search-container')) {
-        setCitySearchOpen(false);
+      if (locationMenuOpen && !event.target.closest('.location-dropdown-container')) {
+        setLocationMenuOpen(false);
+        setCitySearchQuery('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [citySearchOpen]);
+  }, [locationMenuOpen]);
 
   const handleLogout = async () => {
     await logout();
     setUserMenuOpen(false);
   };
+
+  const handleUseCurrentLocation = async () => {
+    setDetectingLocation(true);
+    try {
+      await requestLocationPermission();
+      setLocationMenuOpen(false);
+    } catch {
+      // error already toasted inside requestLocationPermission
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
+  // Label shown on the location button
+  const locationLabel = (() => {
+    if (isAuthenticated && selectedAddress) {
+      return { top: 'Delivering to', bottom: `${selectedAddress.area}, ${selectedAddress.city}` };
+    }
+    if (selectedCity) {
+      return { top: 'Shopping in', bottom: selectedCity.city };
+    }
+    return { top: 'Select', bottom: 'Location' };
+  })();
+
+  // Show city-picker UI (guest or auth with no addresses)
+  const showCityPicker = !isAuthenticated || addresses.length === 0;
+  const filteredCities = availableCities.filter(c =>
+    c.city.toLowerCase().includes(citySearchQuery.toLowerCase()) ||
+    c.state.toLowerCase().includes(citySearchQuery.toLowerCase())
+  );
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
@@ -70,210 +101,169 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
             </Link>
           </div>
 
-          {/* City Availability Checker - Show for guest users (non-authenticated) */}
-          {!isAuthenticated && (
-            <div className="flex-1 mx-2 sm:mx-4 max-w-xs">
-              <div className="relative city-search-container">
-                <button
-                  onClick={() => setCitySearchOpen(!citySearchOpen)}
-                  className="flex items-center space-x-1.5 sm:space-x-2 w-full px-2 sm:px-3 py-2 text-left bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 border border-blue-200"
-                >
-                  <MapPinIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    {selectedCity ? (
-                      <>
-                        <div className="text-xs text-blue-600 truncate">Shopping in</div>
-                        <div className="text-xs sm:text-sm font-medium text-blue-900 truncate">
-                          {selectedCity.city}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="text-xs text-blue-600 truncate hidden sm:block">Check if we deliver to</div>
-                        <div className="text-xs sm:text-sm font-medium text-blue-900 truncate">
-                          <span className="hidden sm:inline">Your City</span>
-                          <span className="sm:hidden">Select City</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <ChevronDownIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
-                </button>
+          {/* Unified Location Dropdown */}
+          <div className="flex-1 mx-2 sm:mx-4 max-w-xs min-w-0">
+            <div className="relative location-dropdown-container">
+              <button
+                onClick={() => setLocationMenuOpen(!locationMenuOpen)}
+                className="flex items-center space-x-1.5 sm:space-x-2 w-full px-2 sm:px-3 py-2 text-left bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 border border-blue-200"
+              >
+                <MapPinIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-blue-600 truncate">{locationLabel.top}</div>
+                  <div className="text-xs sm:text-sm font-medium text-blue-900 truncate">{locationLabel.bottom}</div>
+                </div>
+                <ChevronDownIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
+              </button>
 
-                {citySearchOpen && (
-                  <div className="absolute left-0 right-0 sm:right-auto mt-2 w-full sm:w-80 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50 max-h-96 overflow-y-auto">
-                    <div className="p-3 border-b border-gray-200 sticky top-0 bg-white z-10">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-1">We Deliver To These Cities</h3>
-                      <p className="text-xs text-gray-500 mb-2">Check if your city is available</p>
-                      <div className="relative">
-                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search city..."
-                          value={citySearchQuery}
-                          onChange={(e) => setCitySearchQuery(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          autoFocus
-                        />
+              {locationMenuOpen && (
+                <div className="absolute left-0 right-0 sm:right-auto mt-2 w-full sm:w-80 bg-white rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 z-50 overflow-hidden">
+
+                  {/* Authenticated with saved addresses */}
+                  {isAuthenticated && addresses.length > 0 ? (
+                    <>
+                      <div className="p-3 border-b border-gray-100 bg-gray-50">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Your Addresses</p>
                       </div>
-                    </div>
-                    <div className="py-1">
-                      {loadingCities ? (
-                        <div className="px-4 py-3 text-center text-sm text-gray-500">
-                          Loading cities...
-                        </div>
-                      ) : availableCities.length === 0 ? (
-                        <div className="px-4 py-3 text-center text-sm text-gray-500">
-                          No cities available yet
-                        </div>
-                      ) : (
-                        <>
-                          {availableCities
-                            .filter(city =>
-                              city.city.toLowerCase().includes(citySearchQuery.toLowerCase()) ||
-                              city.state.toLowerCase().includes(citySearchQuery.toLowerCase())
-                            )
-                            .map((city, index) => (
-                              <button
-                                key={index}
-                                onClick={() => {
-                                  fetchMerchantsByCity(city.city, city.state);
-                                  setCitySearchOpen(false);
-                                  setCitySearchQuery('');
-                                }}
-                                className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 transition-colors ${
-                                  selectedCity?.city === city.city ? 'bg-blue-50' : 'hover:bg-gray-50'
-                                }`}
-                              >
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center">
-                                      <span className="text-sm font-medium text-gray-900">{city.city}</span>
-                                      <span className="ml-2 text-xs text-gray-500">{city.state}</span>
-                                      {selectedCity?.city === city.city && (
-                                        <span className="ml-2 text-blue-600 text-xs">✓</span>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-green-600 mt-1 flex items-center">
-                                      <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
-                                      {city.merchantCount} {city.merchantCount === 1 ? 'merchant' : 'merchants'} serving
-                                    </p>
-                                  </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {addresses.map((address) => (
+                          <button
+                            key={address._id}
+                            onClick={() => {
+                              setSelectedAddress(address);
+                              setLocationMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 transition-colors ${
+                              selectedAddress?._id === address._id ? 'bg-blue-50' : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-sm font-medium text-gray-900">{address.title}</span>
+                                  {address.isDefault && (
+                                    <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-xs font-medium">Default</span>
+                                  )}
                                 </div>
-                              </button>
-                            ))}
-                          <div className="border-t border-gray-200 p-3 bg-gray-50">
-                            <button
-                              onClick={() => {
-                                setCitySearchOpen(false);
-                                navigate('/register');
-                              }}
-                              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                            >
-                              Register to Start Shopping
-                            </button>
-                          </div>
-                        </>
-                      )}
-                      {citySearchQuery && availableCities.filter(city =>
-                        city.city.toLowerCase().includes(citySearchQuery.toLowerCase()) ||
-                        city.state.toLowerCase().includes(citySearchQuery.toLowerCase())
-                      ).length === 0 && !loadingCities && (
-                        <div className="px-4 py-8 text-center">
-                          <MapPinIcon className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600 mb-1">
-                            No cities found matching "{citySearchQuery}"
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            We're expanding to new cities soon!
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Location Switcher - Desktop & Mobile (Only for authenticated users) */}
-          {isAuthenticated && addresses.length > 0 && (
-            <div className="flex-1 mx-4 max-w-xs">
-              <div className="relative">
-                <button
-                  onClick={() => setLocationMenuOpen(!locationMenuOpen)}
-                  className="flex items-center space-x-2 w-full px-3 py-2 text-left bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-200"
-                >
-                  <MapPinIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-gray-500 truncate">Delivering to</div>
-                    <div className="text-sm font-medium text-gray-900 truncate">
-                      {selectedAddress ? selectedAddress.area + ', ' + selectedAddress.city : 'Select Address'}
-                    </div>
-                  </div>
-                  <ChevronDownIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                </button>
-
-                {locationMenuOpen && (
-                  <div className="absolute left-0 mt-2 w-80 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50 max-h-96 overflow-y-auto">
-                    <div className="p-3 border-b border-gray-200">
-                      <h3 className="text-sm font-semibold text-gray-900">Select Delivery Location</h3>
-                      {locationInfo && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {locationInfo.merchantCount} merchants available
-                        </p>
-                      )}
-                    </div>
-                    <div className="py-1">
-                      {addresses.map((address) => (
-                        <button
-                          key={address._id}
-                          onClick={() => {
-                            setSelectedAddress(address);
-                            setLocationMenuOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                            selectedAddress?._id === address._id ? 'bg-blue-50' : ''
-                          }`}
-                        >
-                          <div className="flex items-start">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center">
-                                <span className="text-sm font-medium text-gray-900">{address.title}</span>
-                                {address.isDefault && (
-                                  <span className="ml-2 bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">
-                                    Default
-                                  </span>
-                                )}
-                                {selectedAddress?._id === address._id && (
-                                  <span className="ml-2 text-blue-600">✓</span>
-                                )}
+                                <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                  {address.area}, {address.city}
+                                </p>
                               </div>
-                              <p className="text-xs text-gray-600 mt-1 truncate">
-                                {address.addressLine1}, {address.area}
-                              </p>
-                              <p className="text-xs text-gray-500 truncate">
-                                {address.city}, {address.state} - {address.pincode}
-                              </p>
+                              {selectedAddress?._id === address._id && (
+                                <span className="text-blue-600 text-sm ml-2 flex-shrink-0">✓</span>
+                              )}
                             </div>
-                          </div>
-                        </button>
-                      ))}
-                      <div className="border-t border-gray-200 mt-1">
+                          </button>
+                        ))}
+                      </div>
+                      <div className="border-t border-gray-200 p-2">
                         <Link
                           to="/profile/addresses"
-                          className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-50"
+                          className="block px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors"
                           onClick={() => setLocationMenuOpen(false)}
                         >
-                          + Add New Address
+                          + Manage Addresses
                         </Link>
                       </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                    </>
+                  ) : (
+                    /* Guest or auth with no addresses — city picker with current location */
+                    <>
+                      {/* Use current location */}
+                      <div className="p-3 border-b border-gray-100">
+                        <button
+                          onClick={handleUseCurrentLocation}
+                          disabled={detectingLocation}
+                          className="flex items-center w-full px-3 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg transition-colors text-sm font-medium gap-2"
+                        >
+                          {detectingLocation ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                              Detecting location...
+                            </>
+                          ) : (
+                            <>
+                              <MapPinIcon className="h-4 w-4 flex-shrink-0" />
+                              Use my current location
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* City search */}
+                      <div className="p-3 border-b border-gray-100 bg-gray-50 sticky top-0">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Or select your city</p>
+                        <div className="relative">
+                          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Search city..."
+                            value={citySearchQuery}
+                            onChange={(e) => setCitySearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+
+                      <div className="max-h-52 overflow-y-auto">
+                        {loadingCities ? (
+                          <div className="px-4 py-4 text-center text-sm text-gray-500">Loading cities...</div>
+                        ) : filteredCities.length === 0 ? (
+                          <div className="px-4 py-6 text-center">
+                            <MapPinIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500">
+                              {citySearchQuery ? `No cities match "${citySearchQuery}"` : 'No cities available yet'}
+                            </p>
+                          </div>
+                        ) : (
+                          filteredCities.map((city, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                fetchMerchantsByCity(city.city, city.state);
+                                setLocationMenuOpen(false);
+                                setCitySearchQuery('');
+                              }}
+                              className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 transition-colors ${
+                                selectedCity?.city === city.city ? 'bg-blue-50' : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className="text-sm font-medium text-gray-900">{city.city}</span>
+                                  <span className="ml-2 text-xs text-gray-500">{city.state}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-green-600 font-medium">
+                                    {city.merchantCount} {city.merchantCount === 1 ? 'store' : 'stores'}
+                                  </span>
+                                  {selectedCity?.city === city.city && (
+                                    <span className="text-blue-600 text-sm">✓</span>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+
+                      {!isAuthenticated && (
+                        <div className="border-t border-gray-200 p-3">
+                          <button
+                            onClick={() => { setLocationMenuOpen(false); navigate('/register'); }}
+                            className="w-full bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                          >
+                            Register to Start Shopping
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
@@ -290,7 +280,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
 
 
           {/* Right side - Cart and User */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1 sm:space-x-4">
             {/* Cart - Hidden on mobile */}
             <Link
               to="/cart"
@@ -309,7 +299,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-2 p-2 text-gray-700 hover:text-primary-600 transition-colors duration-200"
+                  className="flex items-center space-x-1 sm:space-x-2 p-1.5 sm:p-2 text-gray-700 hover:text-primary-600 transition-colors duration-200"
                 >
                   <UserIcon className="h-6 w-6" />
                   <span className="hidden sm:block text-sm font-medium">

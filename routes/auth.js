@@ -1,11 +1,15 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const Merchant = require('../models/Merchant');
 const OTP = require('../models/OTP');
 const { verifyToken } = require('../middleware/auth');
 const MSG91Service = require('../services/MSG91Service');
+const EmailService = require('../services/EmailService');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const router = express.Router();
 
@@ -704,6 +708,302 @@ router.post('/register-merchant', [
 
   } catch (error) {
     console.error('Merchant registration error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/google
+// @desc    Login or register via Google OAuth
+// @access  Public
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ message: 'Google credential is required' });
+    }
+
+    // Verify Google ID token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name } = payload;
+
+    // Find existing user by googleId or email
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (user) {
+      // Link googleId if signing in via Google for first time on existing email account
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.authProvider = 'google';
+        await user.save();
+      }
+    } else {
+      // Create new user (no phone yet — will be required at checkout)
+      user = new User({
+        name,
+        email,
+        googleId,
+        authProvider: 'google',
+        password: 'google-oauth-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2),
+        isPhoneVerified: false
+      });
+      await user.save();
+    }
+
+    if (!user.isActive) {
+      return res.status(400).json({ message: 'Account is deactivated' });
+    }
+
+    const { accessToken, refreshToken } = generateTokens(user._id);
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    return res.json({
+      message: 'Google login successful',
+      user: user.toJSON(),
+      accessToken,
+      refreshToken,
+      phoneRequired: !user.phone
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(401).json({ message: 'Invalid Google credential' });
+  }
+});
+
+// @route   POST /api/auth/link-phone/send-otp
+// @desc    Send OTP to link a phone number to a Google account
+// @access  Private
+router.post('/link-phone/send-otp', verifyToken, [
+  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { phone } = req.body;
+    const currentUser = req.user;
+
+    // Ensure this phone isn't already used by another account
+    const existing = await User.findOne({ phone, _id: { $ne: currentUser._id } });
+    if (existing) {
+      return res.status(400).json({ message: 'This phone number is already linked to another account' });
+    }
+
+    const otp = generateOTPCode();
+
+    // Delete any existing unused OTP for this phone+purpose
+    await OTP.findOneAndDelete({ phone, purpose: 'phone_link', isUsed: false });
+
+    await OTP.create({
+      phone,
+      otp,
+      purpose: 'phone_link',
+      sentVia: 'whatsapp',
+      expiresAt: getOTPExpiry(),
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    const sendResult = await MSG91Service.sendOTP(phone, otp, 'phone_link');
+    if (!sendResult.success && sendResult.channel !== 'mock') {
+      console.warn('MSG91 OTP send failed:', sendResult.error);
+    }
+
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const otpDisabled = process.env.MSG91_OTP_ENABLED !== 'true';
+
+    return res.json({
+      message: 'OTP sent to your WhatsApp',
+      ...((isDevelopment || otpDisabled) && { otp })
+    });
+  } catch (error) {
+    console.error('Link phone send-otp error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/link-phone/verify
+// @desc    Verify OTP and link phone number to logged-in user
+// @access  Private
+router.post('/link-phone/verify', verifyToken, [
+  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
+  body('otp').isLength({ min: 4, max: 6 }).withMessage('OTP must be 4-6 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { phone, otp } = req.body;
+    const currentUser = req.user;
+
+    const otpRecord = await OTP.findOne({
+      phone,
+      purpose: 'phone_link',
+      isUsed: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'OTP expired or not found. Please request a new OTP.' });
+    }
+
+    if (otpRecord.attempts >= 3) {
+      return res.status(400).json({ message: 'Too many failed attempts. Please request a new OTP.' });
+    }
+
+    if (otpRecord.otp !== otp) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return res.status(400).json({
+        message: 'Invalid OTP. Please try again.',
+        attemptsRemaining: 3 - otpRecord.attempts
+      });
+    }
+
+    // Mark OTP used
+    otpRecord.isUsed = true;
+    otpRecord.verifiedAt = new Date();
+    await otpRecord.save();
+
+    // Link phone to user
+    currentUser.phone = phone;
+    currentUser.isPhoneVerified = true;
+    await currentUser.save();
+
+    return res.json({
+      message: 'Phone number verified and linked successfully',
+      user: currentUser.toJSON()
+    });
+  } catch (error) {
+    console.error('Link phone verify error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/change-email/send-otp
+// @desc    Send OTP to a new email address to verify before updating
+// @access  Private
+router.post('/change-email/send-otp', verifyToken, [
+  body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email address')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+    const currentUser = req.user;
+
+    // Don't allow setting to the same email
+    if (currentUser.email && currentUser.email === email) {
+      return res.status(400).json({ message: 'This is already your current email address' });
+    }
+
+    // Check if email is already used by another account
+    const existing = await User.findOne({ email, _id: { $ne: currentUser._id } });
+    if (existing) {
+      return res.status(400).json({ message: 'This email is already linked to another account' });
+    }
+
+    // Email OTPs always use a real random code regardless of MSG91 flag
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Delete any existing unused OTP for this email+purpose
+    await OTP.findOneAndDelete({ email, purpose: 'email_change', isUsed: false });
+
+    await OTP.create({
+      email,
+      otp,
+      purpose: 'email_change',
+      sentVia: 'email',
+      userId: currentUser._id,
+      expiresAt: getOTPExpiry(),
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    const sendResult = await EmailService.sendOTP(email, otp, 'email_change');
+    if (!sendResult.success && sendResult.channel !== 'mock') {
+      console.warn('EmailService send failed:', sendResult.error);
+    }
+
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const smtpDisabled = !process.env.SMTP_USER || !process.env.SMTP_PASS;
+
+    return res.json({
+      message: 'Verification code sent to your new email address',
+      ...((isDevelopment || smtpDisabled) && { otp })
+    });
+  } catch (error) {
+    console.error('Change email send-otp error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/change-email/verify
+// @desc    Verify OTP and update the user's email address
+// @access  Private
+router.post('/change-email/verify', verifyToken, [
+  body('email').isEmail().normalizeEmail().withMessage('Please enter a valid email address'),
+  body('otp').isLength({ min: 4, max: 6 }).withMessage('OTP must be 4-6 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, otp } = req.body;
+    const currentUser = req.user;
+
+    const otpRecord = await OTP.findOne({
+      email,
+      purpose: 'email_change',
+      isUsed: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'OTP expired or not found. Please request a new code.' });
+    }
+
+    if (otpRecord.attempts >= 3) {
+      return res.status(400).json({ message: 'Too many failed attempts. Please request a new code.' });
+    }
+
+    if (otpRecord.otp !== otp) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return res.status(400).json({
+        message: 'Invalid code. Please try again.',
+        attemptsRemaining: 3 - otpRecord.attempts
+      });
+    }
+
+    // Mark OTP used
+    otpRecord.isUsed = true;
+    otpRecord.verifiedAt = new Date();
+    await otpRecord.save();
+
+    // Update user's email
+    currentUser.email = email;
+    await currentUser.save();
+
+    return res.json({
+      message: 'Email updated successfully',
+      user: currentUser.toJSON()
+    });
+  } catch (error) {
+    console.error('Change email verify error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

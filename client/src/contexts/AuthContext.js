@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import api from '../services/api';
+import api, { authAPI } from '../services/api';
 import analytics from '../services/analytics';
 
 const AuthContext = createContext();
@@ -61,14 +61,15 @@ export const AuthProvider = ({ children }) => {
       analytics.trackLogin('email');
 
       toast.success('Login successful!');
-      
-      // Redirect based on role
+
       if (userData.role === 'admin') {
         navigate('/admin');
       } else if (userData.role === 'merchant') {
         navigate('/merchant');
       } else {
-        navigate('/');
+        const redirect = localStorage.getItem('postLoginRedirect');
+        localStorage.removeItem('postLoginRedirect');
+        navigate(redirect || '/');
       }
 
       return { success: true };
@@ -180,6 +181,87 @@ export const AuthProvider = ({ children }) => {
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
   };
 
+  const loginWithGoogle = async (credential) => {
+    try {
+      const response = await api.post('/api/auth/google', { credential });
+      const { user: userData, accessToken, refreshToken: refreshTokenValue, phoneRequired } = response.data;
+
+      setUser(userData);
+      setToken(accessToken);
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshTokenValue);
+      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+
+      analytics.trackLogin('google');
+
+      toast.success('Logged in with Google!');
+
+      if (userData.role === 'admin') {
+        navigate('/admin');
+      } else if (userData.role === 'merchant') {
+        navigate('/merchant');
+      } else {
+        const redirect = localStorage.getItem('postLoginRedirect');
+        localStorage.removeItem('postLoginRedirect');
+        navigate(redirect || '/');
+      }
+
+      return { success: true, phoneRequired };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Google login failed';
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  };
+
+  const linkPhone = async (phone, otp) => {
+    try {
+      const response = await api.post('/api/auth/link-phone/verify', { phone, otp });
+      setUser(response.data.user);
+      toast.success('Phone number verified and linked!');
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Phone verification failed';
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  };
+
+  const sendChangeEmailOTP = async (email) => {
+    try {
+      const response = await authAPI.sendChangeEmailOTP(email);
+      return { success: true, ...response.data };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to send verification code';
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  };
+
+  const verifyChangeEmail = async (email, otp) => {
+    try {
+      const response = await authAPI.verifyChangeEmail(email, otp);
+      setUser(response.data.user);
+      toast.success('Email updated successfully!');
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Email verification failed';
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  };
+
+  const sendLinkPhoneOTP = async (phone) => {
+    try {
+      const response = await api.post('/api/auth/link-phone/send-otp', { phone });
+      return { success: true, ...response.data };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to send OTP';
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  };
+
   const loginWithOTP = async (phone, otp) => {
     try {
       const response = await api.post('/api/auth/verify-otp-login', { phone, otp });
@@ -220,7 +302,12 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     sendOTP,
+    sendChangeEmailOTP,
+    verifyChangeEmail,
     loginWithOTP,
+    loginWithGoogle,
+    linkPhone,
+    sendLinkPhoneOTP,
     setAuthData,
     logout,
     refreshToken,

@@ -5,9 +5,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { orderAPI, addressAPI } from '../../services/api';
-import { reverseGeocode, forwardGeocode } from '../../services/geocodingService';
+import { reverseGeocode } from '../../services/geocodingService';
 import toast from 'react-hot-toast';
 import LocationConfirmation from '../../components/location/LocationConfirmation';
+import AddressFormModal from '../../components/modals/AddressFormModal';
 import analytics from '../../services/analytics';
 import {
   MapPinIcon,
@@ -16,54 +17,20 @@ import {
   HomeIcon,
   BuildingOfficeIcon,
   UserIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  TrashIcon,
+  ArrowPathIcon,
+  PhoneIcon,
+  DocumentTextIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline';
 
-// Indian States
-const INDIAN_STATES = [
-  'Andaman and Nicobar Islands',
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chandigarh',
-  'Chhattisgarh',
-  'Dadra and Nagar Haveli and Daman and Diu',
-  'Delhi',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jammu and Kashmir',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Ladakh',
-  'Lakshadweep',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Puducherry',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal'
-];
 
 const Checkout = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { cart, clearCart, cartCity } = useCart();
-  const { user } = useAuth();
+  const { user, setUser, sendLinkPhoneOTP, linkPhone } = useAuth();
   const { selectedAddress: contextSelectedAddress, merchantIds, setSelectedAddress: setContextAddress } = useLocation();
   
   const [formData, setFormData] = useState({
@@ -83,22 +50,15 @@ const Checkout = () => {
   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
   const [requireGSTBill, setRequireGSTBill] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
-  const [newAddressForm, setNewAddressForm] = useState({
-    phoneNumber: '',
-    addressLine1: '',
-    addressLine2: '',
-    landmark: '',
-    area: '',
-    city: '',
-    state: '',
-    pincode: '',
-    addressType: 'home',
-    coordinates: {
-      latitude: null,
-      longitude: null
-    }
-  });
-  const [capturingCoordinates, setCapturingCoordinates] = useState(false);
+
+  // Phone verification modal state (for Google-auth users without a phone)
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneModalStep, setPhoneModalStep] = useState(1); // 1: enter phone, 2: enter OTP
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneOtp, setPhoneOtp] = useState('');
+  const [phoneModalLoading, setPhoneModalLoading] = useState(false);
+  const [phoneModalError, setPhoneModalError] = useState('');
+  const [devOtp, setDevOtp] = useState('');
 
   // Prepare items for cart totals calculation (send product IDs, not prices)
   const cartItems = useMemo(() =>
@@ -227,53 +187,6 @@ const Checkout = () => {
     }
   });
 
-  // Create address mutation
-  const createAddressMutation = useMutation({
-    mutationFn: (addressData) => addressAPI.createAddress(addressData),
-    onSuccess: () => {
-      toast.success('Address added successfully!');
-      setShowAddAddressForm(false);
-      setNewAddressForm({
-        phoneNumber: '',
-        addressLine1: '',
-        addressLine2: '',
-        landmark: '',
-        area: '',
-        city: '',
-        state: '',
-        pincode: '',
-        addressType: 'home',
-        coordinates: {
-          latitude: null,
-          longitude: null
-        }
-      });
-      refetchAddresses();
-    },
-    onError: (err) => {
-      // Show specific validation errors if available
-      if (err.response?.data?.errors) {
-        const errors = err.response.data.errors;
-        // Display each error on a separate line without the field name for cleaner UI
-        const errorMessages = Object.values(errors).join('\n');
-        toast.error(errorMessages, { duration: 5000 });
-      } else {
-        toast.error(err.response?.data?.message || 'Failed to add address');
-      }
-    }
-  });
-
-  // Set default address mutation
-  const setDefaultMutation = useMutation({
-    mutationFn: (addressId) => addressAPI.setDefaultAddress(addressId),
-    onSuccess: () => {
-      toast.success('Default address updated!');
-      refetchAddresses();
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to set default address');
-    }
-  });
 
   const handleLocationConfirm = (location) => {
     console.log('Location confirmed:', location);
@@ -344,192 +257,6 @@ const Checkout = () => {
     );
   };
 
-  const reverseGeocode = async (lat, lng) => {
-    try {
-      // Using a simple reverse geocoding approach
-      // You can replace this with your preferred geocoding service
-      const response = await fetch(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
-      );
-
-      if (!response.ok) throw new Error('Geocoding failed');
-
-      const data = await response.json();
-      return `${data.locality || data.city || ''}, ${data.principalSubdivision || ''}, ${data.countryName || ''}`.replace(/^,\s*|,\s*$/g, '');
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const captureAddressCoordinates = async () => {
-    setCapturingCoordinates(true);
-
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by this browser');
-      setCapturingCoordinates(false);
-      return;
-    }
-
-    // Check if page is served over HTTPS (required for geolocation on mobile)
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-      toast.error('Location access requires HTTPS. Please access the site using https://', { duration: 5000 });
-      setCapturingCoordinates(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-
-        try {
-          // Call reverse geocoding to get address details
-          toast.loading('Getting address details...', { id: 'geocoding' });
-          const addressData = await reverseGeocode(latitude, longitude);
-
-          if (addressData.success) {
-            // Auto-fill address fields from geocoding
-            setNewAddressForm(prev => ({
-              ...prev,
-              coordinates: {
-                latitude,
-                longitude
-              },
-              area: addressData.area || prev.area,
-              city: addressData.city || prev.city,
-              state: addressData.state || prev.state,
-              pincode: addressData.pincode || prev.pincode
-            }));
-
-            toast.success('Location captured and address filled!', { id: 'geocoding' });
-          } else {
-            // Just set coordinates if geocoding fails
-            setNewAddressForm(prev => ({
-              ...prev,
-              coordinates: {
-                latitude,
-                longitude
-              }
-            }));
-            toast.success('Location captured!', { id: 'geocoding' });
-          }
-        } catch (error) {
-          console.error('Geocoding error:', error);
-          // Just set coordinates if geocoding fails
-          setNewAddressForm(prev => ({
-            ...prev,
-            coordinates: {
-              latitude,
-              longitude
-            }
-          }));
-          toast.success('Location captured!', { id: 'geocoding' });
-        }
-
-        setCapturingCoordinates(false);
-      },
-      (error) => {
-        console.error('Error getting location:', error);
-        let errorMessage = 'Unable to get your location';
-
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied. Please enable location permissions.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information unavailable.';
-            break;
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out.';
-            break;
-        }
-
-        toast.error(errorMessage);
-        setCapturingCoordinates(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000
-      }
-    );
-  };
-
-  // NEW: Get coordinates from entered address using forward geocoding
-  const getCoordinatesFromAddress = async (silent = false) => {
-    // Validate that required fields are filled
-    if (!newAddressForm.area || !newAddressForm.city || !newAddressForm.state) {
-      if (!silent) {
-        toast.error('Please fill in Area, City, and State before getting coordinates');
-      }
-      return;
-    }
-
-    // Skip if coordinates already captured via GPS
-    if (newAddressForm.coordinates.latitude && newAddressForm.coordinates.longitude) {
-      return;
-    }
-
-    if (!silent) {
-      setCapturingCoordinates(true);
-      toast.loading('Finding coordinates from address...', { id: 'forward-geocode' });
-    }
-
-    try {
-      const result = await forwardGeocode({
-        addressLine1: newAddressForm.addressLine1,
-        area: newAddressForm.area,
-        city: newAddressForm.city,
-        state: newAddressForm.state,
-        pincode: newAddressForm.pincode
-      });
-
-      if (result.success && result.coordinates) {
-        setNewAddressForm(prev => ({
-          ...prev,
-          coordinates: result.coordinates
-        }));
-
-        if (!silent) {
-          toast.success(`Coordinates found! (Accuracy: ${Math.round(result.accuracy * 100)}%)`, { id: 'forward-geocode' });
-        } else {
-          // Silent success - just show subtle indicator
-          console.log('✅ Auto-geocoded address:', result.coordinates);
-        }
-      } else {
-        if (!silent) {
-          toast.error(result.error || 'Could not find coordinates for this address', { id: 'forward-geocode' });
-        }
-      }
-    } catch (error) {
-      console.error('Forward geocoding error:', error);
-      if (!silent) {
-        toast.error('Failed to get coordinates from address', { id: 'forward-geocode' });
-      }
-    } finally {
-      if (!silent) {
-        setCapturingCoordinates(false);
-      }
-    }
-  };
-
-  // Auto-geocode when address fields are filled (debounced)
-  useEffect(() => {
-    // Only auto-geocode if we don't have coordinates yet
-    if (newAddressForm.coordinates.latitude && newAddressForm.coordinates.longitude) {
-      return;
-    }
-
-    // Check if required fields are filled
-    if (newAddressForm.area && newAddressForm.city && newAddressForm.state && newAddressForm.pincode) {
-      // Debounce: wait 2 seconds after user stops typing
-      const timer = setTimeout(() => {
-        console.log('🔍 Auto-geocoding address...');
-        getCoordinatesFromAddress(true); // silent = true
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [newAddressForm.area, newAddressForm.city, newAddressForm.state, newAddressForm.pincode]);
 
   // Helper functions for address handling
   const getAddressIcon = (type) => {
@@ -553,33 +280,6 @@ const Checkout = () => {
     setShowAddAddressForm(true);
   };
 
-  const handleNewAddressSubmit = (e) => {
-    e.preventDefault();
-
-    // Validate coordinates
-    if (!newAddressForm.coordinates.latitude || !newAddressForm.coordinates.longitude) {
-      toast.error('Please capture your location coordinates before saving the address');
-      return;
-    }
-
-    // Add user's name and generate title from address type
-    const addressTypeLabel = newAddressForm.addressType.charAt(0).toUpperCase() + newAddressForm.addressType.slice(1);
-    const addressData = {
-      ...newAddressForm,
-      fullName: user?.name || '',
-      title: `${addressTypeLabel} - ${newAddressForm.area}`
-    };
-
-    createAddressMutation.mutate(addressData);
-  };
-
-  const handleNewAddressChange = (e) => {
-    setNewAddressForm({
-      ...newAddressForm,
-      [e.target.name]: e.target.value
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -593,6 +293,12 @@ const Checkout = () => {
       } else {
         navigate('/register');
       }
+      return;
+    }
+
+    // Google-auth users must verify phone before placing orders
+    if (!user.phone) {
+      setShowPhoneModal(true);
       return;
     }
 
@@ -655,6 +361,46 @@ const Checkout = () => {
     createOrderMutation.mutate(orderData);
   };
 
+  const handlePhoneSendOTP = async () => {
+    if (!/^[6-9]\d{9}$/.test(phoneInput.trim())) {
+      setPhoneModalError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    setPhoneModalError('');
+    setPhoneModalLoading(true);
+    try {
+      const result = await sendLinkPhoneOTP(phoneInput.trim());
+      if (result.success) {
+        if (result.otp) setDevOtp(result.otp); // dev mode
+        setPhoneModalStep(2);
+        toast.success(`OTP sent to +91${phoneInput}`);
+      }
+    } finally {
+      setPhoneModalLoading(false);
+    }
+  };
+
+  const handlePhoneVerifyOTP = async () => {
+    if (!/^\d{4,6}$/.test(phoneOtp.trim())) {
+      setPhoneModalError('Please enter a valid OTP');
+      return;
+    }
+    setPhoneModalError('');
+    setPhoneModalLoading(true);
+    try {
+      const result = await linkPhone(phoneInput.trim(), phoneOtp.trim());
+      if (result.success) {
+        setShowPhoneModal(false);
+        setPhoneModalStep(1);
+        setPhoneInput('');
+        setPhoneOtp('');
+        setDevOtp('');
+      }
+    } finally {
+      setPhoneModalLoading(false);
+    }
+  };
+
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -676,9 +422,9 @@ const Checkout = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
-        <div className="bg-primary-700 rounded-xl shadow-lg p-6 sm:p-8 mb-6 sm:mb-8 text-white">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">🛍️ Checkout</h1>
-          <p className="text-gray-100 text-sm sm:text-base">Complete your order</p>
+        <div className="bg-primary-700 rounded-xl shadow-lg p-6 mb-6 text-white">
+          <h1 className="text-2xl font-bold">Checkout</h1>
+          <p className="text-gray-200 text-sm mt-1">Complete your order</p>
         </div>
 
         {/* Warning Banner for Unavailable Items */}
@@ -707,10 +453,10 @@ const Checkout = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Checkout Form */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sm:p-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-primary-700 mb-6">📦 Shipping Information</h2>
+        <div className="order-2 lg:order-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-5">Delivery Details</h2>
 
           {/* City Mismatch Warning */}
           {cartCity && selectedAddress && selectedAddress.city &&
@@ -719,7 +465,7 @@ const Checkout = () => {
               <div className="flex items-start">
                 <ExclamationTriangleIcon className="w-6 h-6 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="text-red-900 font-bold text-base mb-2">⚠️ City Mismatch Error!</h4>
+                  <h4 className="text-red-900 font-bold text-base mb-2">City Mismatch</h4>
                   <p className="text-red-800 text-sm mb-4">
                     Your cart contains items from <span className="font-bold bg-red-100 px-2 py-0.5 rounded">{cartCity}</span>, but you're trying to deliver to <span className="font-bold bg-red-100 px-2 py-0.5 rounded">{selectedAddress.city}</span>.
                   </p>
@@ -727,14 +473,14 @@ const Checkout = () => {
                     <button
                       type="button"
                       onClick={clearCart}
-                      className="px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold"
                     >
-                      🗑️ Clear Cart & Start Fresh
+                      <TrashIcon className="h-4 w-4" />
+                      Clear Cart & Start Fresh
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        // Try to select an address from cart city
                         const matchingAddress = addressesData?.addresses?.find(
                           addr => addr.city.toLowerCase() === cartCity.toLowerCase()
                         );
@@ -745,11 +491,34 @@ const Checkout = () => {
                           toast.error(`No address found in ${cartCity}. Please add one or clear cart.`);
                         }
                       }}
-                      className="px-4 py-2.5 bg-white border-2 border-red-600 text-red-600 rounded-xl hover:bg-red-50 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-semibold"
                     >
-                      🔄 Switch to {cartCity} Address
+                      <ArrowPathIcon className="h-4 w-4" />
+                      Switch to {cartCity} Address
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Phone verification banner for Google-auth users */}
+          {user && !user.phone && (
+            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <PhoneIcon className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-800 text-sm">Phone number required</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Please verify your phone number before checkout — this helps us confirm your delivery.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowPhoneModal(true)}
+                    className="mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                  >
+                    Verify Phone Number
+                  </button>
                 </div>
               </div>
             </div>
@@ -759,11 +528,11 @@ const Checkout = () => {
           {user && (
             <div className="mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-900">📍 Select Delivery Address</h3>
+                <h3 className="text-base font-semibold text-gray-900">Select Delivery Address</h3>
                 <button
                   type="button"
                   onClick={() => setShowAddAddressForm(true)}
-                  className="text-orange-600 hover:text-orange-700 text-sm font-semibold flex items-center transition-colors duration-150"
+                  className="text-primary-700 hover:text-primary-800 text-sm font-semibold flex items-center transition-colors"
                 >
                   <PlusIcon className="w-4 h-4 mr-1" />
                   Add New
@@ -773,7 +542,7 @@ const Checkout = () => {
               {/* Address List with Radio Buttons */}
               {addressesLoading ? (
                 <div className="flex justify-center items-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="text-2xl animate-bounce">🏗️</span>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -833,7 +602,7 @@ const Checkout = () => {
                       <button
                         type="button"
                         onClick={() => setShowAddAddressForm(true)}
-                        className="inline-flex items-center text-orange-600 hover:text-orange-700 font-semibold transition-colors duration-150"
+                        className="inline-flex items-center text-primary-700 hover:text-primary-800 font-semibold transition-colors"
                       >
                         <PlusIcon className="w-5 h-5 mr-1" />
                         Add your first address
@@ -847,8 +616,8 @@ const Checkout = () => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                📝 Delivery Instructions (Optional)
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Delivery Instructions (Optional)
               </label>
               <textarea
                 name="deliveryInstructions"
@@ -856,22 +625,22 @@ const Checkout = () => {
                 onChange={handleInputChange}
                 rows={3}
                 placeholder="Any special instructions for delivery..."
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                💳 Payment Method
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment Method
               </label>
               <select
                 name="paymentMethod"
                 value={formData.paymentMethod}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 font-medium"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
               >
-                <option value="cod">💵 Cash on Delivery</option>
-                <option value="online">💳 Online Payment</option>
+                <option value="cod">Cash on Delivery</option>
+                <option value="online">Online Payment</option>
               </select>
             </div>
 
@@ -885,17 +654,17 @@ const Checkout = () => {
               }`}
             >
               {!selectedAddress
-                ? '📍 Select an Address'
+                ? 'Select an Address to Continue'
                 : unavailableItems.length > 0
-                ? '⚠️ Remove Unavailable Items'
-                : '✨ Place Order'}
+                ? 'Remove Unavailable Items'
+                : 'Place Order'}
             </button>
           </form>
         </div>
 
-        {/* Order Summary */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sm:p-8 sticky top-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-primary-700 mb-6">💳 Order Summary</h2>
+        {/* Order Summary - first on mobile, right on desktop */}
+        <div className="order-1 lg:order-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:sticky lg:top-8 self-start">
+          <h2 className="text-lg font-bold text-gray-900 mb-5">Order Summary</h2>
           
           {/* Cart Items */}
           <div className="space-y-4 mb-6">
@@ -965,25 +734,29 @@ const Checkout = () => {
 
             {/* Info message when no-display mode is active */}
             {pricingData?.breakdown?.gstDisplayMode === 'no-display' && !requireGSTBill && (
-              <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">
-                ℹ️ Prices shown are final (GST included). Check "I need a GST Invoice" to see GST breakdown.
+              <div className="flex items-start gap-1.5 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                <InformationCircleIcon className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                Prices shown are final (GST included). Check "I need a GST Invoice" to see the breakdown.
               </div>
             )}
           </div>
 
           {/* GST Bill Checkbox */}
-          <div className="border-t-2 border-gray-100 pt-6 mt-6">
-            <label className="flex items-start cursor-pointer group">
+          <div className="border-t border-gray-100 pt-5 mt-5">
+            <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={requireGSTBill}
                 onChange={(e) => setRequireGSTBill(e.target.checked)}
-                className="mt-1 h-5 w-5 text-orange-600 border-gray-300 rounded-md focus:ring-orange-500 cursor-pointer"
+                className="mt-0.5 h-4 w-4 text-primary-700 border-gray-300 rounded focus:ring-primary-500 cursor-pointer"
               />
-              <div className="ml-3">
-                <span className="text-sm font-bold text-gray-900 group-hover:text-orange-600 transition-colors duration-150">📄 I need a GST Invoice</span>
-                <p className="text-xs text-gray-600 mt-1">
-                  Check this if you require a detailed GST invoice for tax purposes. A sample invoice will be generated.
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <DocumentTextIcon className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-semibold text-gray-900">I need a GST Invoice</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Check this to see a detailed GST breakdown and generate a sample invoice.
                 </p>
               </div>
             </label>
@@ -991,9 +764,10 @@ const Checkout = () => {
               <button
                 type="button"
                 onClick={() => setShowInvoice(true)}
-                className="mt-4 w-full bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-2 border-green-200 px-4 py-3 rounded-xl hover:bg-green-100 text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                className="mt-3 w-full inline-flex items-center justify-center gap-2 text-green-700 border border-green-200 bg-green-50 hover:bg-green-100 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
               >
-                📄 Preview Sample Invoice
+                <DocumentTextIcon className="h-4 w-4" />
+                Preview Sample Invoice
               </button>
             )}
           </div>
@@ -1007,7 +781,7 @@ const Checkout = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-primary-700 p-6 rounded-t-xl">
               <div className="flex justify-between items-center">
-                <h2 className="text-xl sm:text-2xl font-bold text-white">📍 Select Delivery Address</h2>
+                <h2 className="text-xl font-bold text-white">Select Delivery Address</h2>
                 <button
                   onClick={() => setShowAddressSelection(false)}
                   className="text-white hover:text-gray-200 text-2xl font-bold transition-colors duration-150"
@@ -1020,7 +794,7 @@ const Checkout = () => {
 
               {addressesLoading ? (
                 <div className="flex justify-center items-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="text-2xl animate-bounce">🏗️</span>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1083,10 +857,10 @@ const Checkout = () => {
                   {/* Add New Address Button */}
                   <button
                     onClick={handleAddNewAddress}
-                    className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-orange-400 hover:bg-gradient-to-r hover:from-orange-50 hover:to-stone-50 transition-all duration-200 flex items-center justify-center group shadow-sm hover:shadow-md"
+                    className="w-full p-4 border border-dashed border-gray-300 rounded-xl hover:border-primary-400 hover:bg-primary-50 transition-colors flex items-center justify-center group"
                   >
-                    <PlusIcon className="w-5 h-5 text-gray-400 group-hover:text-orange-600 mr-2 transition-colors duration-150" />
-                    <span className="text-gray-600 group-hover:text-orange-600 font-semibold transition-colors duration-150">Add New Address</span>
+                    <PlusIcon className="w-5 h-5 text-gray-400 group-hover:text-primary-700 mr-2 transition-colors" />
+                    <span className="text-gray-600 group-hover:text-primary-700 font-semibold transition-colors">Add New Address</span>
                   </button>
                 </div>
               )}
@@ -1095,255 +869,12 @@ const Checkout = () => {
         </div>
       )}
 
-      {/* Add New Address Modal */}
-      {showAddAddressForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-primary-700 p-6 rounded-t-xl">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl sm:text-2xl font-bold text-white">📍 Add New Address</h2>
-                <button
-                  onClick={() => setShowAddAddressForm(false)}
-                  className="text-white hover:text-gray-200 text-2xl font-bold transition-colors duration-150"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            <div className="p-6">
+      <AddressFormModal
+        isOpen={showAddAddressForm}
+        onClose={() => setShowAddAddressForm(false)}
+        onSuccess={() => refetchAddresses()}
+      />
 
-              <form onSubmit={handleNewAddressSubmit} className="space-y-4">
-                {/* Address Type Selection */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Address Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="addressType"
-                    value={newAddressForm.addressType}
-                    onChange={handleNewAddressChange}
-                    className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 font-medium"
-                  >
-                    <option value="home">🏠 Home</option>
-                    <option value="office">🏢 Office</option>
-                    <option value="other">📍 Other</option>
-                  </select>
-                </div>
-
-                {/* GPS Coordinates Capture - REQUIRED */}
-                <div className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 rounded-xl p-4 sm:p-6 shadow-md">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                    <div className="flex-1">
-                      <h4 className="font-bold text-orange-900 mb-2 text-sm flex items-center flex-wrap">
-                        📍 Capture Location Coordinates <span className="text-red-500 ml-1">*</span>
-                        {!newAddressForm.coordinates.latitude && (
-                          <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Required</span>
-                        )}
-                      </h4>
-                      <p className="text-xs sm:text-sm text-orange-800 mb-3 font-medium">
-                        ⚠️ Required to find nearby merchants and enable product delivery to this address
-                      </p>
-                      {newAddressForm.coordinates.latitude && newAddressForm.coordinates.longitude ? (
-                        <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 inline-block font-medium break-all">
-                          ✓ Location set: {newAddressForm.coordinates.latitude.toFixed(4)}, {newAddressForm.coordinates.longitude.toFixed(4)}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 inline-block font-medium">
-                          📍 We'll automatically find coordinates from your address to show deliverable merchants
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Location Capture Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <button
-                        type="button"
-                        onClick={captureAddressCoordinates}
-                        disabled={capturingCoordinates}
-                        className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:from-orange-700 hover:to-red-700 disabled:opacity-50 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg sm:transform sm:hover:scale-105"
-                      >
-                        {capturingCoordinates ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Getting...
-                          </>
-                        ) : (
-                          <>
-                            <MapPinIcon className="w-4 h-4 mr-2" />
-                            Use Current Location
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => getCoordinatesFromAddress(false)}
-                        disabled={capturingCoordinates || !newAddressForm.area || !newAddressForm.city || !newAddressForm.state}
-                        className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg sm:transform sm:hover:scale-105"
-                        title={!newAddressForm.area || !newAddressForm.city || !newAddressForm.state ? 'Fill Area, City & State first' : 'Manually find coordinates from address'}
-                      >
-                        {capturingCoordinates ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Finding...
-                          </>
-                        ) : (
-                          <>
-                            <MapPinIcon className="w-4 h-4 mr-2" />
-                            Find Coordinates Now
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Phone Number */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Phone Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    name="phoneNumber"
-                    value={newAddressForm.phoneNumber}
-                    onChange={handleNewAddressChange}
-                    placeholder="10-digit mobile number"
-                    required
-                    className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address Line 1
-                  </label>
-                  <input
-                    type="text"
-                    name="addressLine1"
-                    value={newAddressForm.addressLine1}
-                    onChange={handleNewAddressChange}
-                    placeholder="House/Flat number, Street name"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address Line 2 (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    name="addressLine2"
-                    value={newAddressForm.addressLine2}
-                    onChange={handleNewAddressChange}
-                    placeholder="Apartment, suite, etc."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Area/Locality
-                    </label>
-                    <input
-                      type="text"
-                      name="area"
-                      value={newAddressForm.area}
-                      onChange={handleNewAddressChange}
-                      required
-                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={newAddressForm.city}
-                      onChange={handleNewAddressChange}
-                      required
-                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Pincode
-                    </label>
-                    <input
-                      type="text"
-                      name="pincode"
-                      value={newAddressForm.pincode}
-                      onChange={handleNewAddressChange}
-                      required
-                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                      State
-                    </label>
-                    <select
-                      name="state"
-                      value={newAddressForm.state}
-                      onChange={handleNewAddressChange}
-                      required
-                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 font-medium"
-                    >
-                      <option value="">Select State</option>
-                      {INDIAN_STATES.map((state) => (
-                        <option key={state} value={state}>
-                          {state}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Landmark (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      name="landmark"
-                      value={newAddressForm.landmark}
-                      onChange={handleNewAddressChange}
-                      placeholder="Near a landmark"
-                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-6 border-t-2 border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddAddressForm(false)}
-                    className="px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createAddressMutation.isLoading}
-                    className="px-8 py-3 bg-primary-700 hover:bg-primary-800 text-white rounded-xl disabled:opacity-50 font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                  >
-                    {createAddressMutation.isLoading ? '💾 Saving...' : '✅ Save Address'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Sample Invoice Modal */}
       {showInvoice && (
@@ -1510,6 +1041,112 @@ const Checkout = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phone Verification Modal — required for Google-auth users at checkout */}
+      {showPhoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Verify Your Phone Number</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              A verified phone number is required to place orders so we can contact you about your delivery.
+            </p>
+
+            {phoneModalStep === 1 ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mobile Number
+                  </label>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={(e) => { setPhoneInput(e.target.value.replace(/\D/g, '')); setPhoneModalError(''); }}
+                      maxLength={10}
+                      placeholder="10-digit mobile number"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+                  {phoneModalError && <p className="text-red-600 text-sm mt-1">{phoneModalError}</p>}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowPhoneModal(false)}
+                    className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePhoneSendOTP}
+                    disabled={phoneModalLoading}
+                    className="flex-1 py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                  >
+                    {phoneModalLoading ? 'Sending...' : 'Send OTP'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Enter the OTP sent to <strong>+91{phoneInput}</strong> via WhatsApp.
+                </p>
+                {devOtp && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                    Dev OTP: <strong>{devOtp}</strong>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    OTP
+                  </label>
+                  <input
+                    type="text"
+                    value={phoneOtp}
+                    onChange={(e) => { setPhoneOtp(e.target.value.replace(/\D/g, '')); setPhoneModalError(''); }}
+                    maxLength={6}
+                    placeholder="Enter OTP"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-center text-lg font-mono tracking-widest focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                  {phoneModalError && <p className="text-red-600 text-sm mt-1">{phoneModalError}</p>}
+                </div>
+                <div className="flex justify-between text-sm mb-2">
+                  <button
+                    onClick={() => { setPhoneModalStep(1); setPhoneOtp(''); setPhoneModalError(''); }}
+                    className="text-primary-600 hover:text-primary-500"
+                  >
+                    Change Number
+                  </button>
+                  <button
+                    onClick={handlePhoneSendOTP}
+                    disabled={phoneModalLoading}
+                    className="text-primary-600 hover:text-primary-500 underline disabled:opacity-50"
+                  >
+                    Resend OTP
+                  </button>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowPhoneModal(false)}
+                    className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePhoneVerifyOTP}
+                    disabled={phoneModalLoading}
+                    className="flex-1 py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                  >
+                    {phoneModalLoading ? 'Verifying...' : 'Verify & Continue'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

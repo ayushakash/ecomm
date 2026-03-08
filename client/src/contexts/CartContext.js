@@ -10,9 +10,14 @@ export const useCart = () => {
   return context;
 };
 
+// Build a unique key for a cart item
+// variant products: "productId_8mm", plain products: "productId"
+const buildCartKey = (productId, variantLabel) =>
+  variantLabel ? `${productId}_${variantLabel}` : productId;
+
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
-  const [cartCity, setCartCity] = useState(null); // Track which city the cart items are from
+  const [cartCity, setCartCity] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -23,9 +28,7 @@ export const CartProvider = ({ children }) => {
     if (savedCart) {
       try {
         setCart(JSON.parse(savedCart));
-        if (savedCartCity) {
-          setCartCity(savedCartCity);
-        }
+        if (savedCartCity) setCartCity(savedCartCity);
       } catch (error) {
         console.error('Error loading cart from localStorage:', error);
         setCart([]);
@@ -35,7 +38,7 @@ export const CartProvider = ({ children }) => {
     setIsInitialized(true);
   }, []);
 
-  // Save cart to localStorage whenever it changes (but not on initial load)
+  // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (isInitialized) {
       localStorage.setItem('cart', JSON.stringify(cart));
@@ -47,60 +50,64 @@ export const CartProvider = ({ children }) => {
     }
   }, [cart, cartCity, isInitialized]);
 
-  const addToCart = (product, quantity = 1, city = null) => {
+  /**
+   * Add a product to cart.
+   * @param {Object} product  - product document
+   * @param {number} quantity
+   * @param {string|null} city
+   * @param {Object|null} variant - { label, price, stock, sku } — null for non-variant products
+   */
+  const addToCart = (product, quantity = 1, city = null, variant = null) => {
+    const cartKey = buildCartKey(product._id, variant?.label);
+
     setCart(prevCart => {
-      const existingItem = prevCart.find(item => item._id === product._id);
+      const existingItem = prevCart.find(item => item.cartKey === cartKey);
 
       if (existingItem) {
-        // Update quantity if item already exists
         return prevCart.map(item =>
-          item._id === product._id
+          item.cartKey === cartKey
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
-      } else {
-        // Add new item
-        return [...prevCart, {
-          _id: product._id,
-          name: product.name,
-          price: product.price,
-          unit: product.unit,
-          quantity,
-          images: product.images || [],
-          stock: product.totalStock || product.stock,
-          sku: product.sku,
-          weight: product.weight || 0
-        }];
       }
+
+      return [...prevCart, {
+        cartKey,
+        _id: product._id,
+        name: product.name,
+        variantLabel: variant?.label || null,
+        price: variant ? variant.price : product.price,
+        unit: product.unit,
+        quantity,
+        images: product.images || [],
+        stock: variant ? variant.stock : (product.totalStock || product.stock),
+        sku: variant?.sku || product.sku,
+        weight: product.weight || 0,
+        gstRate: product.gstRate,
+        gstType: product.gstType,
+      }];
     });
 
-    // Set cart city if provided and not already set
-    if (city && !cartCity) {
-      setCartCity(city);
-    }
+    if (city && !cartCity) setCartCity(city);
   };
 
   const setCartCityIfEmpty = (city) => {
-    if (!cartCity && city) {
-      setCartCity(city);
-    }
+    if (!cartCity && city) setCartCity(city);
   };
 
-  const removeFromCart = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item._id !== productId));
+  // All removal/update operations use cartKey
+  const removeFromCart = (cartKey) => {
+    setCart(prevCart => prevCart.filter(item => item.cartKey !== cartKey));
   };
 
-  const updateQuantity = (productId, quantity) => {
+  const updateQuantity = (cartKey, quantity) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(cartKey);
       return;
     }
-
     setCart(prevCart =>
       prevCart.map(item =>
-        item._id === productId
-          ? { ...item, quantity }
-          : item
+        item.cartKey === cartKey ? { ...item, quantity } : item
       )
     );
   };
@@ -110,56 +117,57 @@ export const CartProvider = ({ children }) => {
     setCartCity(null);
   };
 
-  const getCartTotal = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const getCartTotal = () =>
+    cart.reduce((total, item) => total + item.price * item.quantity, 0);
+
+  const getCartCount = () => cart.length;
+
+  // Look up by cartKey (preferred) or productId+variantLabel
+  const getCartItem = (productId, variantLabel = null) => {
+    const cartKey = buildCartKey(productId, variantLabel);
+    return cart.find(item => item.cartKey === cartKey);
   };
 
-  const getCartCount = () => {
-    return cart.length; // Return count of unique products, not total quantity
-  };
+  const isInCart = (productId) =>
+    cart.some(item => item._id === productId);
 
-  const getCartItem = (productId) => {
-    return cart.find(item => item._id === productId);
-  };
-
-  const isInCart = (productId) => {
-    return cart.some(item => item._id === productId);
-  };
-
-  // Sync cart prices from backend (useful after price changes or when user logs in)
+  // Sync cart prices from backend
   const syncCartPrices = async (productAPI) => {
     if (cart.length === 0) return;
-
     try {
-      // Fetch fresh product data for all cart items
-      const productIds = cart.map(item => item._id);
+      const productIds = [...new Set(cart.map(item => item._id))];
       const freshProducts = await Promise.all(
         productIds.map(async (id) => {
           try {
             const response = await productAPI.getProduct(id);
-            return response.data; // Extract data from axios response
-          } catch (error) {
-            console.error(`Failed to fetch product ${id}:`, error);
+            return response.data;
+          } catch {
             return null;
           }
         })
       );
 
-      // Update cart with fresh prices
       let updatedCount = 0;
       setCart(prevCart =>
         prevCart.map(item => {
           const freshProduct = freshProducts.find(p => p && p._id === item._id);
-          if (freshProduct && freshProduct.price !== item.price) {
-            console.log(`🔄 Updated price for ${item.name}: ₹${item.price} → ₹${freshProduct.price}`);
+          if (!freshProduct) return item;
+
+          // For variant items, find the matching variant price
+          let freshPrice = freshProduct.price;
+          if (item.variantLabel && freshProduct.variants?.length) {
+            const freshVariant = freshProduct.variants.find(v => v.label === item.variantLabel);
+            if (freshVariant) freshPrice = freshVariant.price;
+          }
+
+          if (freshPrice !== item.price) {
             updatedCount++;
-            return { ...item, price: freshProduct.price };
+            return { ...item, price: freshPrice };
           }
           return item;
         })
       );
 
-      // Notify user if any prices were updated
       if (updatedCount > 0) {
         console.log(`✅ Updated ${updatedCount} product price(s) in cart`);
       }

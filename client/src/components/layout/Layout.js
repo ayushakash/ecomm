@@ -2,16 +2,12 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
-import { useLocation } from '../../contexts/LocationContext';
 import Header from './Header';
 import Footer from './Footer';
 import MobileMenu from './MobileMenu';
-import LocationPermissionModal from '../location/LocationPermissionModal';
-
 const Layout = () => {
   const { user, isAuthenticated } = useAuth();
   const { getCartCount } = useCart();
-  const { showLocationModal, requestLocationPermission, skipLocationPermission } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigation = [
@@ -50,13 +46,6 @@ const Layout = () => {
       {/* Footer */}
       <Footer cartCount={getCartCount()} />
 
-      {/* Location Permission Modal (for guest users) */}
-      <LocationPermissionModal
-        isOpen={showLocationModal}
-        onClose={skipLocationPermission}
-        onEnableLocation={requestLocationPermission}
-        onSkip={skipLocationPermission}
-      />
     </div>
   );
 };
