@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
@@ -339,4 +339,10 @@ const Register = () => {
   );
 };
 
-export default Register;
+const RegisterWithGoogle = () => (
+  <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
+    <Register />
+  </GoogleOAuthProvider>
+);
+
+export default RegisterWithGoogle;
