@@ -95,6 +95,9 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
               <img
                 src="/logo.png"
                 alt="Logo"
+                fetchpriority="high"
+                width="40"
+                height="40"
                 className="h-10 w-auto object-contain flex-shrink-0"
               />
               <span className="text-lg font-bold text-gray-900 hidden sm:inline-block">Chardeevari</span>
