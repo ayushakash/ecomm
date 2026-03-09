@@ -470,8 +470,8 @@ const ProductList = () => {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {getSortedProducts(productList?.products)?.map((product) => (
-            <ProductCard key={product._id} product={product} />
+          {getSortedProducts(productList?.products)?.map((product, index) => (
+            <ProductCard key={product._id} product={product} priority={index === 0} />
           ))}
         </div>
       )}

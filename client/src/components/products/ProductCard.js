@@ -7,7 +7,7 @@ import { useLocation } from '../../contexts/LocationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, priority = false }) => {
   const { addToCart, removeFromCart, updateQuantity, getCartItem, cartCity, clearCart } = useCart();
   const { selectedAddress, selectedCity } = useLocation();
   const { user } = useAuth();
@@ -66,8 +66,9 @@ const ProductCard = ({ product }) => {
             <img
               src={product.images[0]}
               alt={product.name}
-              loading="lazy"
-              decoding="async"
+              loading={priority ? 'eager' : 'lazy'}
+              decoding={priority ? 'sync' : 'async'}
+              fetchpriority={priority ? 'high' : 'auto'}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (

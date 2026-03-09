@@ -412,11 +412,12 @@ const Home = () => {
           </div>
         ) : (
           <div className="grid gap-3 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {productsData?.products?.map((product) => (
+            {productsData?.products?.map((product, index) => (
               <ProductCard
                 key={product._id}
                 product={product}
                 viewMode="grid"
+                priority={index === 0}
               />
             ))}
           </div>
