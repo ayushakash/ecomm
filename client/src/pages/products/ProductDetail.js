@@ -136,6 +136,8 @@ const ProductDetail = () => {
                 <img
                   src={product.images?.[selectedImageIndex] || product.images?.[0] || '/placeholder-product.jpg'}
                   alt={`${product.name} - Image ${selectedImageIndex + 1}`}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover hover:scale-110 transition-transform duration-700"
                 />
                 {(product.totalStock || product.stock) <= 0 && (
@@ -170,6 +172,8 @@ const ProductDetail = () => {
                       <img
                         src={image}
                         alt={`${product.name} thumbnail ${index + 1}`}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                     </button>

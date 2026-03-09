@@ -132,6 +132,8 @@ const Cart = () => {
                     <img
                       src={item.images?.[0] || '/placeholder-product.jpg'}
                       alt={item.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-gray-200 flex-shrink-0"
                     />
 
