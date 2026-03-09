@@ -5,6 +5,7 @@ import DataTable from "../../components/commonComponents/dataTable";
 import { productAPI } from "../../services/api";
 import ConfirmDeleteButton from "../../components/products/ConfirmDeleteButton";
 import axios from "axios";
+import { compressToWebP } from "../../utils/imageUtils";
 
 const Products = () => {
   const queryClient = useQueryClient();
@@ -108,23 +109,34 @@ const Products = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle file selection
-  const handleFileSelect = (e) => {
+  // Handle file selection — compress + convert to WebP before storing
+  const handleFileSelect = async (e) => {
     const newFiles = Array.from(e.target.files);
 
-    // Combine existing and new files
-    const combinedFiles = [...selectedFiles, ...newFiles];
-
-    if (combinedFiles.length > 10) {
-      toast.error(`Maximum 10 images allowed. You selected ${combinedFiles.length} images.`);
+    const combinedCount = selectedFiles.length + newFiles.length;
+    if (combinedCount > 10) {
+      toast.error(`Maximum 10 images allowed. You selected ${combinedCount} images.`);
       return;
     }
 
-    setSelectedFiles(combinedFiles);
-    toast.success(`${newFiles.length} image(s) selected. Total: ${combinedFiles.length}`);
+    const compressToast = toast.loading(`Compressing ${newFiles.length} image(s)...`);
+    try {
+      const compressed = await Promise.all(newFiles.map(f => compressToWebP(f)));
+      toast.dismiss(compressToast);
 
-    // Reset input to allow selecting same file again if needed
-    e.target.value = '';
+      const savings = newFiles.reduce((sum, f) => sum + f.size, 0);
+      const after = compressed.reduce((sum, f) => sum + f.size, 0);
+      const pct = Math.round((1 - after / savings) * 100);
+      toast.success(`Compressed ${newFiles.length} image(s) — saved ${pct}%`);
+
+      const combinedFiles = [...selectedFiles, ...compressed];
+      setSelectedFiles(combinedFiles);
+      e.target.value = '';
+    } catch (err) {
+      toast.dismiss(compressToast);
+      toast.error('Failed to process images. Please try again.');
+      console.error('Image compression error:', err);
+    }
   };
 
   // Remove selected file
