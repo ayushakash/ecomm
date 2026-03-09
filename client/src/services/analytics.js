@@ -20,32 +20,20 @@ class AnalyticsService {
    * Call this once when the app loads
    */
   initialize() {
-    if (!this.enabled) {
-      console.log('📊 Analytics disabled via environment configuration');
-      return;
-    }
+    if (!this.enabled || this.initialized) return;
 
-    if (this.initialized) {
-      console.warn('Analytics already initialized');
-      return;
-    }
+    // Delay analytics init by 5s after page load so it doesn't compete with LCP/FCP
+    const init = () => {
+      if (this.gaId && this.gaId !== 'G-XXXXXXXXXX') this.initializeGoogleAnalytics();
+      if (this.metaPixelId && this.metaPixelId !== '000000000000000') this.initializeMetaPixel();
+      this.initialized = true;
+    };
 
-    // Initialize Google Analytics
-    if (this.gaId && this.gaId !== 'G-XXXXXXXXXX') {
-      this.initializeGoogleAnalytics();
+    if (document.readyState === 'complete') {
+      setTimeout(init, 5000);
     } else {
-      console.warn('Google Analytics ID not configured');
+      window.addEventListener('load', () => setTimeout(init, 5000), { once: true });
     }
-
-    // Initialize Meta Pixel
-    if (this.metaPixelId && this.metaPixelId !== '000000000000000') {
-      this.initializeMetaPixel();
-    } else {
-      console.warn('Meta Pixel ID not configured');
-    }
-
-    this.initialized = true;
-    console.log('✅ Analytics initialized successfully');
   }
 
   /**
