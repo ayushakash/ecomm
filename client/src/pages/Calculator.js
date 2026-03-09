@@ -416,7 +416,7 @@ const Calculator = () => {
 
     // Add logo
     try {
-      const logoUrl = '/logo.png';
+      const logoUrl = '/logo.webp';
       const logoImg = new Image();
       logoImg.src = logoUrl;
       // Logo in top-left (width: 23px, height: 20px)

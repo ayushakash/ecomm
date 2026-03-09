@@ -93,7 +93,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
           <div className="flex items-center flex-shrink-0 min-w-0">
             <Link to="/" className="flex items-center space-x-2 min-w-0">
               <img
-                src="/logo.png"
+                src="/logo.webp"
                 alt="Logo"
                 fetchpriority="high"
                 width="40"

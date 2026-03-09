@@ -84,7 +84,7 @@ const InstallBanner = () => {
         </button>
 
         <div className="flex items-center gap-3 mb-3">
-          <img src="/logo.png" alt="Chardeevari" className="w-12 h-12 rounded-xl shadow" />
+          <img src="/logo.webp" alt="Chardeevari" className="w-12 h-12 rounded-xl shadow" />
           <div>
             <p className="font-bold text-gray-900 text-sm">Install Chardeevari</p>
             <p className="text-xs text-gray-500">Get the full app experience</p>

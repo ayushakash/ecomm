@@ -4,9 +4,9 @@
   "description": "Your trusted partner for quality construction materials. Connect with verified merchants and get the best materials for your construction projects.",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "logo.webp",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "any maskable"
     },
     {

@@ -1,5 +1,5 @@
 const CACHE_NAME = 'chardeevari-v2';
-const STATIC_ASSETS = ['/', '/manifest.json', '/logo.png', '/logo192.png'];
+const STATIC_ASSETS = ['/', '/manifest.json', '/logo.webp', '/logo192.png'];
 
 // Install - cache static assets
 self.addEventListener('install', (event) => {
