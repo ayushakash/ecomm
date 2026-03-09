@@ -6,6 +6,7 @@ import {
   MapPinIcon, ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import ProductCard from '../../components/products/ProductCard';
+import ProductCardSkeleton from '../../components/products/ProductCardSkeleton';
 import { productAPI, merchantAPI } from '../../services/api';
 import { useLocation } from '../../contexts/LocationContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -269,7 +270,13 @@ const ProductList = () => {
   }
 
   if (isLoading) {
-    return <PageSpinner />;
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid gap-3 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[...Array(8)].map((_, i) => <ProductCardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
   }
 
   if (error) {

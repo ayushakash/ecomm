@@ -11,6 +11,7 @@ import {
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import ProductCard from '../components/products/ProductCard';
+import ProductCardSkeleton from '../components/products/ProductCardSkeleton';
 import { useLocation } from '../contexts/LocationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -397,14 +398,7 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {productsLoading || isLoadingMerchants ? (
           <div className="grid gap-3 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[...Array(12)].map((_, index) => (
-              <div key={index} className="animate-pulse">
-                <div className="bg-gray-200 rounded-xl mb-4 aspect-square"></div>
-                <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded mb-3 w-1/2"></div>
-                <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-              </div>
-            ))}
+            {[...Array(8)].map((_, i) => <ProductCardSkeleton key={i} />)}
           </div>
         ) : productsData?.products?.length === 0 ? (
           <div className="text-center py-16">
