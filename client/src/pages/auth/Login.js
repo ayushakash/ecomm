@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 
 const Login = () => {
@@ -439,4 +439,10 @@ const Login = () => {
   );
 };
 
-export default Login;
+const LoginWithGoogle = () => (
+  <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
+    <Login />
+  </GoogleOAuthProvider>
+);
+
+export default LoginWithGoogle;

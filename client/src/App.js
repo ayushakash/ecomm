@@ -2,7 +2,6 @@ import React, { useEffect, Suspense, lazy } from 'react';
 import InstallBanner from './components/ui/InstallBanner';
 import { Routes, Route, Navigate, useLocation as useRouterLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { LocationProvider } from './contexts/LocationContext';
@@ -166,18 +165,16 @@ function AppContent() {
 
 function App() {
   return (
-    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
-      <HelmetProvider>
-        <AuthProvider>
-          <LocationProvider>
-            <CartProvider>
-              <AppContent />
-              <InstallBanner />
-            </CartProvider>
-          </LocationProvider>
-        </AuthProvider>
-      </HelmetProvider>
-    </GoogleOAuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <LocationProvider>
+          <CartProvider>
+            <AppContent />
+            <InstallBanner />
+          </CartProvider>
+        </LocationProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 
