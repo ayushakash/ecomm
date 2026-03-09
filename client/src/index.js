@@ -53,26 +53,14 @@ root.render(
     </QueryClientProvider>
 );
 
-// Unregister service worker - DISABLED due to infinite refresh issues
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    for(let registration of registrations) {
-      registration.unregister().then(function(boolean) {
-        console.log('Service Worker unregistered:', boolean);
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then((registration) => {
+        console.log('SW registered:', registration.scope);
+      })
+      .catch((err) => {
+        console.log('SW registration failed:', err);
       });
-    }
   });
 }
-
-// Register service worker - DISABLED due to infinite refresh issues
-// if ('serviceWorker' in navigator) {
-//   window.addEventListener('load', () => {
-//     navigator.serviceWorker.register('/service-worker.js')
-//       .then((registration) => {
-//         console.log('SW registered: ', registration);
-//       })
-//       .catch((registrationError) => {
-//         console.log('SW registration failed: ', registrationError);
-//       });
-//   });
-// }

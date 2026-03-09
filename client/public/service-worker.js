@@ -1,81 +1,49 @@
-// const CACHE_NAME = 'constructmart-v1';
-// const urlsToCache = [
-//   '/',
-//   '/static/js/bundle.js',
-//   '/static/css/main.css',
-//   '/manifest.json'
-// ];
+const CACHE_NAME = 'chardeevari-v2';
+const STATIC_ASSETS = ['/', '/manifest.json', '/logo.png', '/logo192.png'];
 
-// const RUNTIME_CACHE = 'constructmart-runtime-v1';
+// Install - cache static assets
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+  );
+  self.skipWaiting();
+});
 
-// // Install event
-// self.addEventListener('install', (event) => {
-//   event.waitUntil(
-//     caches.open(CACHE_NAME)
-//       .then((cache) => {
-//         return cache.addAll(urlsToCache);
-//       })
-//       .catch((error) => {
-//         console.log('Cache install failed:', error);
-//       })
-//   );
-// });
+// Activate - clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
 
-// // Fetch event
-// self.addEventListener('fetch', (event) => {
-//   // Skip cross-origin requests
-//   if (!event.request.url.startsWith(self.location.origin)) {
-//     return;
-//   }
+// Fetch - network first for API, cache first for static
+self.addEventListener('fetch', (event) => {
+  const url = event.request.url;
 
-//   event.respondWith(
-//     caches.match(event.request)
-//       .then((response) => {
-//         // Return cached version or fetch from network
-//         if (response) {
-//           return response;
-//         }
+  // Always go to network for API calls, non-GET, or cross-origin
+  if (
+    url.includes('/api/') ||
+    event.request.method !== 'GET' ||
+    !url.startsWith(self.location.origin)
+  ) {
+    return;
+  }
 
-//         return fetch(event.request)
-//           .then((response) => {
-//             // Don't cache non-successful responses
-//             if (!response || response.status !== 200 || response.type !== 'basic') {
-//               return response;
-//             }
-
-//             // Clone the response
-//             const responseToCache = response.clone();
-
-//             caches.open(RUNTIME_CACHE)
-//               .then((cache) => {
-//                 cache.put(event.request, responseToCache);
-//               });
-
-//             return response;
-//           })
-//           .catch(() => {
-//             // Return offline page for HTML requests
-//             if (event.request.headers.get('accept').includes('text/html')) {
-//               return caches.match('/');
-//             }
-//           });
-//       })
-//   );
-// });
-
-// // Activate event
-// self.addEventListener('activate', (event) => {
-//   const cacheWhitelist = [CACHE_NAME, RUNTIME_CACHE];
-  
-//   event.waitUntil(
-//     caches.keys().then((cacheNames) => {
-//       return Promise.all(
-//         cacheNames.map((cacheName) => {
-//           if (cacheWhitelist.indexOf(cacheName) === -1) {
-//             return caches.delete(cacheName);
-//           }
-//         })
-//       );
-//     })
-//   );
-// });
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      const networkFetch = fetch(event.request).then((response) => {
+        // Cache successful responses for static assets
+        if (response && response.status === 200 && response.type === 'basic') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      });
+      // Return cached immediately, update in background
+      return cached || networkFetch;
+    })
+  );
+});
