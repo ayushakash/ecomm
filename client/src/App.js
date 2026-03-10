@@ -149,6 +149,14 @@ function AppRoutes() {
   );
 }
 
+function ScrollToTop() {
+  const location = useRouterLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+  return null;
+}
+
 function AppContent() {
   const location = useRouterLocation();
 
@@ -160,7 +168,12 @@ function AppContent() {
     analytics.trackPageView(location.pathname, document.title);
   }, [location]);
 
-  return <AppRoutes />;
+  return (
+    <>
+      <ScrollToTop />
+      <AppRoutes />
+    </>
+  );
 }
 
 function App() {
