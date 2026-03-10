@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
+
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-primary-700 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import Header from './Header';
@@ -40,7 +46,9 @@ const Layout = () => {
 
       {/* Main content */}
       <main className="flex-1 pb-16 md:pb-0">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       {/* Footer */}

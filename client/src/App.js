@@ -51,7 +51,7 @@ const MerchantProfile = lazy(() => import('./pages/merchant/Profile'));
 const MerchantAnalytics = lazy(() => import('./pages/merchant/Analytics'));
 const MerchantPayouts = lazy(() => import('./pages/merchant/Payouts'));
 
-// Minimal spinner for Suspense fallback
+// Full-page spinner for standalone routes (no layout wrapper)
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
     <div className="w-8 h-8 border-4 border-primary-700 border-t-transparent rounded-full animate-spin" />

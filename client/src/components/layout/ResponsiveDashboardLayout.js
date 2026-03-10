@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-primary-700 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 import {
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
@@ -270,7 +276,9 @@ const ResponsiveDashboardLayout = ({
       {/* Main content */}
       <div className="lg:pl-72">
         <main className="min-h-screen">
-          <Outlet />
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
