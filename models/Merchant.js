@@ -163,10 +163,27 @@ const merchantSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Hash password before saving (same as User schema)
-merchantSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+// Normalize city name variants to standard form before saving
+const CITY_NORMALIZE_MAP = {
+  'bengaluru': 'Bangalore', 'bangaluru': 'Bangalore', 'bengalore': 'Bangalore',
+  'bombay': 'Mumbai',
+  'madras': 'Chennai',
+  'calcutta': 'Kolkata',
+  'new delhi': 'Delhi',
+  'poona': 'Pune',
+  'cochin': 'Kochi',
+  'trivandrum': 'Thiruvananthapuram',
+};
 
+merchantSchema.pre('save', async function(next) {
+  // Normalize city name
+  if (this.isModified('city') && this.city) {
+    const normalized = CITY_NORMALIZE_MAP[this.city.toLowerCase().trim()];
+    if (normalized) this.city = normalized;
+  }
+
+  // Hash password
+  if (!this.isModified('password')) return next();
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
@@ -230,6 +247,12 @@ merchantSchema.index({ location: '2dsphere' });
 
 // Index for availability queries
 merchantSchema.index({ 'availability.isActive': 1, 'availability.currentDayOrders': 1 });
+
+// Compound index for city-based merchant filtering (most common query)
+merchantSchema.index({ city: 1, activeStatus: 1, 'availability.isActive': 1 });
+
+// Compound index for state-level fallback queries
+merchantSchema.index({ state: 1, activeStatus: 1, 'availability.isActive': 1 });
 
 // Index for phone-based queries (for login)
 merchantSchema.index({ phone: 1 });

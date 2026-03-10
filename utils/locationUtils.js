@@ -34,6 +34,29 @@ function getCityQuery(cityName) {
 }
 
 /**
+ * Check if a merchant is currently open based on their working hours (IST)
+ */
+function isCurrentlyOpen(availability) {
+  if (!availability || !availability.isActive) return false;
+  const wh = availability.workingHours;
+  if (!wh || !wh.start || !wh.end) return true; // No hours configured = always open
+
+  // Use IST timezone for India
+  const istDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const currentDay = dayNames[istDate.getDay()];
+
+  const workingDays = wh.days && wh.days.length > 0 ? wh.days : ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  if (!workingDays.includes(currentDay)) return false;
+
+  const currentMinutes = istDate.getHours() * 60 + istDate.getMinutes();
+  const [startH, startM] = wh.start.split(':').map(Number);
+  const [endH, endM] = wh.end.split(':').map(Number);
+
+  return currentMinutes >= (startH * 60 + startM) && currentMinutes <= (endH * 60 + endM);
+}
+
+/**
  * Calculate distance between two points using Haversine formula
  * @param {number} lat1 - Latitude of first point
  * @param {number} lon1 - Longitude of first point
@@ -104,125 +127,90 @@ async function findNearbyMerchants(address, settings, Merchant) {
     maxExpandedRadius = 25,
     minimumMerchantsBeforeExpand = 3,
     fallbackStrategy = 'expand',
-    enablePincodeGrouping = true,
-    alwaysIncludeCityWide = true // NEW: Always include all city merchants
   } = settings.deliveryConfig || {};
 
   const { latitude, longitude } = address.coordinates || {};
   const city = address.city;
+  const state = address.state;
 
-  // City is always required, coordinates are optional (will fallback to city-only search)
-  if (!city) {
-    throw new Error('Address must have city');
-  }
+  if (!city) throw new Error('Address must have city');
 
   console.log(`🔍 Finding merchants for ${city} ${latitude && longitude ? `at [${latitude}, ${longitude}]` : '(city-wide only)'}`);
 
   let nearbyMerchants = [];
   let cityWideMerchants = [];
 
-  // STEP 1: If coordinates are available, do radius-based search
+  // STEP 1: Radius-based search if coordinates available
   if (latitude && longitude) {
-    // Try primary radius search
-    nearbyMerchants = await searchMerchantsByDistance(
-      Merchant,
-      longitude,
-      latitude,
-      city,
-      maxDeliveryRadius
-    );
-
+    nearbyMerchants = await searchMerchantsByDistance(Merchant, longitude, latitude, city, maxDeliveryRadius);
     console.log(`📍 Found ${nearbyMerchants.length} merchants within ${maxDeliveryRadius}km`);
 
-    // If too few merchants, try expanded radius
     if (nearbyMerchants.length < minimumMerchantsBeforeExpand && fallbackStrategy === 'expand') {
-      console.log(`⚠️ Only ${nearbyMerchants.length} merchants found, expanding to ${maxExpandedRadius}km`);
-
-      nearbyMerchants = await searchMerchantsByDistance(
-        Merchant,
-        longitude,
-        latitude,
-        city,
-        maxExpandedRadius
-      );
+      nearbyMerchants = await searchMerchantsByDistance(Merchant, longitude, latitude, city, maxExpandedRadius);
       console.log(`📍 Expanded search: ${nearbyMerchants.length} merchants`);
     }
   }
 
-  // STEP 2: ALWAYS fetch all city-wide merchants (NEW BEHAVIOR)
-  if (alwaysIncludeCityWide) {
+  // STEP 2: City-wide search — skip if we already have enough nearby merchants
+  const hasEnoughNearby = latitude && longitude && nearbyMerchants.length >= minimumMerchantsBeforeExpand;
+  if (!hasEnoughNearby) {
     cityWideMerchants = await Merchant.find({
-      city: getCityQuery(city), // Match all name variations (e.g. Bangalore/Bengaluru)
+      city: getCityQuery(city),
       activeStatus: 'approved',
       'availability.isActive': true
     }).limit(200);
-
-    console.log(`🏙️ City-wide search: ${cityWideMerchants.length} total merchants in ${city}`);
+    console.log(`🏙️ City-wide search: ${cityWideMerchants.length} merchants in ${city}`);
   }
 
-  // STEP 3: Merge nearby and city-wide merchants (deduplicate)
+  // STEP 3: State-level fallback if no merchants found in city
+  let stateFallback = false;
+  if (nearbyMerchants.length === 0 && cityWideMerchants.length === 0 && state) {
+    cityWideMerchants = await Merchant.find({
+      state: { $regex: new RegExp(`^${state}$`, 'i') },
+      activeStatus: 'approved',
+      'availability.isActive': true
+    }).limit(100);
+    stateFallback = true;
+    console.log(`🗺️ State fallback: ${cityWideMerchants.length} merchants in ${state}`);
+  }
+
+  // STEP 4: Merge + deduplicate
   const merchantMap = new Map();
-
-  // Add nearby merchants first (they have priority in sorting)
-  nearbyMerchants.forEach(m => {
-    merchantMap.set(m._id.toString(), { merchant: m, isNearby: true });
-  });
-
-  // Add city-wide merchants (skip if already in nearby)
+  nearbyMerchants.forEach(m => merchantMap.set(m._id.toString(), { merchant: m, isNearby: true }));
   cityWideMerchants.forEach(m => {
-    const id = m._id.toString();
-    if (!merchantMap.has(id)) {
-      merchantMap.set(id, { merchant: m, isNearby: false });
+    if (!merchantMap.has(m._id.toString())) {
+      merchantMap.set(m._id.toString(), { merchant: m, isNearby: false });
     }
   });
 
-  // Convert map back to array
-  let allMerchants = Array.from(merchantMap.values());
-
-  console.log(`🔗 Combined: ${allMerchants.length} unique merchants (${nearbyMerchants.length} nearby + ${cityWideMerchants.length - nearbyMerchants.length} city-wide)`);
-
-  // STEP 4: Calculate distances for ALL merchants
-  allMerchants = allMerchants.map(({ merchant, isNearby }) => {
+  // STEP 5: Calculate distance + working hours flag for each merchant
+  let allMerchants = Array.from(merchantMap.values()).map(({ merchant, isNearby }) => {
     const merchantCoords = merchant.location?.coordinates;
     let distance = null;
-
-    // Only calculate distance if customer has coordinates and merchant has coordinates
     if (latitude && longitude && merchantCoords && merchantCoords.length === 2) {
-      distance = calculateDistance(
-        latitude,
-        longitude,
-        merchantCoords[1], // MongoDB stores as [lng, lat]
-        merchantCoords[0]
-      );
+      distance = calculateDistance(latitude, longitude, merchantCoords[1], merchantCoords[0]);
     }
-
     return {
       ...merchant.toObject(),
-      distance: distance ? Math.round(distance * 10) / 10 : null, // Round to 1 decimal
-      isNearby // Tag for UI display
+      distance: distance !== null ? Math.round(distance * 10) / 10 : null,
+      isNearby,
+      isOpen: isCurrentlyOpen(merchant.availability),
+      stateFallback
     };
   });
 
-  // STEP 5: Sort: nearby first (by distance), then city-wide (alphabetically)
+  // STEP 6: Sort — open first, then by distance, then alphabetically
   allMerchants.sort((a, b) => {
-    // Both have distances - sort by distance
-    if (a.distance !== null && b.distance !== null) {
-      return a.distance - b.distance;
-    }
-    // One has distance, one doesn't - distance comes first
+    // Open merchants before closed
+    if (a.isOpen !== b.isOpen) return a.isOpen ? -1 : 1;
+    // Within same open/closed group: sort by distance if available
+    if (a.distance !== null && b.distance !== null) return a.distance - b.distance;
     if (a.distance !== null) return -1;
     if (b.distance !== null) return 1;
-    // Neither has distance - sort alphabetically by business name
     return (a.businessName || '').localeCompare(b.businessName || '');
   });
 
-  const nearbyCount = allMerchants.filter(m => m.isNearby).length;
-  const cityWideCount = allMerchants.length - nearbyCount;
-
-  console.log(`✅ Returning ${allMerchants.length} merchants:`);
-  console.log(`   • ${nearbyCount} nearby (${allMerchants[0]?.distance ?? 'N/A'}km - ${allMerchants[nearbyCount - 1]?.distance ?? 'N/A'}km)`);
-  console.log(`   • ${cityWideCount} city-wide only`);
-
+  console.log(`✅ Returning ${allMerchants.length} merchants (stateFallback: ${stateFallback})`);
   return allMerchants;
 }
 
@@ -250,5 +238,6 @@ module.exports = {
   calculateDistance,
   getNearbyPincodes,
   findNearbyMerchants,
-  getCityQuery
+  getCityQuery,
+  isCurrentlyOpen
 };
