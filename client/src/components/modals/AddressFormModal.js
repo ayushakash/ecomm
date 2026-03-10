@@ -110,28 +110,17 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const captureCoordinates = async () => {
-    setCapturingCoordinates(true);
-
+  const captureCoordinates = () => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by this browser');
-      setCapturingCoordinates(false);
       return;
     }
-
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-      toast.error('Location access requires HTTPS.', { duration: 5000 });
-      setCapturingCoordinates(false);
-      return;
-    }
-
+    setCapturingCoordinates(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          toast.loading('Getting address details...', { id: 'geocoding' });
           const addressData = await reverseGeocode(latitude, longitude);
-
           if (addressData.success) {
             setForm(prev => ({
               ...prev,
@@ -141,14 +130,11 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
               state: addressData.state || prev.state,
               pincode: addressData.pincode || prev.pincode
             }));
-            toast.success('Location captured and address filled!', { id: 'geocoding' });
           } else {
             setForm(prev => ({ ...prev, coordinates: { latitude, longitude } }));
-            toast.success('Location captured!', { id: 'geocoding' });
           }
-        } catch (error) {
+        } catch {
           setForm(prev => ({ ...prev, coordinates: { latitude, longitude } }));
-          toast.success('Location captured!', { id: 'geocoding' });
         }
         setCapturingCoordinates(false);
       },
@@ -167,10 +153,6 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (!form.coordinates.latitude || !form.coordinates.longitude) {
-      toast.info('Address will be saved with approximate location based on city', { duration: 3000 });
-    }
 
     const addressTypeLabel = form.addressType.charAt(0).toUpperCase() + form.addressType.slice(1);
     const payload = {
@@ -213,6 +195,20 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Use Current Location */}
+            <button
+              type="button"
+              onClick={captureCoordinates}
+              disabled={capturingCoordinates}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50"
+            >
+              {capturingCoordinates ? (
+                <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>Detecting location...</>
+              ) : (
+                <><MapPinIcon className="w-4 h-4" />Use Current Location</>
+              )}
+            </button>
+
             {/* Address Type */}
             <div>
               <label className="block text-sm font-bold text-gray-800 mb-2">
@@ -228,45 +224,6 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                 <option value="office">🏢 Office</option>
                 <option value="other">📍 Other</option>
               </select>
-            </div>
-
-            {/* GPS Coordinates */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-4 sm:p-6 shadow-md">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="flex-1">
-                  <h4 className="font-bold text-blue-900 mb-2 text-sm flex items-center flex-wrap">
-                    📍 Location Coordinates
-                    {!form.coordinates.latitude && (
-                      <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Optional</span>
-                    )}
-                  </h4>
-                  <p className="text-xs sm:text-sm text-blue-800 mb-3 font-medium">
-                    Recommended for accurate delivery estimates and finding nearby merchants
-                  </p>
-                  {form.coordinates.latitude && form.coordinates.longitude ? (
-                    <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 inline-block font-medium break-all">
-                      ✓ Location captured: {form.coordinates.latitude.toFixed(4)}, {form.coordinates.longitude.toFixed(4)}
-                      <div className="text-xs text-green-600 mt-1">Merchants will be sorted by distance</div>
-                    </div>
-                  ) : (
-                    <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 inline-block font-medium">
-                      Without GPS: We'll use city-based location
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={captureCoordinates}
-                  disabled={capturingCoordinates}
-                  className="inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg whitespace-nowrap flex-shrink-0"
-                >
-                  {capturingCoordinates ? (
-                    <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>Getting...</>
-                  ) : (
-                    <><MapPinIcon className="w-4 h-4 mr-2" />{form.coordinates.latitude ? 'Update Location' : 'Use Current Location'}</>
-                  )}
-                </button>
-              </div>
             </div>
 
             {/* Phone Number */}
