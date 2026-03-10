@@ -1,17 +1,17 @@
 import React, { useState, Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-
-const PageLoader = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="w-8 h-8 border-4 border-primary-700 border-t-transparent rounded-full animate-spin" />
-  </div>
-);
 import {
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-primary-700 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 const ResponsiveDashboardLayout = ({
   navigation,
