@@ -134,8 +134,8 @@ const AdminDashboard = () => {
   })) || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 pl-8">
-      <div className="max-w-7xl mx-auto px-8 space-y-8">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-8">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -271,7 +271,7 @@ const AdminDashboard = () => {
       {/* Quick Navigation to Other Sections */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-6">Quick Navigation</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <button 
             onClick={() => window.location.href = '/admin/analytics'}
             className="p-4 text-center bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"

@@ -365,8 +365,8 @@ const Products = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 pl-8">
-      <div className="max-w-7xl mx-auto px-8 space-y-6">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
@@ -632,7 +632,7 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
             rows="3"
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
   <label className="block text-sm font-medium text-gray-700">Unit</label>
   <select
@@ -670,7 +670,7 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
           {formData.images && formData.images.length > 0 && (
             <div className="mb-3">
               <p className="text-xs text-gray-600 mb-2">Current Images:</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {formData.images.map((img, index) => (
                   <div key={index} className="relative group">
                     <img
@@ -728,7 +728,7 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
                 <p className="text-xs text-gray-600 mb-2">
                   Selected: {selectedFiles.length} file(s) - Click × to remove
                 </p>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {selectedFiles.map((file, index) => (
                     <div key={index} className="relative group">
                       <img
@@ -754,7 +754,7 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
             )}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700">SKU</label>
             <input

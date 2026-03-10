@@ -176,9 +176,9 @@ const Analytics = () => {
   })).reverse();
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 pl-8">
-      <div className="max-w-7xl mx-auto px-8 space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-8">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
           <p className="text-gray-600">Real-time insights and comprehensive analytics</p>
@@ -486,7 +486,7 @@ const Analytics = () => {
 
       {/* User Behavior Analytics Section */}
       <div className="border-t-4 border-blue-600 pt-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 flex items-center">
               <MagnifyingGlassIcon className="h-7 w-7 mr-2 text-blue-600" />
@@ -512,7 +512,7 @@ const Analytics = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               🧮 Construction Calculator Usage
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white rounded-lg p-4 text-center">
                 <div className="text-3xl font-bold text-purple-600">
                   {calculatorUsage.stats.totalUsage || 0}

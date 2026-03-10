@@ -98,8 +98,8 @@ const Settings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 pl-8">
-      <div className="max-w-7xl mx-auto px-8 space-y-6">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Platform Settings</h1>
           <p className="text-gray-600">Configure pricing, delivery, and display settings</p>
@@ -119,7 +119,7 @@ const Settings = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Minimum Order Value (₹)
@@ -209,7 +209,7 @@ const Settings = () => {
                 )}
 
                 {formData.deliveryConfig.type === 'threshold' && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Free Delivery Above (₹)
@@ -250,7 +250,7 @@ const Settings = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Primary Delivery Radius (km)
@@ -350,7 +350,7 @@ const Settings = () => {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Display & Behavior Settings</h2>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Price Display Mode
