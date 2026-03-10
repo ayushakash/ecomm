@@ -400,6 +400,37 @@ const Home = () => {
           <div className="grid gap-3 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[...Array(8)].map((_, i) => <ProductCardSkeleton key={i} />)}
           </div>
+        ) : !isLoadingMerchants && ((selectedCity && cityMerchantIds.length === 0) || (user && selectedAddress && merchantIds.length === 0)) ? (
+          <div className="text-center py-20">
+            <div className="w-24 h-24 mx-auto bg-orange-50 rounded-full flex items-center justify-center mb-5">
+              <MapPinIcon className="w-12 h-12 text-orange-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              No merchants in {selectedAddress?.city || selectedCity?.city} yet
+            </h3>
+            <p className="text-gray-500 mb-8 max-w-sm mx-auto text-sm">
+              We're expanding to new areas soon. Try a different location or check back later.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              {user ? (
+                <Link
+                  to="/profile/addresses"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
+                >
+                  <MapPinIcon className="w-4 h-4" />
+                  Try a Different Address
+                </Link>
+              ) : (
+                <button
+                  onClick={() => document.querySelector('.location-dropdown-container button')?.click()}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
+                >
+                  <MapPinIcon className="w-4 h-4" />
+                  Select a Different City
+                </button>
+              )}
+            </div>
+          </div>
         ) : productsData?.products?.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
