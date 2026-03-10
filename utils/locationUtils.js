@@ -3,6 +3,36 @@
  * Provides functions for geospatial calculations and merchant filtering
  */
 
+// Map of city name variations (all lowercase)
+const CITY_VARIATIONS = {
+  'bangalore': ['bangalore', 'bengaluru', 'bangaluru', 'bengalore'],
+  'bengaluru': ['bangalore', 'bengaluru', 'bangaluru', 'bengalore'],
+  'mumbai': ['mumbai', 'bombay'],
+  'bombay': ['mumbai', 'bombay'],
+  'chennai': ['chennai', 'madras'],
+  'madras': ['chennai', 'madras'],
+  'kolkata': ['kolkata', 'calcutta'],
+  'calcutta': ['kolkata', 'calcutta'],
+  'delhi': ['delhi', 'new delhi'],
+  'new delhi': ['delhi', 'new delhi'],
+  'pune': ['pune', 'poona'],
+  'poona': ['pune', 'poona'],
+  'kochi': ['kochi', 'cochin'],
+  'cochin': ['kochi', 'cochin'],
+  'thiruvananthapuram': ['thiruvananthapuram', 'trivandrum'],
+  'trivandrum': ['thiruvananthapuram', 'trivandrum'],
+};
+
+/**
+ * Returns a MongoDB $in regex condition that matches all known variations of a city name
+ */
+function getCityQuery(cityName) {
+  if (!cityName) return {};
+  const normalized = cityName.toLowerCase().trim();
+  const variations = CITY_VARIATIONS[normalized] || [normalized];
+  return { $in: variations.map(v => new RegExp(`^${v}$`, 'i')) };
+}
+
 /**
  * Calculate distance between two points using Haversine formula
  * @param {number} lat1 - Latitude of first point
@@ -122,7 +152,7 @@ async function findNearbyMerchants(address, settings, Merchant) {
   // STEP 2: ALWAYS fetch all city-wide merchants (NEW BEHAVIOR)
   if (alwaysIncludeCityWide) {
     cityWideMerchants = await Merchant.find({
-      city: { $regex: new RegExp(`^${city}$`, 'i') }, // Case-insensitive exact match
+      city: getCityQuery(city), // Match all name variations (e.g. Bangalore/Bengaluru)
       activeStatus: 'approved',
       'availability.isActive': true
     }).limit(200);
@@ -201,7 +231,7 @@ async function findNearbyMerchants(address, settings, Merchant) {
  */
 async function searchMerchantsByDistance(Merchant, longitude, latitude, city, maxDistanceKm) {
   return await Merchant.find({
-    city: city, // Always filter by city first
+    city: getCityQuery(city), // Match all name variations (e.g. Bangalore/Bengaluru)
     activeStatus: 'approved',
     'availability.isActive': true,
     location: {
@@ -219,5 +249,6 @@ async function searchMerchantsByDistance(Merchant, longitude, latitude, city, ma
 module.exports = {
   calculateDistance,
   getNearbyPincodes,
-  findNearbyMerchants
+  findNearbyMerchants,
+  getCityQuery
 };

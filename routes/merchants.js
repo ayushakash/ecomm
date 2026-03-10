@@ -6,7 +6,7 @@ const { verifyToken, requireAdmin, requireMerchant, requireApprovedMerchant } = 
 const Product = require('../models/Product');
 const MerchantProduct = require('../models/MerchantProduct');
 const AppSettings = require('../models/AppSettings');
-const { findNearbyMerchants } = require('../utils/locationUtils');
+const { findNearbyMerchants, getCityQuery } = require('../utils/locationUtils');
 const mongoose = require('mongoose');
 
 const router = express.Router();
@@ -222,7 +222,7 @@ router.get('/', async (req, res) => {
 
     const filter = {};
     if (area) filter.area = { $regex: area, $options: 'i' };
-    if (city) filter.city = { $regex: new RegExp(`^${city}$`, 'i') };
+    if (city) filter.city = getCityQuery(city);
     if (state) filter.state = { $regex: new RegExp(`^${state}$`, 'i') };
     if (status) filter.activeStatus = status;
     if (activeStatus) filter.activeStatus = activeStatus;
