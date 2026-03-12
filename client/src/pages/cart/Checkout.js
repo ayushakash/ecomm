@@ -60,11 +60,12 @@ const Checkout = () => {
   const [phoneModalError, setPhoneModalError] = useState('');
   const [devOtp, setDevOtp] = useState('');
 
-  // Prepare items for cart totals calculation (send product IDs, not prices)
+  // Prepare items for cart totals calculation (send product IDs + variant label)
   const cartItems = useMemo(() =>
     cart.map(item => ({
       productId: item._id,
-      quantity: item.quantity
+      quantity: item.quantity,
+      variantLabel: item.variantLabel || null
     })), [cart]
   );
 
@@ -350,6 +351,7 @@ const Checkout = () => {
         quantity: item.quantity,
         unit: item.unit,
         sku: item.sku,
+        variantLabel: item.variantLabel || null,
         totalPrice: item.price * item.quantity
       })),
       subtotal: finalPricing.subtotal,

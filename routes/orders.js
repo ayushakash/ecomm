@@ -58,8 +58,14 @@ router.post('/calculate-cart-totals', [
       if (!product) return res.status(400).json({ message: `Product ${item.productId} not found` });
       if (!product.enabled) return res.status(400).json({ message: `Product ${product.name} is not available` });
 
-      // Get base price (considering city-specific pricing if applicable)
+      // Get base price — variant price takes priority for variant products
       let basePrice = product.price;
+      if (item.variantLabel && product.variants?.length) {
+        const variant = product.variants.find(v => v.label === item.variantLabel);
+        if (variant) basePrice = variant.price;
+      }
+
+      // City-specific pricing overrides variant/admin price
       if (cityId && product.cityPricing && product.cityPricing.length > 0) {
         const cityPrice = product.cityPricing.find(
           cp => cp.cityId.toString() === cityId.toString() && cp.isAvailable
@@ -74,11 +80,16 @@ router.post('/calculate-cart-totals', [
       const merchantProduct = await MerchantProduct.findOne({
         productId: product._id,
         enabled: true,
-        stock: { $gt: 0 }
-      }).sort({ price: 1 }); // Get lowest merchant price
+        $or: [{ stock: { $gt: 0 } }, { 'variantPricing.stock': { $gt: 0 } }]
+      }).sort({ price: 1 });
 
-      if (merchantProduct && merchantProduct.price) {
-        merchantPrice = merchantProduct.price;
+      if (merchantProduct) {
+        if (item.variantLabel && merchantProduct.variantPricing?.length) {
+          const vp = merchantProduct.variantPricing.find(v => v.label === item.variantLabel);
+          if (vp) merchantPrice = vp.price;
+        } else if (merchantProduct.price) {
+          merchantPrice = merchantProduct.price;
+        }
       }
 
       // Calculate GST and final price
@@ -87,7 +98,9 @@ router.post('/calculate-cart-totals', [
       const gstCalc = pricingCalculator.calculateProductGST(basePrice, gstRate, gstType);
 
       // Get display price for showing to customer
-      const displayPrice = await pricingCalculator.getDisplayPrice(product, cityId);
+      const displayPrice = item.variantLabel
+        ? pricingCalculator.calculateDisplayPriceWithGST(basePrice, gstRate, gstType)
+        : await pricingCalculator.getDisplayPrice(product, cityId);
 
       // Get GST mode to determine which prices to pass to calculateOrderTotals
       const gstMode = pricingCalculator.settings.gstMode || 'no-gst';
@@ -222,10 +235,14 @@ router.post('/', [
         });
       }
 
-      // Get base price (considering city-specific pricing if applicable)
+      // Get base price — variant price takes priority for variant products
       let basePrice = product.price;
+      if (item.variantLabel && product.variants?.length) {
+        const variant = product.variants.find(v => v.label === item.variantLabel);
+        if (variant) basePrice = variant.price;
+      }
 
-      // Check for city-specific pricing (highest priority)
+      // Check for city-specific pricing (highest priority, overrides variant price)
       if (cityId && product.cityPricing && product.cityPricing.length > 0) {
         const cityPrice = product.cityPricing.find(
           cp => cp.cityId.toString() === cityId.toString() && cp.isAvailable
@@ -233,22 +250,20 @@ router.post('/', [
         if (cityPrice) {
           basePrice = cityPrice.price;
         }
-      } else {
-        // Use priceDisplayMode to determine base price
+      } else if (!item.variantLabel) {
+        // For non-variant products, apply priceDisplayMode
         switch (pricingCalculator.settings.priceDisplayMode) {
           case 'merchant':
             const merchantProduct = await MerchantProduct.findOne({
-              productId: product._id,
-              enabled: true,
-              stock: { $gt: 0 }
+              productId: product._id, enabled: true,
+              $or: [{ stock: { $gt: 0 } }, { 'variantPricing.stock': { $gt: 0 } }]
             }).sort({ price: 1 });
             if (merchantProduct) basePrice = merchantProduct.price;
             break;
           case 'lowest':
             const lowestPrice = await MerchantProduct.findOne({
-              productId: product._id,
-              enabled: true,
-              stock: { $gt: 0 }
+              productId: product._id, enabled: true,
+              $or: [{ stock: { $gt: 0 } }, { 'variantPricing.stock': { $gt: 0 } }]
             }).sort({ price: 1 });
             if (lowestPrice) basePrice = Math.min(product.price, lowestPrice.price);
             break;
@@ -262,17 +277,24 @@ router.post('/', [
       const merchantProductForPrice = await MerchantProduct.findOne({
         productId: product._id,
         enabled: true,
-        stock: { $gt: 0 }
-      }).sort({ price: 1 }); // Get lowest merchant price
+        $or: [{ stock: { $gt: 0 } }, { 'variantPricing.stock': { $gt: 0 } }]
+      }).sort({ price: 1 });
 
-      if (merchantProductForPrice && merchantProductForPrice.price) {
-        merchantPrice = merchantProductForPrice.price;
+      if (merchantProductForPrice) {
+        if (item.variantLabel && merchantProductForPrice.variantPricing?.length) {
+          const vp = merchantProductForPrice.variantPricing.find(v => v.label === item.variantLabel);
+          if (vp) merchantPrice = vp.price;
+        } else if (merchantProductForPrice.price) {
+          merchantPrice = merchantProductForPrice.price;
+        }
       }
 
       const gstRate = product.gstRate || 18;
 
       // Get display price for showing to customer (affected by display mode)
-      const displayPrice = await pricingCalculator.getDisplayPrice(product, cityId);
+      const displayPrice = item.variantLabel
+        ? pricingCalculator.calculateDisplayPriceWithGST(basePrice, gstRate, product.gstType || 'exclusive')
+        : await pricingCalculator.getDisplayPrice(product, cityId);
 
       // Get GST mode to determine which prices to pass to calculateOrderTotals
       const gstMode = pricingCalculator.settings.gstMode || 'no-gst';
@@ -293,7 +315,7 @@ router.post('/', [
 
       orderItems.push({
         productId: product._id,
-        productName: product.name,
+        productName: item.variantLabel ? `${product.name} (${item.variantLabel})` : product.name,
         quantity: item.quantity,
         unitPrice: displayPrice, // Price shown to customer (changes with display mode)
         totalPrice: displayPrice * item.quantity, // Total amount customer pays (inclusive of GST in inclusive mode)
@@ -305,6 +327,7 @@ router.post('/', [
         price: priceForCalculation, // Price for calculations (inclusive in inclusive mode, exclusive otherwise)
         merchantPrice: merchantPriceForCalculation, // Merchant price for split GST calculation
         gstRate: gstRate,
+        variantLabel: item.variantLabel || null,
         assignedMerchantId: null, // assigned later
         itemStatus: 'pending'
       });
