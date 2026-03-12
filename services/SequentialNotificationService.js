@@ -39,9 +39,12 @@ class SequentialNotificationService {
     try {
       const { smartMerchantSelection } = require('../utils/geoUtils');
 
+      console.log(`🔍 [Sequential] Selecting merchant for item: ${item.productName}, variantLabel: ${item.variantLabel || 'none'}, qty: ${item.quantity}`);
+
       const smartMerchantResult = await smartMerchantSelection({
         orderId: orderId,
         productId: item.productId,
+        variantLabel: item.variantLabel || null,
         customerLocation: orderData.deliveryLocation,
         maxDistance: 15,
         maxMerchants: 5,

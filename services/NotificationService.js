@@ -387,8 +387,15 @@ class NotificationService {
     // For order_created events, use sequential smart merchant selection
     if (eventType === 'order_created' && eventData.orderData?.deliveryLocation?.coordinates) {
       const SequentialNotificationService = require('./SequentialNotificationService');
+      console.log(`📣 [Notification] Processing order_created for ${eventData.orderData.orderNumber}`);
+      console.log(`   Items (${eventData.orderData.items?.length || 0}):`);
+      (eventData.orderData.items || []).forEach((item, i) => {
+        console.log(`   [${i+1}] ${item.productName} | variantLabel: ${item.variantLabel || 'none'} | qty: ${item.quantity}`);
+      });
       const sequentialNotifications = await SequentialNotificationService.processSmartOrderSequential(eventData);
       notifications.push(...sequentialNotifications);
+    } else if (eventType === 'order_created') {
+      console.log(`⚠️ [Notification] order_created skipped sequential — deliveryLocation: ${JSON.stringify(eventData.orderData?.deliveryLocation?.coordinates)}`);
     }
 
     // For order_assigned events, get assigned merchant details

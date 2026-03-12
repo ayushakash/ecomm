@@ -487,6 +487,12 @@ router.post('/', [
 
     await order.save();
 
+    console.log(`✅ Order ${order.orderNumber} saved with ${order.items.length} item(s):`);
+    order.items.forEach((item, i) => {
+      console.log(`   [${i+1}] ${item.productName} | variantLabel: ${item.variantLabel || 'none'} | qty: ${item.quantity} | price: ₹${item.unitPrice}`);
+    });
+    console.log(`   deliveryLocation: ${order.deliveryLocation?.coordinates || 'none'} (${order.deliveryLocation?.city || 'unknown'})`);
+
     // Send immediate response with cleaned order (but preserve internal data in DB)
     res.status(201).json({
       message: 'Order placed successfully',
@@ -502,6 +508,7 @@ router.post('/', [
         // await reserveStockForOrder(order);
 
         // Background logging
+        console.log(`📋 [Background] Logging order_created event for ${order.orderNumber}...`);
         await OrderLogService.logOrderEvent(
           'order_created',
           order,
@@ -561,9 +568,13 @@ router.get('/', verifyToken, async (req, res) => {
             city: { $regex: new RegExp(`^${merchant.city}$`, 'i') }
           }).distinct('_id');
 
+          console.log(`🏙️ Merchant ${merchant.name} (city: ${merchant.city}) — found ${cityAddresses.length} matching addresses`);
           // Only show orders with delivery addresses in the same city
           filter.deliveryAddressId = { $in: cityAddresses };
+        } else {
+          console.log(`⚠️ Merchant ${merchant.name} has no city set — skipping city filter`);
         }
+        console.log(`🔍 Orders filter for merchant ${merchant.name}:`, JSON.stringify(filter));
       }
     }
 
@@ -1951,12 +1962,13 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
   let availableStock;
   if (effectiveVariantLabel) {
     availableStock = merchantProduct.variantPricing?.find(vp => vp.label === effectiveVariantLabel)?.stock || 0;
-  } else if (!item.variantLabel && merchantProduct.stock === 0 && merchantProduct.variantPricing?.length > 0) {
-    // Variant-only product, no variant info available — use total across all variants
+  } else if (merchantProduct.variantPricing?.length > 0) {
+    // Variant-only product, no specific variant info — use total across all variants
     availableStock = merchantProduct.variantPricing.reduce((sum, vp) => sum + (vp.stock || 0), 0);
   } else {
     availableStock = merchantProduct.stock;
   }
+  console.log(`📦 Stock check: effectiveVariantLabel=${effectiveVariantLabel || 'none'}, availableStock=${availableStock}, required=${item.quantity}`);
 
   if (availableStock < item.quantity) {
     throw new Error(`Insufficient stock. Available: ${availableStock}, Required: ${item.quantity}`);
