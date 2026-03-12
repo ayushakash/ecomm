@@ -21,11 +21,12 @@ const Cart = () => {
     }
   }, [isLoggedIn]); // Only run when login status changes
   
-  // Prepare items for cart totals calculation (send product IDs, not prices)
+  // Prepare items for cart totals calculation (send product IDs + variant label)
   const cartItems = useMemo(() =>
     cart.map(item => ({
       productId: item._id,
-      quantity: item.quantity
+      quantity: item.quantity,
+      variantLabel: item.variantLabel || null
     })), [cart]
   );
 
