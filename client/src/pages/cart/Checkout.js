@@ -671,10 +671,17 @@ const Checkout = () => {
           {/* Cart Items */}
           <div className="space-y-4 mb-6">
             {cart.map((item, index) => (
-              <div key={item._id} className={`pb-4 ${index !== cart.length - 1 ? 'border-b border-gray-100' : ''} hover:bg-gray-50 transition-all duration-200 p-3 rounded-xl`}>
+              <div key={item.cartKey} className={`pb-4 ${index !== cart.length - 1 ? 'border-b border-gray-100' : ''} hover:bg-gray-50 transition-all duration-200 p-3 rounded-xl`}>
                 <div className="flex justify-between items-start gap-3">
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 mb-1">{item.name}</h3>
+                    <h3 className="font-bold text-gray-900 mb-1">
+                      {item.name}
+                      {item.variantLabel && (
+                        <span className="ml-2 px-2 py-0.5 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full">
+                          {item.variantLabel}
+                        </span>
+                      )}
+                    </h3>
                     <p className="text-sm text-gray-600">
                       {item.quantity} x ₹{item.price.toLocaleString()} <span className="text-xs text-gray-500">per {item.unit}</span>
                     </p>
@@ -969,10 +976,15 @@ const Checkout = () => {
                       const gstAmount = item.price - basePrice;
 
                       return (
-                        <tr key={item._id} className="border-b border-gray-200">
+                        <tr key={item.cartKey} className="border-b border-gray-200">
                           <td className="p-3 text-sm text-gray-600">{index + 1}</td>
                           <td className="p-3 text-sm text-gray-900">
-                            <div className="font-medium">{item.name}</div>
+                            <div className="font-medium">
+                              {item.name}
+                              {item.variantLabel && (
+                                <span className="ml-1.5 text-xs text-primary-600 font-semibold">({item.variantLabel})</span>
+                              )}
+                            </div>
                             <div className="text-xs text-gray-500">SKU: {item.sku || 'N/A'}</div>
                           </td>
                           <td className="p-3 text-sm text-gray-600 text-right">-</td>
