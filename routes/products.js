@@ -443,8 +443,31 @@ router.get('/:id', optionalAuth, async (req, res) => {
     const totalStock = await pricingCalculator.getTotalStock(product._id);
     const displayPrice = await pricingCalculator.getDisplayPrice(product);
 
+    const productObj = product.toObject();
+
+    // Enrich variants with real stock from MerchantProduct.variantPricing
+    if (productObj.variants && productObj.variants.length > 0) {
+      const merchantProducts = await MerchantProduct.find({
+        productId: product._id,
+        enabled: true
+      });
+
+      // Sum stock per variant label across all merchants
+      const variantStockMap = {};
+      for (const mp of merchantProducts) {
+        for (const vp of mp.variantPricing || []) {
+          variantStockMap[vp.label] = (variantStockMap[vp.label] || 0) + (vp.stock || 0);
+        }
+      }
+
+      productObj.variants = productObj.variants.map(v => ({
+        ...v,
+        stock: variantStockMap[v.label] ?? v.stock
+      }));
+    }
+
     const productWithStockAndPrice = {
-      ...product.toObject(),
+      ...productObj,
       totalStock,
       price: displayPrice
     };

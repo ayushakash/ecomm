@@ -445,10 +445,21 @@ class PricingCalculator {
         ? new mongoose.Types.ObjectId(productId)
         : productId;
         
-      // Sum all merchant stocks
+      // Sum all merchant stocks — include both root stock (non-variant) and variantPricing stock
       const result = await MerchantProduct.aggregate([
         { $match: { productId: objectId, enabled: true } },
-        { $group: { _id: null, totalStock: { $sum: '$stock' } } }
+        {
+          $project: {
+            baseStock: '$stock',
+            variantStock: { $sum: '$variantPricing.stock' }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalStock: { $sum: { $add: ['$baseStock', '$variantStock'] } }
+          }
+        }
       ]);
       return result.length > 0 ? result[0].totalStock : 0;
     } else {
