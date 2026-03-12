@@ -440,6 +440,7 @@ class NotificationService {
         const smartMerchantResult = await smartMerchantSelection({
           orderId: eventData.orderData._id,
           productId: item.productId,
+          variantLabel: item.variantLabel || null,
           customerLocation: eventData.orderData.deliveryLocation,
           maxDistance: 15,
           maxMerchants: 3,

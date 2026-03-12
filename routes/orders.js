@@ -1941,8 +1941,13 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
     throw new Error('Merchant product not found');
   }
 
-  if (merchantProduct.stock < item.quantity) {
-    throw new Error(`Insufficient stock. Available: ${merchantProduct.stock}, Required: ${item.quantity}`);
+  // For variant products, check variant-specific stock
+  const availableStock = item.variantLabel
+    ? (merchantProduct.variantPricing?.find(vp => vp.label === item.variantLabel)?.stock || 0)
+    : merchantProduct.stock;
+
+  if (availableStock < item.quantity) {
+    throw new Error(`Insufficient stock. Available: ${availableStock}, Required: ${item.quantity}`);
   }
 
   // Atomic update: Only assign if item is still unassigned
@@ -2407,10 +2412,20 @@ router.post('/claim', verifyToken, async (req, res) => {
             enabled: true
           });
 
-          if (merchantProduct && merchantProduct.stock >= item.quantity) {
-            merchantProduct.stock -= item.quantity;
-            await merchantProduct.save();
-            console.log(`Stock deducted on claim: ${item.quantity} units of ${item.productName} from merchant ${merchant.name}`);
+          if (merchantProduct) {
+            if (item.variantLabel) {
+              // Deduct from variant-specific stock
+              const variantEntry = merchantProduct.variantPricing?.find(vp => vp.label === item.variantLabel);
+              if (variantEntry && variantEntry.stock >= item.quantity) {
+                variantEntry.stock -= item.quantity;
+                await merchantProduct.save();
+                console.log(`Stock deducted on claim: ${item.quantity} units of ${item.productName} (${item.variantLabel}) from merchant ${merchant.name}`);
+              }
+            } else if (merchantProduct.stock >= item.quantity) {
+              merchantProduct.stock -= item.quantity;
+              await merchantProduct.save();
+              console.log(`Stock deducted on claim: ${item.quantity} units of ${item.productName} from merchant ${merchant.name}`);
+            }
           }
         }
 

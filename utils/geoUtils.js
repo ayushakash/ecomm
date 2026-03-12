@@ -316,6 +316,7 @@ function parseLocation(locationInput) {
 async function smartMerchantSelection({
   orderId,
   productId,
+  variantLabel = null,
   customerLocation,
   maxDistance = 15,
   maxMerchants = 3,
@@ -353,27 +354,41 @@ async function smartMerchantSelection({
     }
 
     // First, find merchants who have this product in stock
-    console.log(`📦 Searching for merchants with product ${productId} and stock >= ${requiredQuantity}`);
+    console.log(`📦 Searching for merchants with product ${productId}${variantLabel ? ` variant "${variantLabel}"` : ''} and stock >= ${requiredQuantity}`);
 
-    const merchantsWithStock = await MerchantProduct.find({
-      productId: productId,
-      enabled: true,
-      stock: { $gte: requiredQuantity } // Must have enough stock for the required quantity
-    }).select('merchantId stock');
+    // For variant products stock lives in variantPricing[].stock, not the root stock field
+    const stockQuery = variantLabel
+      ? {
+          productId: productId,
+          enabled: true,
+          variantPricing: { $elemMatch: { label: variantLabel, stock: { $gte: requiredQuantity } } }
+        }
+      : {
+          productId: productId,
+          enabled: true,
+          stock: { $gte: requiredQuantity }
+        };
+
+    const merchantsWithStock = await MerchantProduct.find(stockQuery).select('merchantId stock variantPricing');
 
     console.log(`📦 Found ${merchantsWithStock.length} merchants with sufficient stock:`);
     merchantsWithStock.forEach((mp, index) => {
-      console.log(`   ${index + 1}. Merchant: ${mp.merchantId}, Stock: ${mp.stock}`);
+      const effectiveStock = variantLabel
+        ? (mp.variantPricing?.find(v => v.label === variantLabel)?.stock || 0)
+        : mp.stock;
+      console.log(`   ${index + 1}. Merchant: ${mp.merchantId}, Stock: ${effectiveStock}`);
     });
 
     if (merchantsWithStock.length === 0) {
       console.log('❌ No merchants have this product in stock with required quantity');
 
-      // Check if any merchants have this product at all
-      const anyMerchants = await MerchantProduct.find({ productId: productId }).select('merchantId stock enabled');
+      const anyMerchants = await MerchantProduct.find({ productId: productId }).select('merchantId stock variantPricing enabled');
       console.log(`📦 Total merchants with this product (any stock): ${anyMerchants.length}`);
       anyMerchants.forEach((mp, index) => {
-        console.log(`   ${index + 1}. Merchant: ${mp.merchantId}, Stock: ${mp.stock}, Enabled: ${mp.enabled}`);
+        const effectiveStock = variantLabel
+          ? (mp.variantPricing?.find(v => v.label === variantLabel)?.stock || 0)
+          : mp.stock;
+        console.log(`   ${index + 1}. Merchant: ${mp.merchantId}, Stock: ${effectiveStock}, Enabled: ${mp.enabled}`);
       });
 
       return {
@@ -385,7 +400,10 @@ async function smartMerchantSelection({
 
     const merchantIds = merchantsWithStock.map(mp => mp.merchantId);
     const stockByMerchant = merchantsWithStock.reduce((acc, mp) => {
-      acc[mp.merchantId.toString()] = mp.stock;
+      const effectiveStock = variantLabel
+        ? (mp.variantPricing?.find(v => v.label === variantLabel)?.stock || 0)
+        : mp.stock;
+      acc[mp.merchantId.toString()] = effectiveStock;
       return acc;
     }, {});
 
