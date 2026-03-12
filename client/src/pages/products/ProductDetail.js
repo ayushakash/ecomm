@@ -325,7 +325,7 @@ const ProductDetail = () => {
                       max={activeStock}
                       value={quantity}
                       onChange={handleQuantityInput}
-                      className="w-12 text-center text-sm font-semibold border-x border-gray-300 py-2 focus:outline-none"
+                      className="w-12 text-center text-sm font-semibold border-x border-gray-300 py-2 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button
                       onClick={incrementQuantity}
