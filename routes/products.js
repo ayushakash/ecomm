@@ -284,12 +284,17 @@ router.get('/', optionalAuth, async (req, res) => {
           }).distinct('_id');
         }
 
-        const enabledMerchantProducts = await MerchantProduct.find({
+        // Include products where either base stock > 0 OR any variant has stock > 0
+        const stockFilter = {
           productId: { $in: productIds },
-          merchantId: { $in: activeMerchants }, // Only products from active merchants
+          merchantId: { $in: activeMerchants },
           enabled: true,
-          stock: { $gt: 0 } // Also ensure there's stock available
-        }).distinct('productId');
+          $or: [
+            { stock: { $gt: 0 } },
+            { 'variantPricing.stock': { $gt: 0 } }
+          ]
+        };
+        const enabledMerchantProducts = await MerchantProduct.find(stockFilter).distinct('productId');
 
         products = products.filter(product =>
           enabledMerchantProducts.some(id => id.toString() === product._id.toString())
@@ -302,7 +307,10 @@ router.get('/', optionalAuth, async (req, res) => {
           productId: { $in: allMatchingProductIds },
           merchantId: { $in: activeMerchants },
           enabled: true,
-          stock: { $gt: 0 }
+          $or: [
+            { stock: { $gt: 0 } },
+            { 'variantPricing.stock': { $gt: 0 } }
+          ]
         }).distinct('productId');
         totalProducts = allEnabledMerchantProducts.length;
       } else {
@@ -412,12 +420,15 @@ router.get('/:id', optionalAuth, async (req, res) => {
         isActive: true
       }).distinct('_id');
 
-      // Check if this product is available from any active merchant
+      // Check if this product is available from any active merchant (base stock or variant stock)
       const hasAvailableProduct = await MerchantProduct.findOne({
         productId: product._id,
         merchantId: { $in: activeMerchants },
         enabled: true,
-        stock: { $gt: 0 }
+        $or: [
+          { stock: { $gt: 0 } },
+          { 'variantPricing.stock': { $gt: 0 } }
+        ]
       });
 
       if (!hasAvailableProduct) {
