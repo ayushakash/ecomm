@@ -16,6 +16,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
@@ -132,13 +133,14 @@ const ProductDetail = () => {
           <div className="sticky top-8">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Main Image */}
-              <div className="relative aspect-square overflow-hidden bg-gray-50">
+              <div className="relative aspect-square overflow-hidden bg-gray-50 group">
                 <img
                   src={product.images?.[selectedImageIndex] || product.images?.[0] || '/placeholder-product.jpg'}
                   alt={`${product.name} - Image ${selectedImageIndex + 1}`}
                   loading="lazy"
                   decoding="async"
-                  className="w-full h-full object-cover hover:scale-110 transition-transform duration-700"
+                  onClick={() => setIsFullscreen(true)}
+                  className="w-full h-full object-cover hover:scale-110 transition-transform duration-700 cursor-zoom-in"
                 />
                 {(product.totalStock || product.stock) <= 0 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -148,9 +150,31 @@ const ProductDetail = () => {
                   </div>
                 )}
 
+                {/* Left / Right arrows — inside the relative container, on the edges */}
+                {product.images && product.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={e => { e.stopPropagation(); setSelectedImageIndex(prev => (prev === 0 ? product.images.length - 1 : prev - 1)); }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); setSelectedImageIndex(prev => (prev === product.images.length - 1 ? 0 : prev + 1)); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+
                 {/* Image Counter */}
                 {product.images && product.images.length > 1 && (
-                  <div className="absolute bottom-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                  <div className="absolute bottom-3 right-3 bg-black/60 text-white px-2.5 py-1 rounded-full text-xs">
                     {selectedImageIndex + 1} / {product.images.length}
                   </div>
                 )}
@@ -181,26 +205,75 @@ const ProductDetail = () => {
                 </div>
               )}
 
-              {/* Navigation Arrows for Multiple Images */}
-              {product.images && product.images.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setSelectedImageIndex(prev => (prev === 0 ? product.images.length - 1 : prev - 1))}
-                    className="absolute left-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setSelectedImageIndex(prev => (prev === product.images.length - 1 ? 0 : prev + 1))}
-                    className="absolute right-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </>
+              {/* Fullscreen Lightbox */}
+              {isFullscreen && (
+                <div
+                  className="fixed inset-0 z-50 bg-black/95 flex flex-col"
+                  onClick={() => setIsFullscreen(false)}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                    <span className="text-white text-sm font-medium">{product.name}</span>
+                    <div className="flex items-center gap-3">
+                      {product.images.length > 1 && (
+                        <span className="text-gray-400 text-sm">{selectedImageIndex + 1} / {product.images.length}</span>
+                      )}
+                      <button onClick={() => setIsFullscreen(false)} className="text-white hover:text-gray-300 p-1">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Scrollable image area */}
+                  <div className="flex-1 overflow-y-auto flex items-start justify-center px-4 pb-4" onClick={e => e.stopPropagation()}>
+                    <img
+                      src={product.images[selectedImageIndex]}
+                      alt={`${product.name} - Image ${selectedImageIndex + 1}`}
+                      className="max-w-full rounded-lg object-contain"
+                    />
+                  </div>
+
+                  {/* Left / Right arrows on edges */}
+                  {product.images.length > 1 && (
+                    <>
+                      <button
+                        onClick={e => { e.stopPropagation(); setSelectedImageIndex(prev => (prev === 0 ? product.images.length - 1 : prev - 1)); }}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-3 rounded-full shadow-xl transition-all"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); setSelectedImageIndex(prev => (prev === product.images.length - 1 ? 0 : prev + 1)); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-3 rounded-full shadow-xl transition-all"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Thumbnail strip at bottom */}
+                  {product.images.length > 1 && (
+                    <div className="flex gap-2 p-3 overflow-x-auto flex-shrink-0 justify-center" onClick={e => e.stopPropagation()}>
+                      {product.images.map((image, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setSelectedImageIndex(index)}
+                          className={`flex-shrink-0 w-14 h-14 rounded-lg border-2 overflow-hidden transition-all ${
+                            selectedImageIndex === index ? 'border-white' : 'border-white/30 hover:border-white/60'
+                          }`}
+                        >
+                          <img src={image} alt={`thumb ${index + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
