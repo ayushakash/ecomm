@@ -42,6 +42,7 @@ class NotificationService {
           _id: item._id,
           productId: item.productId,
           productName: item.productName,
+          variantLabel: item.variantLabel || null,
           quantity: item.quantity,
           price: item.price,
           totalPrice: item.totalPrice,

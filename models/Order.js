@@ -57,7 +57,11 @@ const orderItemSchema = new mongoose.Schema({
    enum: ['pending', 'approved', 'assigned', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
-   rejectedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "Merchant" }]
+   rejectedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "Merchant" }],
+  variantLabel: {
+    type: String,
+    default: null
+  }
 });
 
 const orderSchema = new mongoose.Schema({

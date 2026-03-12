@@ -1942,9 +1942,21 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
   }
 
   // For variant products, check variant-specific stock
-  const availableStock = item.variantLabel
-    ? (merchantProduct.variantPricing?.find(vp => vp.label === item.variantLabel)?.stock || 0)
-    : merchantProduct.stock;
+  // Fallback: extract variant from productName e.g. "tata steel (8mm)" -> "8mm"
+  const effectiveVariantLabel = item.variantLabel ||
+    (merchantProduct.variantPricing?.length > 0
+      ? (item.productName?.match(/\(([^)]+)\)$/)?.[1] || null)
+      : null);
+
+  let availableStock;
+  if (effectiveVariantLabel) {
+    availableStock = merchantProduct.variantPricing?.find(vp => vp.label === effectiveVariantLabel)?.stock || 0;
+  } else if (!item.variantLabel && merchantProduct.stock === 0 && merchantProduct.variantPricing?.length > 0) {
+    // Variant-only product, no variant info available — use total across all variants
+    availableStock = merchantProduct.variantPricing.reduce((sum, vp) => sum + (vp.stock || 0), 0);
+  } else {
+    availableStock = merchantProduct.stock;
+  }
 
   if (availableStock < item.quantity) {
     throw new Error(`Insufficient stock. Available: ${availableStock}, Required: ${item.quantity}`);
@@ -2413,13 +2425,19 @@ router.post('/claim', verifyToken, async (req, res) => {
           });
 
           if (merchantProduct) {
-            if (item.variantLabel) {
+            // Resolve variant label (fallback: extract from productName e.g. "tata steel (8mm)")
+            const deductVariantLabel = item.variantLabel ||
+              (merchantProduct.variantPricing?.length > 0
+                ? (item.productName?.match(/\(([^)]+)\)$/)?.[1] || null)
+                : null);
+
+            if (deductVariantLabel) {
               // Deduct from variant-specific stock
-              const variantEntry = merchantProduct.variantPricing?.find(vp => vp.label === item.variantLabel);
+              const variantEntry = merchantProduct.variantPricing?.find(vp => vp.label === deductVariantLabel);
               if (variantEntry && variantEntry.stock >= item.quantity) {
                 variantEntry.stock -= item.quantity;
                 await merchantProduct.save();
-                console.log(`Stock deducted on claim: ${item.quantity} units of ${item.productName} (${item.variantLabel}) from merchant ${merchant.name}`);
+                console.log(`Stock deducted on claim: ${item.quantity} units of ${item.productName} (${deductVariantLabel}) from merchant ${merchant.name}`);
               }
             } else if (merchantProduct.stock >= item.quantity) {
               merchantProduct.stock -= item.quantity;
