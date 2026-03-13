@@ -61,6 +61,14 @@ const orderItemSchema = new mongoose.Schema({
   variantLabel: {
     type: String,
     default: null
+  },
+  gstRate: {
+    type: Number,
+    default: 0
+  },
+  gstType: {
+    type: String,
+    default: 'exclusive'
   }
 });
 
