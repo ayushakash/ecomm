@@ -563,18 +563,32 @@ router.get('/', verifyToken, async (req, res) => {
 
         // CRITICAL FIX: Also filter by merchant's city to prevent cross-city orders
         if (merchant.city) {
-          // Get all addresses in the same city as the merchant
+          // City aliases: same city can have multiple spellings
+          const CITY_ALIASES = {
+            'bangalore': ['bangalore', 'bengaluru', 'bengalooru'],
+            'bengaluru': ['bangalore', 'bengaluru', 'bengalooru'],
+            'mumbai': ['mumbai', 'bombay'],
+            'bombay': ['mumbai', 'bombay'],
+            'chennai': ['chennai', 'madras'],
+            'madras': ['chennai', 'madras'],
+            'kolkata': ['kolkata', 'calcutta'],
+            'calcutta': ['kolkata', 'calcutta'],
+          };
+          const cityLower = merchant.city.toLowerCase();
+          const aliasNames = CITY_ALIASES[cityLower] || [cityLower];
+
+          // Build $or query for all alias spellings (case-insensitive)
           const cityAddresses = await Address.find({
-            city: { $regex: new RegExp(`^${merchant.city}$`, 'i') }
+            city: { $in: aliasNames.map(c => new RegExp(`^${c}$`, 'i')) }
           }).distinct('_id');
 
-          console.log(`🏙️ Merchant ${merchant.name} (city: ${merchant.city}) — found ${cityAddresses.length} matching addresses`);
+          console.log(`🏙️ Merchant ${merchant.name} (city: ${merchant.city}, aliases: ${aliasNames.join('/')}) — found ${cityAddresses.length} matching addresses`);
           // Only show orders with delivery addresses in the same city
           filter.deliveryAddressId = { $in: cityAddresses };
         } else {
           console.log(`⚠️ Merchant ${merchant.name} has no city set — skipping city filter`);
         }
-        console.log(`🔍 Orders filter for merchant ${merchant.name}:`, JSON.stringify(filter));
+        console.log(`🔍 Orders filter for merchant ${merchant.name}: assignedMerchantId=${merchant._id}, addressCount=${filter.deliveryAddressId?.$in?.length || 'all'}`);
       }
     }
 
@@ -2151,7 +2165,10 @@ router.get('/status/unassigned', [verifyToken, requireMerchantOrAdmin], async (r
     const merchantProducts = await MerchantProduct.find({
       merchantId: merchant._id,
       enabled: true,
-      stock: { $gt: 0 }
+      $or: [
+        { stock: { $gt: 0 } },
+        { 'variantPricing.stock': { $gt: 0 } }
+      ]
     }).select('productId');
 
     const merchantProductIds = merchantProducts.map(mp => mp.productId.toString());
@@ -2218,8 +2235,16 @@ router.get('/status/unassigned', [verifyToken, requireMerchantOrAdmin], async (r
       // Step 2: Find city-wide orders (beyond radius but same city)
       let cityOrders = [];
       if (merchant.city) {
+        const _CITY_ALIASES_UNASSIGNED = {
+          'bangalore': ['bangalore', 'bengaluru', 'bengalooru'],
+          'bengaluru': ['bangalore', 'bengaluru', 'bengalooru'],
+          'mumbai': ['mumbai', 'bombay'], 'bombay': ['mumbai', 'bombay'],
+          'chennai': ['chennai', 'madras'], 'madras': ['chennai', 'madras'],
+          'kolkata': ['kolkata', 'calcutta'], 'calcutta': ['kolkata', 'calcutta'],
+        };
+        const _cityAliases = _CITY_ALIASES_UNASSIGNED[merchant.city.toLowerCase()] || [merchant.city];
         cityOrders = await Order.find({
-          'deliveryLocation.city': { $regex: new RegExp(`^${merchant.city}$`, 'i') },
+          'deliveryLocation.city': { $in: _cityAliases.map(c => new RegExp(`^${c}$`, 'i')) },
           $or: [
             { orderStatus: 'pending' },
             { orderStatus: 'processing' }
@@ -2262,8 +2287,10 @@ router.get('/status/unassigned', [verifyToken, requireMerchantOrAdmin], async (r
 
       let cityAddressIds = null;
       if (merchant.city) {
+        const _CA = { 'bangalore': ['bangalore', 'bengaluru', 'bengalooru'], 'bengaluru': ['bangalore', 'bengaluru', 'bengalooru'], 'mumbai': ['mumbai', 'bombay'], 'bombay': ['mumbai', 'bombay'], 'chennai': ['chennai', 'madras'], 'madras': ['chennai', 'madras'], 'kolkata': ['kolkata', 'calcutta'], 'calcutta': ['kolkata', 'calcutta'] };
+        const _ca = _CA[merchant.city.toLowerCase()] || [merchant.city];
         const cityAddresses = await Address.find({
-          city: { $regex: new RegExp(`^${merchant.city}$`, 'i') }
+          city: { $in: _ca.map(c => new RegExp(`^${c}$`, 'i')) }
         }).distinct('_id');
         cityAddressIds = cityAddresses;
         console.log(`🏙️ Found ${cityAddressIds.length} addresses in ${merchant.city}`);
