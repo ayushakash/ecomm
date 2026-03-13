@@ -2014,6 +2014,27 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
     throw new Error(`Insufficient stock. Available: ${availableStock}, Required: ${item.quantity}`);
   }
 
+  // Get the claiming merchant's actual price for this item (locks in the real cost)
+  let claimingMerchantUnitPrice = null;
+  if (effectiveVariantLabel) {
+    const vp = merchantProduct.variantPricing?.find(v => v.label === effectiveVariantLabel);
+    if (vp?.price) claimingMerchantUnitPrice = vp.price;
+  } else if (merchantProduct.price) {
+    claimingMerchantUnitPrice = merchantProduct.price;
+  }
+
+  // Build the $set update, including merchant price if available
+  const assignmentUpdate = {
+    'items.$[elem].assignedMerchantId': merchant._id,
+    'items.$[elem].assignedMerchantName': merchant.name || '',
+    'items.$[elem].itemStatus': 'assigned'
+  };
+  if (claimingMerchantUnitPrice !== null) {
+    assignmentUpdate['items.$[elem].merchantUnitPrice'] = claimingMerchantUnitPrice;
+    assignmentUpdate['items.$[elem].merchantTotalPrice'] = claimingMerchantUnitPrice * item.quantity;
+    console.log(`💲 Locking merchant price for ${item.productName}: ₹${claimingMerchantUnitPrice}/unit`);
+  }
+
   // Atomic update: Only assign if item is still unassigned
   // Using arrayFilters to ensure we update the EXACT item by ID that is also unassigned
   const updatedOrder = await Order.findOneAndUpdate(
@@ -2026,13 +2047,7 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
         }
       }
     },
-    {
-      $set: {
-        'items.$[elem].assignedMerchantId': merchant._id,
-        'items.$[elem].assignedMerchantName': merchant.name || '',
-        'items.$[elem].itemStatus': 'assigned'
-      }
-    },
+    { $set: assignmentUpdate },
     {
       arrayFilters: [{ 'elem._id': itemId }],
       new: true

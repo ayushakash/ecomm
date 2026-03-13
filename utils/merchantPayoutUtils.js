@@ -71,57 +71,82 @@ async function calculateMerchantPayout(order, merchantId) {
     itemsCustomerValue += item.totalPrice || 0;
   }
 
-  // Calculate merchant's share percentage
+  // Calculate merchant's share percentage (for delivery/platform fee split)
   const totalOrderCustomerValue = order.subtotal || 0;
   const merchantSharePercent = totalOrderCustomerValue > 0
     ? (itemsCustomerValue / totalOrderCustomerValue)
     : 0;
 
-  console.log(`\n🔍 Merchant share calculation:`);
+  // Derive GST directly from actual item prices (not from stored gstBreakdown estimate)
+  // This ensures the payout reflects the claiming merchant's real price, not the order-creation estimate
+  let merchantGSTShare = 0;
+  let platformGSTShare = 0;
+  let platformCommission = 0;
+
+  for (const item of merchantItems) {
+    const itemMerchantPrice = item.merchantUnitPrice || (item.merchantTotalPrice ? item.merchantTotalPrice / item.quantity : 0);
+    const itemCustomerPrice = item.unitPrice || 0;
+    const itemGSTRate = (item.gstRate || 0) / 100;
+    const qty = item.quantity || 1;
+
+    if (gstMode === 'exclusive') {
+      merchantGSTShare += itemMerchantPrice * itemGSTRate * qty;
+      const commission = (itemCustomerPrice - itemMerchantPrice) * qty;
+      platformCommission += commission;
+      platformGSTShare += commission * itemGSTRate;
+    } else if (gstMode === 'inclusive') {
+      const merchantBase = itemMerchantPrice / (1 + itemGSTRate);
+      merchantGSTShare += (itemMerchantPrice - merchantBase) * qty;
+      const commission = (itemCustomerPrice - itemMerchantPrice) * qty;
+      const commissionBase = commission / (1 + itemGSTRate);
+      platformCommission += commissionBase * qty / qty; // normalised below
+      platformGSTShare += (commission - commissionBase) * qty;
+      // recalculate commission as base (exclusive) amount
+      platformCommission = platformCommission - (commission - commissionBase) * qty / qty;
+    } else {
+      // no-gst
+      platformCommission += (itemCustomerPrice - itemMerchantPrice) * qty;
+    }
+  }
+
+  // Fix inclusive mode commission (above was getting confused, redo cleanly)
+  if (gstMode === 'inclusive') {
+    merchantGSTShare = 0; platformGSTShare = 0; platformCommission = 0;
+    for (const item of merchantItems) {
+      const mp = item.merchantUnitPrice || (item.merchantTotalPrice ? item.merchantTotalPrice / item.quantity : 0);
+      const cp = item.unitPrice || 0;
+      const rate = (item.gstRate || 0) / 100;
+      const qty = item.quantity || 1;
+      merchantGSTShare += (mp - mp / (1 + rate)) * qty;
+      const comm = (cp - mp) * qty;
+      platformGSTShare += comm - comm / (1 + rate);
+      platformCommission += comm / (1 + rate);
+    }
+  }
+
+  merchantGSTShare = Math.round(merchantGSTShare * 100) / 100;
+  platformGSTShare = Math.round(platformGSTShare * 100) / 100;
+  platformCommission = Math.round(platformCommission * 100) / 100;
+
+  console.log(`\n🔍 Merchant share calculation (from actual item prices):`);
   console.log(`   Items Base Value: ₹${itemsBaseValue.toFixed(2)}`);
   console.log(`   Items Customer Value: ₹${itemsCustomerValue.toFixed(2)}`);
   console.log(`   Merchant Share Percent: ${(merchantSharePercent * 100).toFixed(2)}%`);
 
-  // Calculate merchant's share of GST (proportional split)
-  const merchantGSTShare = Math.round((gstBreakdown.merchantGST || 0) * merchantSharePercent * 100) / 100;
-
-  // Calculate merchant's share of delivery fee
+  // Calculate merchant's share of delivery fee and platform fee (proportional)
   const merchantDeliveryShare = deliverySplit.merchantShare
     ? Math.round(deliverySplit.merchantShare * merchantSharePercent * 100) / 100
     : Math.round((order.deliveryCharge || 0) * merchantSharePercent * 100) / 100;
 
-  // Calculate merchant's share of platform fee
   const platformFeeShare = Math.round((order.platformFee || 0) * merchantSharePercent * 100) / 100;
-
-  // Platform's share of GST (proportional split)
-  const platformGSTShare = Math.round((gstBreakdown.platformGST || 0) * merchantSharePercent * 100) / 100;
-
-  // Platform commission calculation (base markup without GST)
-  let platformCommission;
-  if (gstMode === 'inclusive') {
-    // In inclusive mode: itemsCustomerValue includes ALL GST (merchant + platform)
-    // Extract base amounts: Total base = customerValue - merchantGST - platformGST
-    const totalBase = itemsCustomerValue - merchantGSTShare - platformGSTShare;
-    platformCommission = totalBase - itemsBaseValue;
-  } else if (gstMode === 'exclusive') {
-    // In exclusive mode: itemsCustomerValue is base price (GST not included yet)
-    platformCommission = itemsCustomerValue - itemsBaseValue;
-  } else {
-    // no-gst mode: itemsCustomerValue is base price
-    platformCommission = itemsCustomerValue - itemsBaseValue;
-  }
-  platformCommission = Math.round(platformCommission * 100) / 100;
 
   // Calculate COD collection amount
   // Merchant collects FULL amount from customer, including platform's GST
   // Then owes platform back (commission + platform GST + platform fee)
   let codCollectionAmount;
   if (gstMode === 'exclusive') {
-    // In exclusive mode, GST is added separately
-    // Customer pays: items + merchantGST + platformGST + delivery + platformFee
     codCollectionAmount = itemsCustomerValue + merchantGSTShare + platformGSTShare + merchantDeliveryShare + platformFeeShare;
   } else {
-    // In no-gst and inclusive modes, GST already in prices
     codCollectionAmount = itemsCustomerValue + merchantDeliveryShare + platformFeeShare;
   }
   codCollectionAmount = Math.round(codCollectionAmount * 100) / 100;
