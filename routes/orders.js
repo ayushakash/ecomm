@@ -76,21 +76,32 @@ router.post('/calculate-cart-totals', [
       }
 
       // Get merchant base price (for split GST calculation)
+      // Must be ≤ customer price to avoid inverted commission/GST
       let merchantPrice = basePrice * 0.8; // Default fallback
-      const merchantProduct = await MerchantProduct.findOne({
-        productId: product._id,
-        enabled: true,
-        $or: [{ stock: { $gt: 0 } }, { 'variantPricing.stock': { $gt: 0 } }]
-      }).sort({ price: 1 });
 
-      if (merchantProduct) {
-        if (item.variantLabel && merchantProduct.variantPricing?.length) {
-          const vp = merchantProduct.variantPricing.find(v => v.label === item.variantLabel);
-          if (vp) merchantPrice = vp.price;
-        } else if (merchantProduct.price) {
-          merchantPrice = merchantProduct.price;
+      if (item.variantLabel) {
+        // Variant products: find cheapest variant price across enabled merchants with stock
+        const allVariantMPs = await MerchantProduct.find({
+          productId: product._id,
+          enabled: true,
+          variantPricing: { $elemMatch: { label: item.variantLabel, stock: { $gt: 0 } } }
+        }).select('variantPricing');
+
+        let minVariantPrice = Infinity;
+        for (const mp of allVariantMPs) {
+          const vp = mp.variantPricing.find(v => v.label === item.variantLabel);
+          if (vp && vp.price < minVariantPrice) minVariantPrice = vp.price;
         }
+        if (minVariantPrice < Infinity) merchantPrice = minVariantPrice;
+      } else {
+        const cheapestMP = await MerchantProduct.findOne({
+          productId: product._id, enabled: true, stock: { $gt: 0 }
+        }).sort({ price: 1 });
+        if (cheapestMP?.price) merchantPrice = cheapestMP.price;
       }
+
+      // Safety cap: merchant cost must never exceed customer price
+      merchantPrice = Math.min(merchantPrice, basePrice);
 
       // Calculate GST and final price
       const gstRate = product.gstRate || 18;
@@ -273,21 +284,36 @@ router.post('/', [
       }
 
       // Get merchant base price (for split GST calculation)
-      let merchantPrice = basePrice * 0.8; // Default fallback
-      const merchantProductForPrice = await MerchantProduct.findOne({
-        productId: product._id,
-        enabled: true,
-        $or: [{ stock: { $gt: 0 } }, { 'variantPricing.stock': { $gt: 0 } }]
-      }).sort({ price: 1 });
+      // Must always be ≤ customer price to avoid inverted commission/GST
+      let merchantPrice = basePrice * 0.8; // Default fallback (80% of customer price)
 
-      if (merchantProductForPrice) {
-        if (item.variantLabel && merchantProductForPrice.variantPricing?.length) {
-          const vp = merchantProductForPrice.variantPricing.find(v => v.label === item.variantLabel);
-          if (vp) merchantPrice = vp.price;
-        } else if (merchantProductForPrice.price) {
-          merchantPrice = merchantProductForPrice.price;
+      if (item.variantLabel) {
+        // For variant products: find the merchant with the lowest price for THIS specific variant
+        // (sorting by root .price is wrong — root price is 0 for variant products)
+        const allVariantMPs = await MerchantProduct.find({
+          productId: product._id,
+          enabled: true,
+          variantPricing: { $elemMatch: { label: item.variantLabel, stock: { $gt: 0 } } }
+        }).select('variantPricing');
+
+        let minVariantPrice = Infinity;
+        for (const mp of allVariantMPs) {
+          const vp = mp.variantPricing.find(v => v.label === item.variantLabel);
+          if (vp && vp.price < minVariantPrice) minVariantPrice = vp.price;
         }
+        if (minVariantPrice < Infinity) merchantPrice = minVariantPrice;
+      } else {
+        const merchantProductForPrice = await MerchantProduct.findOne({
+          productId: product._id,
+          enabled: true,
+          stock: { $gt: 0 }
+        }).sort({ price: 1 });
+        if (merchantProductForPrice?.price) merchantPrice = merchantProductForPrice.price;
       }
+
+      // Safety cap: merchant cost must never exceed customer price
+      // (avoids negative platform commission & inverted payouts)
+      merchantPrice = Math.min(merchantPrice, basePrice);
 
       const gstRate = product.gstRate || 18;
 
