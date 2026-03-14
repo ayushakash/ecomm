@@ -2022,6 +2022,10 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
   } else if (merchantProduct.price) {
     claimingMerchantUnitPrice = merchantProduct.price;
   }
+  // Safety cap: merchant cost must never exceed customer price (prevents negative platform commission)
+  if (claimingMerchantUnitPrice !== null) {
+    claimingMerchantUnitPrice = Math.min(claimingMerchantUnitPrice, item.unitPrice);
+  }
 
   // Build the $set update, including merchant price if available
   const assignmentUpdate = {
