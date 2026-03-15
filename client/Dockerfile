@@ -15,7 +15,7 @@ ARG REACT_APP_MSG91_WIDGET_ID=356a61686571383330363834
 COPY package*.json ./
 
 # Install dependencies using package-lock.json for exact versions
-RUN npm install --silent
+RUN npm install --silent --legacy-peer-deps
 
 # Copy source code
 COPY . .
