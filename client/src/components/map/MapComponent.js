@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-
-// Fix leaflet default marker icon (webpack asset issue)
 import L from 'leaflet';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -14,20 +12,12 @@ L.Icon.Default.mergeOptions({
  * Reusable Map Component
  *
  * Props:
- *   mode          - "pick" | "view"
- *                   pick: user can click/drag to select a location
- *                   view: read-only, shows a fixed pin at given coordinates
- *
- *   initialCenter - { lat, lng } — default center of the map
- *                   Falls back to center of India if not provided
- *
- *   markerPosition - { lat, lng } — pre-existing pin position (optional in pick mode)
- *
- *   onLocationSelect - (lat, lng) => void — called when user picks a location (pick mode only)
- *
- *   markerLabel   - string shown in popup on the pin (view mode)
- *
- *   height        - CSS height string, default "400px"
+ *   mode             - "pick" | "view"
+ *   initialCenter    - { lat, lng }
+ *   markerPosition   - { lat, lng }
+ *   onLocationSelect - (lat, lng) => void  (pick mode only)
+ *   markerLabel      - string popup text   (view mode)
+ *   height           - CSS height string, default "400px"
  */
 const MapComponent = ({
   mode = 'pick',
@@ -41,11 +31,12 @@ const MapComponent = ({
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
+  const [locating, setLocating] = useState(false);
 
-  const defaultCenter = initialCenter || { lat: 22.9734, lng: 78.6569 }; // center of India
+  const defaultCenter = initialCenter || { lat: 22.9734, lng: 78.6569 };
 
   useEffect(() => {
-    if (mapInstanceRef.current) return; // already initialised
+    if (mapInstanceRef.current) return;
 
     const map = L.map(mapRef.current, {
       center: [defaultCenter.lat, defaultCenter.lng],
@@ -53,7 +44,6 @@ const MapComponent = ({
       zoomControl: true,
     });
 
-    // OpenStreetMap tiles — good quality, free
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
@@ -74,7 +64,6 @@ const MapComponent = ({
   useEffect(() => {
     if (!isReady || !mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
-
     const pos = markerPosition;
     if (!pos) return;
 
@@ -128,11 +117,88 @@ const MapComponent = ({
     return () => map.off('click', handleClick);
   }, [isReady, mode, onLocationSelect]);
 
+  const handleLocateMe = () => {
+    if (!navigator.geolocation || !mapInstanceRef.current) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const map = mapInstanceRef.current;
+
+        if (markerRef.current) {
+          markerRef.current.setLatLng([lat, lng]);
+        } else {
+          const marker = L.marker([lat, lng], { draggable: mode === 'pick' }).addTo(map);
+          if (mode === 'pick') {
+            marker.on('dragend', (e) => {
+              const p = e.target.getLatLng();
+              onLocationSelect?.(p.lat, p.lng);
+            });
+          }
+          markerRef.current = marker;
+        }
+
+        map.setView([lat, lng], 16);
+        if (mode === 'pick') onLocationSelect?.(lat, lng);
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   return (
-    <div
-      ref={mapRef}
-      style={{ height, width: '100%', borderRadius: '12px', overflow: 'hidden' }}
-    />
+    <div style={{ position: 'relative', height, width: '100%' }}>
+      <div
+        ref={mapRef}
+        style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}
+      />
+
+      {/* Locate Me button — bottom-right, above zoom controls */}
+      {mode === 'pick' && (
+        <button
+          type="button"
+          onClick={handleLocateMe}
+          disabled={locating}
+          title="Go to my current location"
+          style={{
+            position: 'absolute',
+            bottom: '80px',
+            right: '10px',
+            zIndex: 1000,
+            width: '34px',
+            height: '34px',
+            background: 'white',
+            border: '2px solid rgba(0,0,0,0.2)',
+            borderRadius: '4px',
+            cursor: locating ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 5px rgba(0,0,0,0.3)',
+          }}
+        >
+          {locating ? (
+            // Spinner
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+                strokeLinecap="round" style={{ transformOrigin: 'center', animation: 'spin 1s linear infinite' }}
+              />
+            </svg>
+          ) : (
+            // Crosshair / locate icon
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+            </svg>
+          )}
+        </button>
+      )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
   );
 };
 
