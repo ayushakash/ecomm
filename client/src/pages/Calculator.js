@@ -40,11 +40,11 @@ const Calculator = () => {
   // Calculation defaults (Based on Indian construction thumb rules)
   const DEFAULTS = {
     columnSpacing: 10, // Default column spacing in feet
-    cementBagsPerSqft: 0.45,        // Industry standard: 0.4-0.5 bags/sqft
-    steelKgPerSqft: 4,              // Industry standard: 3.5-4.5 kg/sqft
-    sandCuftPerSqft: 0.9,           // Industry standard: 0.8-1.0 cuft/sqft
-    aggCuftPerSqft: 1.0,            // Industry standard: 1.0-1.2 cuft/sqft
-    bricksPerSqft: 7.5,             // Industry standard: 7.5 bricks/sqft (4" wall)
+    cementBagsPerSqft: 0.45,        // Civil engineering thumb rule: 0.40–0.45 bags/sqft
+    steelKgPerSqft: 3.3,            // Civil engineering thumb rule: 3.0–3.5 kg/sqft
+    sandCuftPerSqft: 1.1,           // Civil engineering thumb rule: 1.0–1.2 cuft/sqft
+    aggCuftPerSqft: 1.6,            // Civil engineering thumb rule: 1.5–1.7 cuft/sqft
+    bricksPerSqft: 7.5,             // Civil engineering thumb rule: 7–8 bricks/sqft (4" wall)
     footingPerColumn: {
       cementBags: 4,                // Standard for 3'x3'x3' footing
       steelKg: 50,                  // Conservative estimate for column reinforcement
@@ -93,19 +93,28 @@ const Calculator = () => {
         const response = await api.get(`/api/analytics/city-prices/${selectedCity}`);
         if (response.data.success && response.data.prices) {
           setCityPrices(response.data);
-          // Update form prices
+          const p = response.data.prices;
           setFormData(prev => ({
             ...prev,
-            priceCement: response.data.prices.cement?.avg || 350,
-            priceSteel: response.data.prices.steel?.avg || 72,
-            priceSand: response.data.prices.sand?.avg || 40,
-            priceAgg: response.data.prices.aggregate?.avg || 70,
-            priceBricks: response.data.prices.bricks?.avg || 10000
+            priceCement: p.cement?.avg || 350,
+            priceSteel:  p.steel?.avg  || 72,
+            priceSand:   p.sand?.avg   || 40,
+            priceAgg:    p.aggregate?.avg || 70,
+            priceBricks: p.bricks?.avg || 10000
           }));
+          // Inform user if falling back to defaults for some materials
+          const fallbackMaterials = Object.entries(p)
+            .filter(([, v]) => !v.isLive)
+            .map(([k]) => k);
+          if (fallbackMaterials.length === Object.keys(p).length) {
+            toast('No live prices found for ' + selectedCity + ' — using standard rates', { icon: 'ℹ️' });
+          } else if (fallbackMaterials.length > 0) {
+            toast('Some prices use standard rates (no local data): ' + fallbackMaterials.join(', '), { icon: 'ℹ️' });
+          }
         }
       } catch (error) {
         console.error('Error fetching city prices:', error);
-        toast.error('Could not load city prices, using default prices');
+        // Silently fall back — no toast error, custom prices still available
       } finally {
         setLoadingPrices(false);
       }
@@ -688,7 +697,17 @@ const Calculator = () => {
                   ))}
                 </select>
               )}
-              {loadingPrices && <span className="text-xs text-primary-600 animate-pulse">↻</span>}
+              {loadingPrices
+                ? <span className="text-xs text-primary-600 animate-spin inline-block">↻</span>
+                : cityPrices && pricingMode === 'market' && (
+                  <span className={`text-xs font-semibold ${
+                    Object.values(cityPrices.prices || {}).some(v => v.isLive)
+                      ? 'text-green-600' : 'text-amber-500'
+                  }`}>
+                    {Object.values(cityPrices.prices || {}).some(v => v.isLive) ? '● live' : '○ est'}
+                  </span>
+                )
+              }
             </div>
             {/* Pricing toggle */}
             <div className="flex rounded-lg border border-gray-300 overflow-hidden bg-white">

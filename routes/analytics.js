@@ -393,13 +393,22 @@ router.get('/city-prices/:city', async (req, res) => {
 
     const merchantIds = merchants.map(m => m._id);
 
-    // Get average prices for common construction materials
+    // Broad keyword sets — covers branded names, regional names, common aliases
     const materials = {
-      cement: ['cement', 'opc', 'ppc'],
-      steel: ['steel', 'tmt', 'bar', 'rod'],
-      sand: ['sand', 'm-sand', 'msand'],
-      aggregate: ['aggregate', 'stone', 'gravel', 'jalli'],
-      bricks: ['brick', 'red brick']
+      cement: ['cement', 'opc', 'ppc', 'psc', 'ultratech', 'ambuja', 'acc', 'shree', 'bangur', 'wonder', 'dalmia', 'birla', 'jk cement', 'prism', 'portland'],
+      steel: ['steel', 'tmt', 'bar', 'rod', 'rebar', 'sariya', 'iron', 'tata steel', 'jsw', 'kamdhenu', 'shyam steel', 'vizag', 'sail', 'ductile', 'fe 500', 'fe500'],
+      sand: ['sand', 'm-sand', 'msand', 'manufactured sand', 'river sand', 'fine aggregate', 'baalu', 'reti', 'silica sand', 'plastering sand', 'coarse sand'],
+      aggregate: ['aggregate', 'stone', 'gravel', 'jalli', 'gitti', 'crushed stone', 'coarse aggregate', '20mm', '10mm', 'metal', 'bajri', 'stonechips', 'stone chips'],
+      bricks: ['brick', 'bricks', 'red brick', 'fly ash brick', 'fly ash', 'aac block', 'aac', 'solid block', 'hollow block', 'clay brick', 'wire cut']
+    };
+
+    // Fallback defaults (used when no real merchant data found for a material)
+    const defaults = {
+      cement: { avg: 350, min: 340, max: 360 },
+      steel:  { avg: 72,  min: 70,  max: 75  },
+      sand:   { avg: 40,  min: 38,  max: 42  },
+      aggregate: { avg: 70, min: 65, max: 75 },
+      bricks: { avg: 10000, min: 9500, max: 10500 }
     };
 
     const prices = {};
@@ -411,39 +420,34 @@ router.get('/city-prices/:city', async (req, res) => {
         merchant: { $in: merchantIds },
         $or: [
           { name: regex },
-          { category: regex }
+          { category: regex },
+          { description: regex }
         ],
-        isActive: true
+        isActive: true,
+        price: { $gt: 0 }
       }).select('price name');
 
       if (products.length > 0) {
-        const priceValues = products.map(p => p.price).filter(p => p > 0);
-        if (priceValues.length > 0) {
-          prices[material] = {
-            avg: Math.round(priceValues.reduce((a, b) => a + b, 0) / priceValues.length),
-            min: Math.min(...priceValues),
-            max: Math.max(...priceValues),
-            count: priceValues.length,
-            brands: products.map(p => p.name).filter((name, index, self) => self.indexOf(name) === index).slice(0, 5) // Unique product names, max 5
-          };
-        }
+        const priceValues = products.map(p => p.price);
+        // Remove outliers: drop prices outside 2x of median to avoid garbage data
+        const sorted = [...priceValues].sort((a, b) => a - b);
+        const median = sorted[Math.floor(sorted.length / 2)];
+        const filtered = priceValues.filter(p => p >= median * 0.3 && p <= median * 3);
+        const finalPrices = filtered.length > 0 ? filtered : priceValues;
+
+        prices[material] = {
+          avg: Math.round(finalPrices.reduce((a, b) => a + b, 0) / finalPrices.length),
+          min: Math.min(...finalPrices),
+          max: Math.max(...finalPrices),
+          count: finalPrices.length,
+          isLive: true, // actual merchant data
+          brands: [...new Set(products.map(p => p.name))].slice(0, 5)
+        };
+      } else {
+        // No matching products — use defaults, flag as fallback
+        prices[material] = { ...defaults[material], count: 0, isLive: false };
       }
     }
-
-    // Add default prices if no products found for a material
-    const defaults = {
-      cement: { avg: 350, min: 340, max: 360 },
-      steel: { avg: 72, min: 70, max: 75 },
-      sand: { avg: 40, min: 38, max: 42 },
-      aggregate: { avg: 70, min: 65, max: 75 },
-      bricks: { avg: 10000, min: 9500, max: 10500 }
-    };
-
-    Object.keys(defaults).forEach(material => {
-      if (!prices[material]) {
-        prices[material] = { ...defaults[material], count: 0 };
-      }
-    });
 
     res.json({
       success: true,
