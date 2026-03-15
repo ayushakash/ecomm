@@ -291,13 +291,14 @@ const Calculator = () => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const isMobile = window.innerWidth <= 640;
-
-    canvas.width = isMobile ? Math.min(350, window.innerWidth - 40) : 760;
-    canvas.height = isMobile ? Math.min(canvas.width * 0.7, 280) : Math.min(canvas.width * 0.6, 460);
+    // Use the parent container's width so canvas never overflows its card
+    const containerWidth = canvas.parentElement?.clientWidth || canvas.offsetParent?.clientWidth || 300;
+    canvas.width = Math.max(containerWidth - 4, 200); // -4 for border
+    canvas.height = Math.min(canvas.width * 0.65, 400);
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const pad = isMobile ? 30 : 50;
+    const sm = canvas.width < 400; // small canvas flag replaces isMobile
+    const pad = sm ? 24 : 40;
     const w = canvas.width - pad * 2;
     const h = canvas.height - pad * 2;
 
@@ -309,7 +310,7 @@ const Calculator = () => {
 
     // Draw outer rectangle
     ctx.strokeStyle = '#1f2937';
-    ctx.lineWidth = isMobile ? 1.5 : 2;
+    ctx.lineWidth = sm ? 1.5 : 2;
     ctx.strokeRect(originX, originY, drawW, drawH);
 
     const dx = drawW / (colsX - 1);
@@ -317,7 +318,7 @@ const Calculator = () => {
 
     // Draw grid lines
     ctx.strokeStyle = '#64748b';
-    ctx.lineWidth = isMobile ? 1 : 2;
+    ctx.lineWidth = sm ? 1 : 2;
     for (let i = 0; i < colsY; i++) {
       ctx.beginPath();
       ctx.moveTo(originX, originY + i * dy);
@@ -333,7 +334,7 @@ const Calculator = () => {
 
     // Draw columns
     ctx.fillStyle = '#b91c1c';
-    const circleRadius = isMobile ? 3 : 5;
+    const circleRadius = sm ? 3 : 5;
     for (let i = 0; i < colsY; i++) {
       for (let j = 0; j < colsX; j++) {
         const cx = originX + j * dx;
@@ -348,8 +349,8 @@ const Calculator = () => {
     ctx.strokeStyle = '#059669';
     ctx.fillStyle = '#059669';
     ctx.lineWidth = 1;
-    const dimOffset = isMobile ? 15 : 20;
-    const fontSize = isMobile ? 9 : 11;
+    const dimOffset = sm ? 15 : 20;
+    const fontSize = sm ? 9 : 11;
     ctx.font = `bold ${fontSize}px Arial`;
 
     // Top dimension (length)
@@ -372,7 +373,7 @@ const Calculator = () => {
 
     const breadthText = `${q(breadth)} ft`;
     ctx.save();
-    ctx.translate(rightDimX + (isMobile ? 8 : 10), originY + drawH / 2);
+    ctx.translate(rightDimX + (sm ? 8 : 10), originY + drawH / 2);
     ctx.rotate(-Math.PI / 2);
     const breadthTextWidth = ctx.measureText(breadthText).width;
     ctx.fillText(breadthText, -breadthTextWidth / 2, 0);
@@ -380,11 +381,11 @@ const Calculator = () => {
 
     // Grid info
     ctx.fillStyle = '#111827';
-    ctx.font = `${isMobile ? 9 : 10}px Arial`;
+    ctx.font = `${sm ? 9 : 10}px Arial`;
     const gridText = `Grid: ${colsX} × ${colsY} (spacing ${q(spacing)} ft)`;
-    ctx.fillText(gridText, originX, originY + drawH + (isMobile ? 15 : 20));
+    ctx.fillText(gridText, originX, originY + drawH + (sm ? 15 : 20));
     if (assumedSquare) {
-      ctx.fillText('(Square footprint assumed)', originX, originY + drawH + (isMobile ? 25 : 32));
+      ctx.fillText('(Square footprint assumed)', originX, originY + drawH + (sm ? 25 : 32));
     }
   };
 
@@ -864,10 +865,10 @@ const Calculator = () => {
           <div className="space-y-6">
             {/* Grid Visualization */}
             {results && (
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Layout Visualization</h3>
-                <div className="flex justify-center">
-                  <canvas ref={canvasRef} className="border border-gray-200 rounded-lg"></canvas>
+              <div className="bg-white rounded-xl shadow-lg p-4 overflow-hidden">
+                <h3 className="text-base font-bold text-gray-900 mb-3">Layout Visualization</h3>
+                <div className="w-full overflow-hidden">
+                  <canvas ref={canvasRef} className="block w-full border border-gray-200 rounded-lg"></canvas>
                 </div>
               </div>
             )}
