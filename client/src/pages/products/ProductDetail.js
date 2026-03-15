@@ -130,7 +130,7 @@ const ProductDetail = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Image Gallery */}
-          <div className="sticky top-8">
+          <div className="lg:sticky lg:top-8">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Main Image */}
               <div className="relative aspect-square overflow-hidden bg-gray-50 group">

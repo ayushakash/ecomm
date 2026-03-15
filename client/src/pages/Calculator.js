@@ -662,246 +662,156 @@ const Calculator = () => {
         keywords="construction calculator Ranchi, cement calculator, building material estimate, construction cost calculator Jharkhand, steel calculator, sand calculator, brick calculator"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
-            Construction Material Calculator
-          </h1>
-          <p className="text-lg text-gray-600">
-            Enter Length & Breadth (for actual dimensions) OR Area (for square estimate)
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            Get instant material estimates for your construction project in Ranchi, Jharkhand
-          </p>
-        </div>
-
-        {/* City & Pricing Selection - Mobile First */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-          {/* City Selector */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              📍 Your Location
-            </label>
-            <select
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
-            >
-              {availableCities.length === 0 ? (
-                <option value="">Loading cities...</option>
-              ) : (
-                availableCities.map((city) => (
-                  <option key={city._id} value={city.city}>
-                    {city.city}, {city.state}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          {/* Pricing Mode Toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              💰 Pricing
-            </label>
-            <div className="flex gap-2">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
+              Construction Material Calculator
+            </h1>
+            <p className="text-xs text-gray-500 mt-0.5">Estimate cement, steel, sand & bricks for your project</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* City selector */}
+            <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5">
+              <span className="text-sm">📍</span>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer"
+              >
+                {availableCities.length === 0 ? (
+                  <option value="">Loading...</option>
+                ) : (
+                  availableCities.map((city) => (
+                    <option key={city._id} value={city.city}>{city.city}</option>
+                  ))
+                )}
+              </select>
+              {loadingPrices && <span className="text-xs text-primary-600 animate-pulse">•</span>}
+            </div>
+            {/* Pricing toggle */}
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden bg-white">
               <button
                 onClick={() => setPricingMode('market')}
-                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
-                  pricingMode === 'market'
-                    ? 'bg-primary-700 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  pricingMode === 'market' ? 'bg-primary-700 text-white' : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                Market Prices
+                Market Price
               </button>
               <button
                 onClick={() => setPricingMode('custom')}
-                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
-                  pricingMode === 'custom'
-                    ? 'bg-primary-700 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-300 ${
+                  pricingMode === 'custom' ? 'bg-primary-700 text-white' : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 Custom
               </button>
             </div>
           </div>
-
-          {/* Price info */}
-          {pricingMode === 'market' && cityPrices && (
-            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-xs text-green-800">
-                ℹ️ Using prices from {cityPrices.merchantCount} merchants in {selectedCity}
-              </p>
-            </div>
-          )}
-
-          {pricingMode === 'custom' && (
-            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-xs text-yellow-800">
-                ⚙️ Scroll down to customize material prices
-              </p>
-            </div>
-          )}
-
-          {loadingPrices && (
-            <div className="mt-3 text-center text-sm text-primary-700">
-              Loading prices...
-            </div>
-          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Input Form */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Project Details</h2>
-
-            <div className="space-y-6">
-              <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-primary-800">
-                  <strong>💡 Tip:</strong> Enter <strong>Length & Breadth</strong> (for actual dimensions)
-                  <strong> OR </strong> <strong>Area</strong> (assumes square footprint)
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Length (ft)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.length}
-                    onChange={(e) => setFormData({ ...formData, length: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="optional if area provided"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Breadth (ft)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.breadth}
-                    onChange={(e) => setFormData({ ...formData, breadth: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="optional if area provided"
-                  />
-                </div>
-              </div>
-
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className="space-y-3">
+              {/* Length & Breadth */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Built-up Area (sq.ft)
-                </label>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Length &amp; Breadth</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Length (ft)</label>
+                    <input
+                      type="number"
+                      value={formData.length}
+                      onChange={(e) => setFormData({ ...formData, length: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                      placeholder="e.g. 40"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Breadth (ft)</label>
+                    <input
+                      type="number"
+                      value={formData.breadth}
+                      onChange={(e) => setFormData({ ...formData, breadth: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                      placeholder="e.g. 30"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* OR Divider */}
+              <div className="relative flex items-center">
+                <div className="flex-grow border-t border-gray-200"></div>
+                <span className="flex-shrink mx-3 text-xs font-bold text-gray-400 bg-white px-2 py-0.5 border border-gray-200 rounded-full">OR</span>
+                <div className="flex-grow border-t border-gray-200"></div>
+              </div>
+
+              {/* Area */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Built-up Area (sq.ft)</label>
                 <input
                   type="number"
                   value={formData.area}
                   onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="optional if length & breadth provided"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  placeholder="e.g. 1200"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Floors
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={formData.floors}
-                  onChange={(e) => setFormData({ ...formData, floors: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="includeFooting"
-                  checked={formData.includeFooting}
-                  onChange={(e) => setFormData({ ...formData, includeFooting: e.target.checked })}
-                  className="w-4 h-4 text-primary-700 border-gray-300 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="includeFooting" className="ml-2 block text-sm text-gray-700">
-                  Include footing materials
-                </label>
+              {/* Floors + footing in one row */}
+              <div className="border-t border-gray-100 pt-3 grid grid-cols-2 gap-3 items-end">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Number of Floors</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formData.floors}
+                    onChange={(e) => setFormData({ ...formData, floors: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2 pb-2">
+                  <input
+                    type="checkbox"
+                    id="includeFooting"
+                    checked={formData.includeFooting}
+                    onChange={(e) => setFormData({ ...formData, includeFooting: e.target.checked })}
+                    className="w-4 h-4 text-primary-700 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <label htmlFor="includeFooting" className="text-xs text-gray-600">Include footing</label>
+                </div>
               </div>
 
               {/* Custom Price Inputs - Only show in custom mode */}
               {pricingMode === 'custom' && (
-                <div className="border-t pt-4 space-y-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">💰 Material Prices</h3>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Cement (₹/bag 50kg)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.priceCement}
-                      onChange={(e) => setFormData({ ...formData, priceCement: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g., 350"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Steel (₹/kg)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.priceSteel}
-                      onChange={(e) => setFormData({ ...formData, priceSteel: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g., 72"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Sand (₹/cu.ft)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.priceSand}
-                      onChange={(e) => setFormData({ ...formData, priceSand: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g., 40"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Aggregate (₹/cu.ft)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.priceAgg}
-                      onChange={(e) => setFormData({ ...formData, priceAgg: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g., 70"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Bricks (₹/1000 nos)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.priceBricks}
-                      onChange={(e) => setFormData({ ...formData, priceBricks: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g., 10000"
-                    />
+                <div className="border-t pt-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Material Prices</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Cement (₹/bag)</label>
+                      <input type="number" value={formData.priceCement} onChange={(e) => setFormData({ ...formData, priceCement: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="350" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Steel (₹/kg)</label>
+                      <input type="number" value={formData.priceSteel} onChange={(e) => setFormData({ ...formData, priceSteel: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="72" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Sand (₹/cu.ft)</label>
+                      <input type="number" value={formData.priceSand} onChange={(e) => setFormData({ ...formData, priceSand: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="40" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Aggregate (₹/cu.ft)</label>
+                      <input type="number" value={formData.priceAgg} onChange={(e) => setFormData({ ...formData, priceAgg: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="70" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Bricks (₹/1000 nos)</label>
+                      <input type="number" value={formData.priceBricks} onChange={(e) => setFormData({ ...formData, priceBricks: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="10000" />
+                    </div>
                   </div>
                 </div>
               )}
