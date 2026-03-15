@@ -115,7 +115,7 @@ const ProductDetail = () => {
   const productKeywords = `buy ${product.name} Ranchi, ${product.name} price Ranchi, ${product.category} suppliers Ranchi, ${product.name} online Jharkhand, ${product.category} dealers Ranchi, construction materials Ranchi, ${product.name} home delivery, buy ${product.category} online, Chardeevari ${product.category}`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       <SEO
         title={productTitle}
         description={productDescription}

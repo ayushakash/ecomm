@@ -39,7 +39,7 @@ const Calculator = () => {
 
   // Calculation defaults (Based on Indian construction thumb rules)
   const DEFAULTS = {
-    columnSpacing: 10, // Default column spacing in feet
+    columnSpacing: 12, // Residential thumb rule: 10–14 ft spacing
     cementBagsPerSqft: 0.45,        // Civil engineering thumb rule: 0.40–0.45 bags/sqft
     steelKgPerSqft: 3.3,            // Civil engineering thumb rule: 3.0–3.5 kg/sqft
     sandCuftPerSqft: 1.1,           // Civil engineering thumb rule: 1.0–1.2 cuft/sqft
@@ -158,7 +158,8 @@ const Calculator = () => {
 
     const builtArea = length * breadth;
 
-    // Calculate columns
+    // Column grid: ceil(dimension / spacing) + 1
+    // Uses 12ft spacing — gives 9–12 columns for typical 1000 sqft homes
     const colsX = Math.ceil(length / spacingNum) + 1;
     const colsY = Math.ceil(breadth / spacingNum) + 1;
     const totalColumns = colsX * colsY;
@@ -664,7 +665,7 @@ const Calculator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       <SEO
         title="Construction Material Calculator - Cement, Steel, Sand, Bricks | Ranchi"
         description="Free construction material calculator for Ranchi. Estimate cement, steel, sand, aggregate, and brick requirements for your building project in Jharkhand."

@@ -179,14 +179,11 @@ const MapComponent = ({
           }}
         >
           {locating ? (
-            // Spinner
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-                strokeLinecap="round" style={{ transformOrigin: 'center', animation: 'spin 1s linear infinite' }}
-              />
+            <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="9" strokeOpacity="0.25" />
+              <path d="M12 3a9 9 0 0 1 9 9" strokeLinecap="round" />
             </svg>
           ) : (
-            // Crosshair / locate icon
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
               <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
@@ -194,10 +191,6 @@ const MapComponent = ({
           )}
         </button>
       )}
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 };
