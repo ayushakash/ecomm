@@ -59,6 +59,7 @@ app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/cities', require('./routes/cities'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/calculator-leads', require('./routes/calculatorLeads'));
 
 // New routes for logging and notifications
 app.use('/api/notifications', require('./routes/notifications'));

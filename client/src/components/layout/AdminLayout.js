@@ -7,7 +7,8 @@ import {
   ShoppingCartIcon,
   ChartBarIcon,
   CurrencyRupeeIcon,
-  CogIcon
+  CogIcon,
+  CalculatorIcon
 } from '@heroicons/react/24/outline';
 import ResponsiveDashboardLayout from './ResponsiveDashboardLayout';
 
@@ -20,6 +21,7 @@ const AdminLayout = () => {
     { name: 'Orders', href: '/admin/orders', icon: ShoppingCartIcon },
     { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon },
     { name: 'Earnings', href: '/admin/earnings', icon: CurrencyRupeeIcon },
+    { name: 'Calculator Leads', href: '/admin/calculator-leads', icon: CalculatorIcon },
     { name: 'Settings', href: '/admin/settings', icon: CogIcon },
   ];
 

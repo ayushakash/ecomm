@@ -660,6 +660,18 @@ const Calculator = () => {
     // Save PDF (always single page)
     doc.save(`Chardeevari_Estimate_${leadData.name.replace(/\s/g, '_')}.pdf`);
 
+    // Persist lead silently — don't block PDF download on failure
+    api.post('/api/calculator-leads', {
+      name: leadData.name,
+      phone: leadData.phone,
+      city: selectedCity || '',
+      area: results?.area,
+      floors: results?.floors,
+      totalCost: results?.structureMaterials?.totalCost,
+      priceMode: pricingMode,
+      materials: results?.structureMaterials,
+    }).catch(() => {}); // silent fail
+
     toast.success('PDF Report downloaded successfully!');
     setShowLeadModal(false);
     setLeadData({ name: '', phone: '' });
