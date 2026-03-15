@@ -672,23 +672,23 @@ const Calculator = () => {
             <p className="text-xs text-gray-500 mt-0.5">Estimate cement, steel, sand & bricks for your project</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* City selector */}
+            {/* City selector — always accessible */}
             <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5">
               <span className="text-sm">📍</span>
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer"
-              >
-                {availableCities.length === 0 ? (
-                  <option value="">Loading...</option>
-                ) : (
-                  availableCities.map((city) => (
-                    <option key={city._id} value={city.city}>{city.city}</option>
-                  ))
-                )}
-              </select>
-              {loadingPrices && <span className="text-xs text-primary-600 animate-pulse">•</span>}
+              {availableCities.length === 0 ? (
+                <span className="text-sm text-gray-400">Detecting city...</span>
+              ) : (
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer max-w-[120px]"
+                >
+                  {availableCities.map((city) => (
+                    <option key={city.city} value={city.city}>{city.city}</option>
+                  ))}
+                </select>
+              )}
+              {loadingPrices && <span className="text-xs text-primary-600 animate-pulse">↻</span>}
             </div>
             {/* Pricing toggle */}
             <div className="flex rounded-lg border border-gray-300 overflow-hidden bg-white">
