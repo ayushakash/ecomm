@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { reverseGeocode } from '../../services/geocodingService';
 import api from '../../services/api';
+import MapPickerModal from '../../components/map/MapPickerModal';
 
 const MerchantRegister = () => {
   const [step, setStep] = useState(1); // 1: Basic Info, 2: Business Details, 3: OTP Verification
@@ -35,6 +36,7 @@ const MerchantRegister = () => {
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const navigate = useNavigate();
 
   const validateStep1 = () => {
@@ -301,6 +303,22 @@ const MerchantRegister = () => {
     );
   };
 
+  const handleMapConfirm = ({ lat, lng, address }) => {
+    const update = {
+      latitude: lat.toString(),
+      longitude: lng.toString(),
+    };
+    if (address) {
+      if (address.area) update.area = address.area;
+      if (address.city) update.city = address.city;
+      if (address.state) update.state = address.state;
+      if (address.pincode) update.pincode = address.pincode;
+      if (address.formattedAddress) update.address = address.formattedAddress;
+    }
+    setFormData(prev => ({ ...prev, ...update }));
+    toast.success('Location selected! Please verify the prefilled fields.');
+  };
+
   const renderStep1 = () => (
     <div className="bg-white p-8 rounded-lg shadow-md">
       <h3 className="text-lg font-medium text-gray-900 mb-6">Contact Information</h3>
@@ -525,20 +543,29 @@ const MerchantRegister = () => {
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-blue-900 mb-2">Location Services (Optional)</h4>
+          <h4 className="text-sm font-medium text-blue-900 mb-2">Business Location (Optional)</h4>
           <p className="text-sm text-blue-700 mb-3">
-            Allow location access to help customers find your business more easily.
+            Pin your business location to help customers find you more easily.
           </p>
-          <button
-            type="button"
-            onClick={getLocationFromMap}
-            className="text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Get Current Location
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={getLocationFromMap}
+              className="text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Use GPS
+            </button>
+            <button
+              type="button"
+              onClick={() => setMapPickerOpen(true)}
+              className="text-sm bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              Select on Map
+            </button>
+          </div>
           {formData.latitude && formData.longitude && (
             <p className="text-sm text-green-600 mt-2">
-              Location captured: {parseFloat(formData.latitude).toFixed(6)}, {parseFloat(formData.longitude).toFixed(6)}
+              Location set: {parseFloat(formData.latitude).toFixed(6)}, {parseFloat(formData.longitude).toFixed(6)}
             </p>
           )}
         </div>
@@ -686,6 +713,17 @@ const MerchantRegister = () => {
           </p>
         </div>
       </div>
+
+      <MapPickerModal
+        isOpen={mapPickerOpen}
+        onClose={() => setMapPickerOpen(false)}
+        onConfirm={handleMapConfirm}
+        initialPosition={
+          formData.latitude && formData.longitude
+            ? { lat: parseFloat(formData.latitude), lng: parseFloat(formData.longitude) }
+            : null
+        }
+      />
     </div>
   );
 };

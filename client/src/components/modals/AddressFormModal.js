@@ -4,7 +4,8 @@ import { addressAPI } from '../../services/api';
 import { reverseGeocode } from '../../services/geocodingService';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { MapPinIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, XMarkIcon, MapIcon } from '@heroicons/react/24/outline';
+import MapPickerModal from '../map/MapPickerModal';
 
 const INDIAN_STATES = [
   'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam',
@@ -41,6 +42,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
   const { user } = useAuth();
   const [form, setForm] = useState(emptyForm);
   const [capturingCoordinates, setCapturingCoordinates] = useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
 
   // Pre-populate form when editing, or prefill phone from user account
   useEffect(() => {
@@ -151,6 +153,20 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
     );
   };
 
+  const handleMapConfirm = ({ lat, lng, address }) => {
+    const update = {
+      coordinates: { latitude: lat, longitude: lng },
+    };
+    if (address) {
+      if (address.area) update.area = address.area;
+      if (address.city) update.city = address.city;
+      if (address.state) update.state = address.state;
+      if (address.pincode) update.pincode = address.pincode;
+    }
+    setForm(prev => ({ ...prev, ...update }));
+    toast.success('Location selected! Please verify the prefilled fields.');
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -170,9 +186,14 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
 
   if (!isOpen) return null;
 
+  const existingCoords = form.coordinates?.latitude
+    ? { lat: form.coordinates.latitude, lng: form.coordinates.longitude }
+    : null;
+
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6 sm:p-8">
@@ -195,19 +216,34 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Use Current Location */}
-            <button
-              type="button"
-              onClick={captureCoordinates}
-              disabled={capturingCoordinates}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50"
-            >
-              {capturingCoordinates ? (
-                <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>Detecting location...</>
-              ) : (
-                <><MapPinIcon className="w-4 h-4" />Use Current Location</>
-              )}
-            </button>
+            {/* Location Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={captureCoordinates}
+                disabled={capturingCoordinates}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50"
+              >
+                {capturingCoordinates ? (
+                  <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>Detecting...</>
+                ) : (
+                  <><MapPinIcon className="w-4 h-4" />Use GPS</>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapPickerOpen(true)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-green-300 text-green-700 bg-green-50 hover:bg-green-100 rounded-xl text-sm font-semibold transition-all duration-200"
+              >
+                <MapIcon className="w-4 h-4" />
+                Select on Map
+              </button>
+            </div>
+            {form.coordinates?.latitude && (
+              <p className="text-xs text-green-600 font-medium -mt-1">
+                Location set: {form.coordinates.latitude.toFixed(5)}, {form.coordinates.longitude.toFixed(5)}
+              </p>
+            )}
 
             {/* Address Type */}
             <div>
@@ -381,6 +417,14 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
         </div>
       </div>
     </div>
+
+    <MapPickerModal
+      isOpen={mapPickerOpen}
+      onClose={() => setMapPickerOpen(false)}
+      onConfirm={handleMapConfirm}
+      initialPosition={existingCoords}
+    />
+    </>
   );
 };
 
