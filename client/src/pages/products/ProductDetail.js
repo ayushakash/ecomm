@@ -127,8 +127,8 @@ const ProductDetail = () => {
           { name: product.name, path: `/products/${product._id}` }
         ]}
       />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-12">
           {/* Product Image Gallery */}
           <div className="lg:sticky lg:top-8">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -279,31 +279,24 @@ const ProductDetail = () => {
           </div>
 
           {/* Product Info */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
-
-            {/* Category tag */}
-            {product.category?.name && (
-              <span className="inline-block px-3 py-1 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full uppercase tracking-wide">
-                {product.category.name}
-              </span>
-            )}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 lg:p-6 space-y-3 lg:space-y-5">
 
             {/* Name */}
-            <h1 className="text-2xl font-bold text-gray-900 leading-snug">{product.name}</h1>
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900 leading-snug">{product.name}</h1>
 
             {/* Price */}
             <div className="flex items-baseline gap-2">
               {hasVariants && !selectedVariant ? (
                 <>
                   <span className="text-sm text-gray-400 font-medium">From</span>
-                  <span className="text-2xl font-bold text-gray-900">
+                  <span className="text-xl lg:text-2xl font-bold text-gray-900">
                     ₹{Math.min(...product.variants.map(v => v.price)).toLocaleString()}
                   </span>
                   {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
                 </>
               ) : (
                 <>
-                  <span className="text-2xl font-bold text-gray-900">₹{activePrice?.toLocaleString()}</span>
+                  <span className="text-xl lg:text-2xl font-bold text-gray-900">₹{activePrice?.toLocaleString()}</span>
                   {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
                 </>
               )}
@@ -356,7 +349,7 @@ const ProductDetail = () => {
             {/* Description */}
             {product.description && (
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">Description</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Description</p>
                 <p className="text-sm text-gray-600 leading-relaxed">{product.description}</p>
               </div>
             )}
@@ -364,7 +357,7 @@ const ProductDetail = () => {
             {/* Specifications */}
             {product.specifications && Object.values(product.specifications).some(Boolean) && (
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Specifications</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Specifications</p>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                   {Object.entries(product.specifications).map(([key, value]) =>
                     value ? (
@@ -378,9 +371,16 @@ const ProductDetail = () => {
               </div>
             )}
 
+            {/* Category tag */}
+            {product.category?.name && (
+              <span className="inline-block px-3 py-1 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full uppercase tracking-wide">
+                {product.category.name}
+              </span>
+            )}
+
             {/* Quantity + Actions */}
             {/* For variant products: show actions only after a size is selected (or always show disabled state) */}
-            <div className="space-y-4 pt-2 border-t border-gray-100">
+            <div className="space-y-3 pt-2 border-t border-gray-100">
               {activeStock > 0 && (!hasVariants || selectedVariant) && (
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium text-gray-700">Qty</span>
