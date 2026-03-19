@@ -29,7 +29,7 @@ const productSchema = new mongoose.Schema({
     default: "piece"
   },
   weight: { type: Number, default: 0, min: 0 }, // weight in kg for delivery calculations
-  bulkMinQty: { type: Number, default: 10, min: 1 }, // minimum qty to show bulk WhatsApp option
+  bulkMinQty: { type: Number, default: 10, min: 0 }, // minimum qty to show bulk WhatsApp option (0 = hidden)
 
   // 🌍 City-specific pricing
   cityPricing: [{

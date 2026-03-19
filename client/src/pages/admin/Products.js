@@ -797,13 +797,13 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Bulk Order Min Qty
-              <span className="ml-1 text-xs text-gray-400 font-normal">(WhatsApp shown above this qty)</span>
+              <span className="ml-1 text-xs text-gray-400 font-normal">(0 = hidden; WhatsApp shown above this qty)</span>
             </label>
             <input
               type="number"
-              min={1}
+              min={0}
               value={formData.bulkMinQty}
-              onChange={(e) => setFormData({ ...formData, bulkMinQty: parseInt(e.target.value) || 10 })}
+              onChange={(e) => { const v = parseInt(e.target.value); setFormData({ ...formData, bulkMinQty: isNaN(v) ? 10 : v }); }}
               className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
           </div>

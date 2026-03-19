@@ -77,7 +77,7 @@ router.post(
           gstRate: gstRate !== undefined ? gstRate : 18,
           gstType: gstType || 'exclusive',
           variants: variants || [],
-          bulkMinQty: bulkMinQty || 10,
+          bulkMinQty: bulkMinQty !== undefined ? bulkMinQty : 10,
           enabled: true,
         });
 
