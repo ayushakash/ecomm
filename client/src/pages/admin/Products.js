@@ -800,11 +800,17 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
               <span className="ml-1 text-xs text-gray-400 font-normal">(0 = hidden; WhatsApp shown above this qty)</span>
             </label>
             <input
-              type="number"
-              min={0}
-              value={formData.bulkMinQty}
-              onChange={(e) => { const v = e.target.value; setFormData({ ...formData, bulkMinQty: v === '' ? '' : parseInt(v) }); }}
-              onBlur={(e) => { if (e.target.value === '' || isNaN(parseInt(e.target.value))) setFormData((f) => ({ ...f, bulkMinQty: 0 })); }}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={formData.bulkMinQty === '' ? '' : String(formData.bulkMinQty)}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^0-9]/g, '');
+                setFormData((f) => ({ ...f, bulkMinQty: raw === '' ? '' : parseInt(raw, 10) }));
+              }}
+              onBlur={() => {
+                setFormData((f) => ({ ...f, bulkMinQty: (f.bulkMinQty === '' || isNaN(Number(f.bulkMinQty))) ? 0 : Number(f.bulkMinQty) }));
+              }}
               className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
           </div>
