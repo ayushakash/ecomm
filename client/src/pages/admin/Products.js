@@ -257,7 +257,7 @@ const Products = () => {
       enabled: product.enabled || false,
       gstRate: product.gstRate || 18,
       gstType: product.gstType || "exclusive",
-      bulkMinQty: product.bulkMinQty || 10,
+      bulkMinQty: product.bulkMinQty ?? 10,
       variants: product.variants || [],
     });
     setSelectedFiles([]);
@@ -803,7 +803,8 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
               type="number"
               min={0}
               value={formData.bulkMinQty}
-              onChange={(e) => { const v = parseInt(e.target.value); setFormData({ ...formData, bulkMinQty: isNaN(v) ? 10 : v }); }}
+              onChange={(e) => { const v = e.target.value; setFormData({ ...formData, bulkMinQty: v === '' ? '' : parseInt(v) }); }}
+              onBlur={(e) => { if (e.target.value === '' || isNaN(parseInt(e.target.value))) setFormData((f) => ({ ...f, bulkMinQty: 0 })); }}
               className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
           </div>
