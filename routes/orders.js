@@ -965,6 +965,10 @@ router.put('/:orderId/items/:itemId/status', [
     // Set delivery date immediately for instant response
     if (status === 'delivered') {
       order.actualDeliveryDate = new Date();
+      // Mark payment as paid once all items are delivered (COD collected)
+      if (order.items.every(i => i.itemStatus === 'delivered')) {
+        order.paymentStatus = 'paid';
+      }
     }
 
     // Save order immediately and send response with cleaned order
@@ -1085,6 +1089,8 @@ router.put('/:orderId/items/bulk-status', [
     // Set delivery date if all items are delivered
     if (status === 'delivered' && order.items.every(i => i.itemStatus === 'delivered')) {
       order.actualDeliveryDate = new Date();
+      // Mark payment as paid once all items are delivered (COD collected)
+      order.paymentStatus = 'paid';
     }
 
     // Save order immediately and send response with cleaned order
