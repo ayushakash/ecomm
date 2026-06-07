@@ -80,6 +80,9 @@ app.use('/api/webhooks', require('./routes/webhooks'));
 
 // MSG91 OTP Test routes
 
+// SEO: dynamic sitemap (must be before the SPA catch-all so it isn't swallowed)
+app.use('/', require('./routes/sitemap'));
+
 // Serve static files from client/public (for test pages)
 app.use(express.static('client/public'));
 

@@ -120,6 +120,17 @@ const ProductDetail = () => {
         title={productTitle}
         description={productDescription}
         keywords={productKeywords}
+        type="product"
+        image={(product.images && product.images[0]) || '/logo512.png'}
+        product={{
+          name: product.name,
+          description: product.description || `Buy ${product.name} online in Ranchi`,
+          image: (product.images && product.images[0]) || undefined,
+          brand: product.brand,
+          price: product.price,
+          inStock: (product.totalStock ?? product.stock ?? 0) > 0,
+          // rating intentionally omitted — reviews not live yet (no fake ratings)
+        }}
         breadcrumbs={[
           { name: 'Home', path: '/' },
           { name: 'Products', path: '/products' },

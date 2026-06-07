@@ -1,18 +1,24 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
+// Configurable via env so OG images / canonical / JSON-LD point at the real site.
+const SITE_URL = (process.env.REACT_APP_SITE_URL || 'https://chardeevari.in').replace(/\/$/, '');
+const BUSINESS_PHONE = process.env.REACT_APP_BUSINESS_PHONE || ''; // e.g. +91-9XXXXXXXXX
+
 const SEO = ({
-  title = 'Chardeevari - Construction Materials in Ranchi, Jharkhand',
-  description = 'Buy quality construction materials online in Ranchi, Jharkhand. Cement, Sand, Bricks, Steel, Aggregates with doorstep delivery. Best prices guaranteed.',
-  keywords = 'construction materials Ranchi, cement online Ranchi, building materials Jharkhand, M-Sand Ranchi, TMT bars Ranchi, bricks Ranchi, construction supplies Ranchi, building materials online Jharkhand',
+  title = 'Cheap Construction Materials in Ranchi - Cement, Steel, Sand, Bricks',
+  description = 'Buy cheap construction materials online in Ranchi, Jharkhand. Lowest prices on cement, steel (TMT bars), sand, aggregates & bricks with doorstep delivery. Compare verified merchant prices & order online.',
+  keywords = 'cheap cement in Ranchi, cheap steel in Ranchi, cheap construction material in Ranchi, cement price in Ranchi, TMT steel price Ranchi, sand price Ranchi, bricks Ranchi, building materials online Ranchi, construction materials Jharkhand',
   image = '/logo512.png',
-  url = typeof window !== 'undefined' ? window.location.href : 'https://your-domain.com',
+  url = typeof window !== 'undefined' ? window.location.href : SITE_URL,
   type = 'website',
   noindex = false,
   product = null, // Product schema data
-  breadcrumbs = null // Breadcrumb schema data
+  breadcrumbs = null, // Breadcrumb schema data
+  faqs = null, // [{ question, answer }] -> FAQPage schema
+  article = null // { datePublished, dateModified, author } -> BlogPosting schema
 }) => {
-  const siteUrl = 'https://your-domain.com'; // Update with your actual domain
+  const siteUrl = SITE_URL;
   const siteName = 'Chardeevari';
   const fullTitle = title.includes(siteName) ? title : `${title} | ${siteName}`;
 
@@ -39,7 +45,41 @@ const SEO = ({
         name: 'Ranchi'
       },
       priceRange: '₹₹',
-      telephone: '+91-XXXXXXXXXX'
+      ...(BUSINESS_PHONE && { telephone: BUSINESS_PHONE })
+    });
+
+    // LocalBusiness (HardwareStore) Schema — key for "near me" / local Ranchi search
+    structuredData.push({
+      '@context': 'https://schema.org',
+      '@type': 'HardwareStore',
+      name: siteName,
+      image: `${siteUrl}/logo512.png`,
+      url: siteUrl,
+      description: 'Buy cheap cement, steel, sand, aggregates and bricks online in Ranchi with doorstep delivery.',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Ranchi',
+        addressRegion: 'Jharkhand',
+        postalCode: '834001',
+        addressCountry: 'IN'
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: 23.3441,
+        longitude: 85.3096
+      },
+      areaServed: {
+        '@type': 'City',
+        name: 'Ranchi'
+      },
+      priceRange: '₹₹',
+      openingHoursSpecification: {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        opens: '08:00',
+        closes: '19:00'
+      },
+      ...(BUSINESS_PHONE && { telephone: BUSINESS_PHONE })
     });
 
     // Website Schema
@@ -102,6 +142,45 @@ const SEO = ({
           name: crumb.name,
           item: `${siteUrl}${crumb.path}`
         }))
+      });
+    }
+
+    // FAQ Schema — drives "People also ask" / featured snippets
+    if (faqs && faqs.length) {
+      structuredData.push({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: f.answer
+          }
+        }))
+      });
+    }
+
+    // Article / BlogPosting Schema — for blog post rich results
+    if (article) {
+      structuredData.push({
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: title,
+        description,
+        image: image.startsWith('http') ? image : `${siteUrl}${image}`,
+        datePublished: article.datePublished,
+        dateModified: article.dateModified || article.datePublished,
+        author: {
+          '@type': 'Organization',
+          name: article.author || siteName
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: siteName,
+          logo: { '@type': 'ImageObject', url: `${siteUrl}/logo512.png` }
+        },
+        mainEntityOfPage: { '@type': 'WebPage', '@id': url }
       });
     }
 

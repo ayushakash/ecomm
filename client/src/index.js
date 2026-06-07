@@ -20,8 +20,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
+const appTree = (
   <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
@@ -52,6 +51,16 @@ root.render(
       </BrowserRouter>
     </QueryClientProvider>
 );
+
+const rootElement = document.getElementById('root');
+// react-snap prerenders static HTML into #root at build time. When that markup
+// is present, hydrate it (so crawlers/users get real HTML instantly); otherwise
+// render fresh on the client.
+if (rootElement.hasChildNodes()) {
+  ReactDOM.hydrateRoot(rootElement, appTree);
+} else {
+  ReactDOM.createRoot(rootElement).render(appTree);
+}
 
 
 if ('serviceWorker' in navigator) {

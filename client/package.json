@@ -29,11 +29,33 @@
     "recharts": "^3.1.2",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "react-snap": "^1.23.0"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "postbuild": "react-snap",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
+  },
+  "reactSnap": {
+    "include": [
+      "/",
+      "/products",
+      "/calculator",
+      "/blog",
+      "/blog/cement-calculation-1000-sqft-ranchi",
+      "/blog/msand-vs-river-sand-jharkhand",
+      "/blog/best-tmt-bars-ranchi-2026",
+      "/contact"
+    ],
+    "skipThirdPartyRequests": true,
+    "inlineCss": false,
+    "puppeteerArgs": [
+      "--no-sandbox",
+      "--disable-setuid-sandbox"
+    ]
   },
   "eslintConfig": {
     "extends": [

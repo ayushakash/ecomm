@@ -18,4 +18,4 @@ Disallow: /login
 Disallow: /register
 
 # Sitemap
-Sitemap: https://your-domain.com/sitemap.xml
+Sitemap: https://chardeevari.in/sitemap.xml

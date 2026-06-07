@@ -1,37 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import SEO from '../components/SEO/SEO';
+import { blogPosts } from '../data/blogPosts';
 
 const Blog = () => {
-  const blogPosts = [
-    {
-      id: 1,
-      title: 'How to Calculate Cement for 1000 Sq Ft Construction in Ranchi',
-      excerpt: 'Complete guide to calculating cement requirements for your construction project in Jharkhand. Learn the formula, factors, and best practices.',
-      image: '/blog/cement-calculation.jpg',
-      date: '2026-01-01',
-      category: 'Construction Guides',
-      slug: 'cement-calculation-1000-sqft-ranchi'
-    },
-    {
-      id: 2,
-      title: 'M-Sand vs River Sand: Which is Better for Construction in Jharkhand?',
-      excerpt: 'Comprehensive comparison of M-Sand and River Sand for construction projects. Understand the benefits, costs, and availability in Ranchi.',
-      image: '/blog/msand-vs-river-sand.jpg',
-      date: '2025-12-28',
-      category: 'Material Comparison',
-      slug: 'msand-vs-river-sand-jharkhand'
-    },
-    {
-      id: 3,
-      title: 'Best Quality TMT Bars Available in Ranchi 2026',
-      excerpt: 'Guide to choosing the best TMT bars for your construction project. Compare brands, grades, and prices in Ranchi market.',
-      image: '/blog/tmt-bars-guide.jpg',
-      date: '2025-12-25',
-      category: 'Product Reviews',
-      slug: 'best-tmt-bars-ranchi-2026'
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
       <SEO
@@ -74,33 +46,22 @@ const Blog = () => {
                 </div>
 
                 <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
-                  {post.title}
+                  <Link to={`/blog/${post.slug}`} className="hover:text-blue-700 transition-colors">
+                    {post.title}
+                  </Link>
                 </h2>
 
                 <p className="text-gray-600 mb-4 line-clamp-3">{post.excerpt}</p>
 
-                <button className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+                <Link
+                  to={`/blog/${post.slug}`}
+                  className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+                >
                   Read More →
-                </button>
+                </Link>
               </div>
             </article>
           ))}
-        </div>
-
-        {/* Coming Soon Notice */}
-        <div className="mt-16 bg-blue-50 border-2 border-blue-200 rounded-xl p-8 text-center">
-          <div className="text-6xl mb-4">🚧</div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">More Articles Coming Soon!</h3>
-          <p className="text-gray-700 max-w-2xl mx-auto mb-6">
-            We're working on bringing you more valuable content about construction materials,
-            building techniques, and industry insights specific to Ranchi and Jharkhand region.
-          </p>
-          <a
-            href="/calculator"
-            className="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Try Our Construction Calculator
-          </a>
         </div>
 
         {/* SEO Content Section */}

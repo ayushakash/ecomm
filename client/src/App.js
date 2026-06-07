@@ -3,9 +3,11 @@ import 'leaflet/dist/leaflet.css';
 import InstallBanner from './components/ui/InstallBanner';
 import { Routes, Route, Navigate, useLocation as useRouterLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { LocationProvider } from './contexts/LocationContext';
+import GoogleOneTap from './components/GoogleOneTap';
 import analytics from './services/analytics';
 
 // Layout Components (not lazy — needed immediately)
@@ -26,6 +28,7 @@ const Checkout = lazy(() => import('./pages/cart/Checkout'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Calculator = lazy(() => import('./pages/Calculator'));
 const Blog = lazy(() => import('./pages/Blog'));
+const BlogPost = lazy(() => import('./pages/BlogPost'));
 
 // Protected Pages — lazy loaded
 const Profile = lazy(() => import('./pages/profile/Profile'));
@@ -97,6 +100,7 @@ function AppRoutes() {
           <Route path="contact" element={<Contact />} />
           <Route path="calculator" element={<Calculator />} />
           <Route path="blog" element={<Blog />} />
+          <Route path="blog/:slug" element={<BlogPost />} />
         </Route>
 
         <Route path="/pending-approval" element={<PendingApproval />} />
@@ -174,6 +178,7 @@ function AppContent() {
   return (
     <>
       <ScrollToTop />
+      <GoogleOneTap />
       <AppRoutes />
     </>
   );
@@ -181,16 +186,18 @@ function AppContent() {
 
 function App() {
   return (
-    <HelmetProvider>
-      <AuthProvider>
-        <LocationProvider>
-          <CartProvider>
-            <AppContent />
-            <InstallBanner />
-          </CartProvider>
-        </LocationProvider>
-      </AuthProvider>
-    </HelmetProvider>
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
+      <HelmetProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <CartProvider>
+              <AppContent />
+              <InstallBanner />
+            </CartProvider>
+          </LocationProvider>
+        </AuthProvider>
+      </HelmetProvider>
+    </GoogleOAuthProvider>
   );
 }
 
