@@ -22,6 +22,7 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
   const [geocoding, setGeocoding] = useState(false);
   const [addressPreview, setAddressPreview] = useState('');
   const [userLocation, setUserLocation] = useState(null);
+  const [locating, setLocating] = useState(false);
 
   // Try to get user's current location to center the map
   useEffect(() => {
@@ -58,6 +59,26 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
     } finally {
       setGeocoding(false);
     }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setAddressPreview('Geolocation is not supported by your browser');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        handleLocationSelect(latitude, longitude); // drops pin + reverse-geocodes
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        setAddressPreview('Could not get your location. Tap on the map instead.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const handleConfirm = async () => {
@@ -124,6 +145,19 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
 
         {/* Address Preview + Confirm */}
         <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
+          <button
+            type="button"
+            onClick={handleUseCurrentLocation}
+            disabled={locating}
+            className="w-full mb-3 py-2.5 border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {locating ? (
+              <><span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span> Locating…</>
+            ) : (
+              <><MapPinIcon className="w-4 h-4" /> Use My Current Location</>
+            )}
+          </button>
+
           {selectedPos ? (
             <div className="mb-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Selected Location</p>

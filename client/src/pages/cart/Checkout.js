@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import LocationConfirmation from '../../components/location/LocationConfirmation';
 import AddressFormModal from '../../components/modals/AddressFormModal';
 import analytics from '../../services/analytics';
+import { isWithinDeliveryHours, getDeliveryWindowMessage, DELIVERY_WINDOW_LABEL } from '../../utils/deliveryHours';
 import {
   MapPinIcon,
   PlusIcon,
@@ -360,6 +361,12 @@ const Checkout = () => {
       totalAmount: finalPricing.totalAmount
     };
 
+    // Orders are accepted 24x7, but delivery only happens 8 AM - 7 PM.
+    // If ordering outside the window, let the customer know when it'll arrive.
+    if (!isWithinDeliveryHours()) {
+      toast(getDeliveryWindowMessage(), { icon: '🕗', duration: 7000 });
+    }
+
     createOrderMutation.mutate(orderData);
   };
 
@@ -428,6 +435,21 @@ const Checkout = () => {
           <h1 className="text-2xl font-bold">Checkout</h1>
           <p className="text-gray-200 text-sm mt-1">Complete your order</p>
         </div>
+
+        {/* Outside delivery hours notice — orders accepted 24x7, delivery 8 AM - 7 PM */}
+        {!isWithinDeliveryHours() && (
+          <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 sm:p-5 rounded-xl shadow-sm flex items-start gap-3">
+            <span className="text-xl leading-none">🕗</span>
+            <div>
+              <p className="text-sm font-semibold text-blue-900">
+                We're accepting your order, but it's currently outside delivery hours
+              </p>
+              <p className="text-sm text-blue-700 mt-0.5">
+                {getDeliveryWindowMessage()} Delivery hours: <strong>{DELIVERY_WINDOW_LABEL}</strong>.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Warning Banner for Unavailable Items */}
         {unavailableItems.length > 0 && selectedAddress && (

@@ -81,9 +81,26 @@ const AppSettingsSchema = new mongoose.Schema({
     enablePincodeGrouping: {
       type: Boolean,
       default: true // Group nearby pincodes as same delivery zone
+    },
+
+    // Delivery window: orders are accepted 24x7, but delivery only happens
+    // during these hours (24h format) for all merchants.
+    deliveryHours: {
+      startHour: {
+        type: Number,
+        default: 8, // 08:00 — deliveries start at 8 AM
+        min: 0,
+        max: 23
+      },
+      endHour: {
+        type: Number,
+        default: 19, // 19:00 — deliveries stop at 7 PM
+        min: 1,
+        max: 24
+      }
     }
   },
-  
+
   // Display Configuration
   priceDisplayMode: {
     type: String,
