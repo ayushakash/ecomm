@@ -21,7 +21,9 @@ const GoogleOneTap = () => {
   const { pathname } = useLocation();
 
   const onAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
-  const disabled = loading || !!user || onAuthRoute;
+  // react-snap prerender has no Google script (third-party requests are blocked).
+  const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent === 'ReactSnap';
+  const disabled = loading || !!user || onAuthRoute || isPrerender;
 
   useGoogleOneTapLogin({
     disabled,

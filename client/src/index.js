@@ -63,7 +63,9 @@ if (rootElement.hasChildNodes()) {
 }
 
 
-if ('serviceWorker' in navigator) {
+// Skip SW during react-snap prerender — the service worker intercepts requests
+// and conflicts with prerendering/hydration.
+if ('serviceWorker' in navigator && navigator.userAgent !== 'ReactSnap') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
       .then((registration) => {
