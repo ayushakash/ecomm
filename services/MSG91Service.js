@@ -76,6 +76,14 @@ class MSG91Service {
         template: templateName || this.whatsappOtpTemplate
       });
 
+      // 🔍 Full request dump for debugging "invalid parameter" errors from MSG91
+      console.log('🔍 MSG91 WhatsApp request URL:', url);
+      console.log('🔍 MSG91 WhatsApp request headers:', {
+        authkey: this.authKey ? `${this.authKey.substring(0, 6)}...(${this.authKey.length} chars)` : 'MISSING',
+        'Content-Type': 'application/json'
+      });
+      console.log('🔍 MSG91 WhatsApp full payload:\n' + JSON.stringify(payload, null, 2));
+
       const response = await axios.post(url, payload, {
         headers: {
           'authkey': this.authKey,
@@ -95,6 +103,10 @@ class MSG91Service {
 
     } catch (error) {
       console.error('❌ MSG91 WhatsApp OTP sending failed:', error.response?.data || error.message);
+
+      // 🔍 Full error dump — MSG91 usually names the invalid parameter here
+      console.error('🔍 MSG91 WhatsApp error status:', error.response?.status);
+      console.error('🔍 MSG91 WhatsApp error body:\n' + JSON.stringify(error.response?.data, null, 2));
 
       return {
         success: false,
