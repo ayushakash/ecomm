@@ -1,13 +1,46 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SEO from '../components/SEO/SEO';
 import analytics from '../services/analytics';
-import api, { merchantAPI } from '../services/api';
+import api, { merchantAPI, productAPI } from '../services/api';
+import { useCart } from '../contexts/CartContext';
 import { toast } from 'react-hot-toast';
 import { jsPDF } from 'jspdf';
 import { formatPrice } from '../utils/pricingUtils';
 
+// Maps each calculated material to a catalog search keyword + a unit-aware
+// quantity converter. Calculator units (bags / kg / cu.ft / nos) rarely match
+// how products are sold (bag / ton / cubic-meter / piece), so we convert and
+// always ask the user to review quantities before checkout.
+const CUFT_TO_M3 = 0.0283168;
+const MATERIAL_ORDER_CONFIG = {
+  cement:    { label: 'Cement',    keyword: 'cement',
+    toQty: (q) => Math.max(1, Math.ceil(q)) }, // calc bags ~= product 'bag'
+  steel:     { label: 'Steel/TMT', keyword: 'tmt steel',
+    toQty: (q, unit) => unit === 'ton' ? Math.max(1, Math.ceil(q / 1000)) : Math.max(1, Math.ceil(q)) },
+  bricks:    { label: 'Bricks',    keyword: 'brick',
+    toQty: (q) => Math.max(1, Math.ceil(q)) }, // calc nos ~= product 'piece'
+  sand:      { label: 'Sand',      keyword: 'sand',
+    toQty: (q, unit) => {
+      const m3 = q * CUFT_TO_M3;
+      if (unit === 'cubic-meter') return Math.max(1, Math.ceil(m3));
+      if (unit === 'ton') return Math.max(1, Math.ceil(m3 * 1.6)); // ~1.6 t/m³
+      return Math.max(1, Math.ceil(q));
+    } },
+  aggregate: { label: 'Aggregate', keyword: 'aggregate',
+    toQty: (q, unit) => {
+      const m3 = q * CUFT_TO_M3;
+      if (unit === 'cubic-meter') return Math.max(1, Math.ceil(m3));
+      if (unit === 'ton') return Math.max(1, Math.ceil(m3 * 1.5)); // ~1.5 t/m³
+      return Math.max(1, Math.ceil(q));
+    } },
+};
+
 const Calculator = () => {
   const canvasRef = useRef(null);
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const [ordering, setOrdering] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -660,7 +693,10 @@ const Calculator = () => {
     // Save PDF (always single page)
     doc.save(`Chardeevari_Estimate_${leadData.name.replace(/\s/g, '_')}.pdf`);
 
-    // Persist lead silently — don't block PDF download on failure
+    const estimatedValue = results?.structureMaterials?.totalCost || results?.totalCost || 0;
+
+    // Persist lead — don't block PDF download on failure, but DON'T fail silently:
+    // a lost lead from paid ad traffic is real money, so log it for visibility.
     api.post('/api/calculator-leads', {
       name: leadData.name,
       phone: leadData.phone,
@@ -670,11 +706,69 @@ const Calculator = () => {
       totalCost: results?.structureMaterials?.totalCost,
       priceMode: pricingMode,
       materials: results?.structureMaterials,
-    }).catch(() => {}); // silent fail
+    })
+      .then(() => {
+        // Fire conversion event so Meta/GA can optimize ad delivery for leads.
+        // value = estimated project cost, so we can optimize for high-value leads.
+        analytics.trackLead({ type: 'calculator_lead', value: estimatedValue });
+      })
+      .catch((err) => {
+        // Surface the failure (console + monitoring) instead of swallowing it.
+        console.error('⚠️ Calculator lead capture failed:', err?.response?.data || err?.message || err);
+        // Still record the conversion intent so ad optimization isn't blinded by
+        // transient backend errors — the user DID hand over their details.
+        analytics.trackLead({ type: 'calculator_lead_unsaved', value: estimatedValue });
+      });
 
     toast.success('PDF Report downloaded successfully!');
     setShowLeadModal(false);
     setLeadData({ name: '', phone: '' });
+  };
+
+  // Phase 2 funnel: turn the calculated material list into a prefilled cart.
+  // Best-effort product match per material (by catalog keyword search), with
+  // unit-aware quantity conversion. Quantities are estimates — the user reviews
+  // them on the cart page before checkout.
+  const handleOrderMaterials = async () => {
+    if (!results || ordering) return;
+    setOrdering(true);
+    const matched = [];
+    const unmatched = [];
+    try {
+      for (const key of Object.keys(MATERIAL_ORDER_CONFIG)) {
+        const mat = results[key];
+        if (!mat || !mat.quantity) continue;
+        const cfg = MATERIAL_ORDER_CONFIG[key];
+        try {
+          const res = await productAPI.getProducts({ search: cfg.keyword });
+          const product = (res.products || []).find(p => p.enabled !== false);
+          if (!product) { unmatched.push(cfg.label); continue; }
+          addToCart(product, cfg.toQty(mat.quantity, product.unit), selectedCity || null);
+          matched.push(cfg.label);
+        } catch {
+          unmatched.push(cfg.label);
+        }
+      }
+
+      if (matched.length === 0) {
+        toast.error('Couldn\'t auto-match products. Browse the catalog to add items.');
+        navigate('/products');
+        return;
+      }
+
+      analytics.trackEvent('calculator_order_materials', {
+        matched: matched.length,
+        unmatched: unmatched.length,
+      });
+
+      toast.success(`Added ${matched.length} material(s) to cart — please review quantities before checkout.`, { duration: 6000 });
+      if (unmatched.length) {
+        toast(`Not available yet: ${unmatched.join(', ')}. Add manually if needed.`, { icon: 'ℹ️', duration: 6000 });
+      }
+      navigate('/cart');
+    } finally {
+      setOrdering(false);
+    }
   };
 
   return (
@@ -1080,12 +1174,32 @@ const Calculator = () => {
         <div className="mt-12 bg-gradient-to-r from-primary-700 to-primary-900 rounded-xl shadow-2xl p-8 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Ready to Buy Construction Materials?</h2>
           <p className="text-lg mb-6">Get quality materials delivered to your site in Ranchi</p>
-          <a
-            href="/products"
-            className="inline-block bg-white text-primary-700 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-          >
-            Browse Products
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            {results && (
+              <button
+                onClick={handleOrderMaterials}
+                disabled={ordering}
+                className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {ordering ? (
+                  <><span className="inline-block w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></span> Adding to cart…</>
+                ) : (
+                  <>🛒 Order These Materials</>
+                )}
+              </button>
+            )}
+            <a
+              href="/products"
+              className="inline-block bg-primary-600/40 border border-white/40 text-white font-semibold px-8 py-3 rounded-lg hover:bg-primary-600/60 transition-colors duration-200"
+            >
+              Browse Products
+            </a>
+          </div>
+          {results && (
+            <p className="text-xs text-primary-100 mt-3">
+              Quantities are estimates from your calculation — review them in the cart before checkout.
+            </p>
+          )}
         </div>
       </div>
 
