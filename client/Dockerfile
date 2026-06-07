@@ -6,6 +6,13 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
+# Chromium for react-snap prerendering (alpine has no bundled Chromium).
+# Skip Puppeteer's own download and point react-snap at the system binary.
+RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 # Build arguments for React environment variables
 ARG REACT_APP_API_URL=
 ARG REACT_APP_MSG91_AUTH_KEY=471309TydHm2HpEe68dce0f9P1
