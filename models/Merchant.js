@@ -129,6 +129,14 @@ const merchantSchema = new mongoose.Schema({
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], default: [0, 0] }, // [longitude, latitude]
   },
+  // Max distance (in km) this merchant delivers from its location.
+  // Used for nearest-merchant matching ($geoNear vs this radius).
+  deliveryRadius: {
+    type: Number,
+    default: 5,
+    min: [0, 'Delivery radius cannot be negative'],
+    max: [100, 'Delivery radius cannot exceed 100 km'],
+  },
   // Merchant availability and capacity
   availability: {
     isActive: { type: Boolean, default: true },

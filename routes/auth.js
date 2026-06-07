@@ -605,6 +605,7 @@ router.post('/register-merchant', [
   body('pincode').matches(/^\d{6}$/).withMessage('Please enter a valid 6-digit pincode'),
   body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
   body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
+  body('deliveryRadius').optional().isFloat({ min: 0, max: 100 }).withMessage('Delivery radius must be between 0 and 100 km'),
   body('otp').isLength({ min: 4, max: 6 }).withMessage('OTP must be 4-6 digits')
 ], async (req, res) => {
   try {
@@ -616,7 +617,7 @@ router.post('/register-merchant', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { contactName, contactPhone, contactEmail, name, businessType, gstNumber, panNumber, address, area, city, state, pincode, latitude, longitude, otp } = req.body;
+    const { contactName, contactPhone, contactEmail, name, businessType, gstNumber, panNumber, address, area, city, state, pincode, latitude, longitude, deliveryRadius, otp } = req.body;
 
     // Check if merchant already exists with this phone number
     const existingMerchant = await Merchant.findOne({ phone: contactPhone });
@@ -682,6 +683,7 @@ router.post('/register-merchant', [
         type: 'Point',
         coordinates: [longitude, latitude]
       },
+      deliveryRadius: deliveryRadius !== undefined && deliveryRadius !== '' ? deliveryRadius : 5,
       activeStatus: 'pending'
     });
 

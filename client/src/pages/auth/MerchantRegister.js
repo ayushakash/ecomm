@@ -30,6 +30,9 @@ const MerchantRegister = () => {
     latitude: '',
     longitude: '',
 
+    // How far (km) this shop delivers from its location
+    deliveryRadius: '5',
+
     // OTP
     otp: ''
   });
@@ -197,6 +200,7 @@ const MerchantRegister = () => {
         pincode: formData.pincode.trim(),
         latitude: formData.latitude ? parseFloat(formData.latitude) : 28.6139,
         longitude: formData.longitude ? parseFloat(formData.longitude) : 77.2090,
+        deliveryRadius: formData.deliveryRadius ? parseFloat(formData.deliveryRadius) : 5,
         otp: formData.otp.trim()
       };
 
@@ -575,6 +579,29 @@ const MerchantRegister = () => {
               Location set: {parseFloat(formData.latitude).toFixed(6)}, {parseFloat(formData.longitude).toFixed(6)}
             </p>
           )}
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-blue-900 mb-1">
+              Delivery radius (km)
+            </label>
+            <p className="text-xs text-blue-700 mb-2">
+              How far from your shop will you deliver? Customers within this distance will be matched to you.
+            </p>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={formData.deliveryRadius}
+              onChange={(e) => handleInputChange('deliveryRadius', e.target.value)}
+              className={`w-32 px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                errors.deliveryRadius ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="5"
+            />
+            <span className="ml-2 text-sm text-blue-800">km</span>
+            {errors.deliveryRadius && <p className="text-red-600 text-sm mt-1">{errors.deliveryRadius}</p>}
+          </div>
         </div>
 
         <div className="flex space-x-4">
