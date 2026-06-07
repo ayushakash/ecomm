@@ -8,6 +8,7 @@ const Login = () => {
   const [step, setStep] = useState(1);
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -101,9 +102,42 @@ const Login = () => {
   const handleVerifyOTP = async () => {
     if (!validateOTP()) return;
 
+    // First-time user: complete registration INLINE using the OTP that was
+    // already sent during send-otp. Avoids bouncing to /register and sending a
+    // second OTP — the customer just adds their name and is logged straight in.
     if (!userExists) {
-      toast.error('This mobile number is not registered. Please register first.');
-      navigate('/register');
+      if (!name.trim() || name.trim().length < 2) {
+        setErrors((prev) => ({ ...prev, name: 'Please enter your name (at least 2 characters)' }));
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/auth/verify-otp-register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim(), phone: mobile.trim(), otp: otp.trim() })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || data.errors?.[0]?.msg || 'Registration failed');
+        }
+
+        const { user: userData, accessToken, refreshToken } = data;
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+
+        const api = (await import('../../services/api')).default;
+        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+
+        setUser(userData);
+        toast.success('Account created! You are now logged in.');
+        navigate(from || '/');
+      } catch (error) {
+        console.error('Inline registration error:', error);
+        toast.error(error.message || 'Registration failed. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -272,11 +306,31 @@ const Login = () => {
 
   const renderOTPStep = () => (
     <div className="bg-white p-8 rounded-lg shadow-md">
-      <h3 className="text-lg font-medium text-gray-900 mb-6">Verify Mobile Number</h3>
+      <h3 className="text-lg font-medium text-gray-900 mb-6">
+        {userExists === false ? 'Create Your Account' : 'Verify Mobile Number'}
+      </h3>
       <p className="text-sm text-gray-600 mb-6">
-        Enter the OTP sent to your WhatsApp on +91{mobile}
+        {userExists === false
+          ? <>Looks like you're new here! Enter your name and the OTP sent to +91{mobile} to get started.</>
+          : <>Enter the OTP sent to your WhatsApp on +91{mobile}</>}
       </p>
       <div className="space-y-4">
+        {userExists === false && (
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              Your Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={getInputClass('name')}
+              placeholder="Enter your full name"
+            />
+            {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
+          </div>
+        )}
         <div>
           <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
             Enter OTP
@@ -311,7 +365,7 @@ const Login = () => {
           disabled={isLoading}
           className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? <div className="loading-spinner"></div> : 'Verify & Login'}
+          {isLoading ? <div className="loading-spinner"></div> : (userExists === false ? 'Create Account & Login' : 'Verify & Login')}
         </button>
       </div>
     </div>
