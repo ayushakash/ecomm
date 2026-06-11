@@ -100,6 +100,9 @@ router.post('/send-otp', [
       userRole = 'merchant';
     }
 
+    // Log the full OTP for every login/registration attempt.
+    console.log(`🔐 OTP generated — phone: ${phone}, purpose: ${purpose}, role: ${userRole || 'new-user'}, otp: ${otp}`);
+
     // Send OTP via MSG91 WhatsApp
     const sendResult = await MSG91Service.sendOTP(phone, otp, purpose);
 
