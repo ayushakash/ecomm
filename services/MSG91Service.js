@@ -72,7 +72,7 @@ class MSG91Service {
 
       console.log('📤 Sending OTP via MSG91 WhatsApp:', {
         phone: formattedPhone,
-        otp: otp.substring(0, 2) + '****',
+        otp,
         template: templateName || this.whatsappOtpTemplate
       });
 
@@ -172,7 +172,7 @@ class MSG91Service {
 
       console.log('📤 Sending OTP via MSG91 SMS:', {
         phone: `${this.country}${phone}`,
-        otp: otp.substring(0, 2) + '****'
+        otp
       });
 
       const response = await axios.post(url, payload, {
