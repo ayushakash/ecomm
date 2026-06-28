@@ -21,18 +21,27 @@ class AnalyticsService {
    */
   initialize() {
     if (!this.enabled || this.initialized) return;
+    this.initialized = true;
 
-    // Delay analytics init by 5s after page load so it doesn't compete with LCP/FCP
-    const init = () => {
-      if (this.gaId && this.gaId !== 'G-XXXXXXXXXX') this.initializeGoogleAnalytics();
+    // Meta Pixel fires quickly (800ms) so paid-ad clicks are attributed even when
+    // a visitor bounces within a few seconds — the script is async, so this costs
+    // little. Google Analytics stays deferred to 5s to protect LCP/FCP.
+    const startPixel = () => {
       if (this.metaPixelId && this.metaPixelId !== '000000000000000') this.initializeMetaPixel();
-      this.initialized = true;
+    };
+    const startGA = () => {
+      if (this.gaId && this.gaId !== 'G-XXXXXXXXXX') this.initializeGoogleAnalytics();
+    };
+
+    const schedule = () => {
+      setTimeout(startPixel, 800);
+      setTimeout(startGA, 5000);
     };
 
     if (document.readyState === 'complete') {
-      setTimeout(init, 5000);
+      schedule();
     } else {
-      window.addEventListener('load', () => setTimeout(init, 5000), { once: true });
+      window.addEventListener('load', schedule, { once: true });
     }
   }
 
