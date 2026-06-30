@@ -185,6 +185,52 @@ const EmailService = {
   },
 
   /**
+   * Notify the admin/ops team that a new order was placed.
+   * @param {Object} order - the Mongoose Order document
+   * @param {string} [adminEmail] - defaults to ADMIN_EMAIL or SMTP_USER
+   */
+  async sendNewOrderToAdmin(order, adminEmail) {
+    const to = adminEmail || process.env.ADMIN_EMAIL || process.env.SMTP_USER;
+    if (!to) {
+      console.warn('[EmailService] No admin email configured — skipping new-order alert');
+      return { success: false, error: 'no admin email', channel: 'email' };
+    }
+
+    const items = order.items || [];
+    const itemRows = items.map(item => `
+      <tr>
+        <td style="padding: 8px 0; color: #374151; border-bottom: 1px solid #f3f4f6;">${item.productName}${item.variantLabel && item.variantLabel !== 'none' ? ` <span style="color:#9ca3af;">(${item.variantLabel})</span>` : ''}</td>
+        <td style="padding: 8px 0; text-align: center; color: #6b7280; border-bottom: 1px solid #f3f4f6;">${item.quantity}</td>
+        <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #111827; border-bottom: 1px solid #f3f4f6;">₹${(item.unitPrice || 0) * item.quantity}</td>
+      </tr>
+    `).join('');
+
+    const html = layout(`
+      <div style="background: #fff7ed; border-left: 4px solid #f97316; padding: 12px 16px; border-radius: 4px; margin-bottom: 20px;">
+        <p style="margin: 0; font-weight: 700; color: #9a3412;">🛎️ New Order Received</p>
+      </div>
+      <h2 style="color: #1e293b; margin-top: 0;">Order #${order.orderNumber}</h2>
+      <table style="width: 100%; border-collapse: collapse; margin: 12px 0 20px;">
+        <tbody>${itemRows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="padding-top: 12px; font-weight: 700; color: #111827;">Total</td>
+            <td style="padding-top: 12px; text-align: right; font-weight: 700; font-size: 18px; color: #334155;">₹${order.totalAmount}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <p style="color: #475569; font-size: 14px; line-height: 1.7;">
+        <strong>Customer:</strong> ${order.customerName || '—'} (${order.customerPhone || '—'})<br>
+        <strong>Payment:</strong> ${(order.paymentMethod || '').toUpperCase()}<br>
+        <strong>Deliver to:</strong> ${order.customerAddress || '—'}${order.customerArea ? `, ${order.customerArea}` : ''}
+      </p>
+      ${btn('Open Admin Dashboard', 'https://chardeevari.in/admin/orders')}
+    `);
+
+    return send(to, `🛎️ New Order #${order.orderNumber} – ₹${order.totalAmount}`, html);
+  },
+
+  /**
    * Send a campaign / bulk email to a list of recipients.
    * Sends individually so each gets a personal email (no CC leak).
    * For large campaigns use a proper bulk provider (Brevo, SendGrid).

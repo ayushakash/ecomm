@@ -118,6 +118,81 @@ class MSG91Service {
   }
 
   /**
+   * Notify the admin/owner on WhatsApp that a new order was placed.
+   * Reuses the already-approved `orderconfirmation` template (5 body vars):
+   * {{1}} name, {{2}} order no, {{3}} items, {{4}} amount, {{5}} address.
+   * Template name + namespace are env-overridable.
+   * @param {Object} order - Mongoose Order document
+   * @param {string} [adminPhone] - defaults to ADMIN_WHATSAPP_NUMBER
+   */
+  async sendOrderAlertToAdmin(order, adminPhone = null) {
+    try {
+      const phone = adminPhone || process.env.ADMIN_WHATSAPP_NUMBER;
+      if (!phone) {
+        console.warn('📱 No ADMIN_WHATSAPP_NUMBER configured — skipping admin order alert');
+        return { success: false, error: 'no admin whatsapp number', channel: 'whatsapp' };
+      }
+
+      if (!this.authKey) {
+        console.log('📱 MSG91 Auth Key not configured, returning mock admin alert');
+        return { success: true, message: 'admin alert (mock)', channel: 'mock' };
+      }
+
+      const url = 'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/';
+      const templateName = process.env.MSG91_WHATSAPP_ORDER_ADMIN_TEMPLATE || 'orderconfirmation';
+      const namespace = process.env.MSG91_WHATSAPP_NAMESPACE || '2d94a314_a4ca_45d8_a3a5_3970af9d866a';
+      const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`;
+
+      // WhatsApp template vars can't contain newlines / 4+ spaces; keep it tidy.
+      const itemsSummary = (order.items || [])
+        .map(i => `${i.quantity}x ${i.productName}`)
+        .join(', ')
+        .replace(/\s+/g, ' ')
+        .slice(0, 250) || 'Items';
+
+      const payload = {
+        integrated_number: this.whatsappIntegratedNumber,
+        content_type: 'template',
+        payload: {
+          messaging_product: 'whatsapp',
+          type: 'template',
+          template: {
+            name: templateName,
+            language: { code: 'en', policy: 'deterministic' },
+            namespace,
+            to_and_components: [
+              {
+                to: [formattedPhone],
+                components: {
+                  body_1: { type: 'text', value: String(order.customerName || 'Customer') },
+                  body_2: { type: 'text', value: String(order.orderNumber || '-') },
+                  body_3: { type: 'text', value: itemsSummary },
+                  body_4: { type: 'text', value: String(order.totalAmount ?? '-') },
+                  body_5: { type: 'text', value: String(order.customerAddress || order.customerArea || 'Address') }
+                }
+              }
+            ]
+          }
+        }
+      };
+
+      console.log(`📤 Sending new-order WhatsApp alert to admin ${formattedPhone} (template: ${templateName})`);
+
+      const response = await axios.post(url, payload, {
+        headers: { 'authkey': this.authKey, 'Content-Type': 'application/json' },
+        timeout: 15000
+      });
+
+      console.log('✅ Admin order alert sent:', response.data);
+      return { success: true, data: response.data, channel: 'whatsapp' };
+
+    } catch (error) {
+      console.error('❌ Admin order alert failed:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data || error.message, channel: 'whatsapp' };
+    }
+  }
+
+  /**
    * Send OTP - main method that uses WhatsApp
    * @param {string} phone - 10 digit mobile number
    * @param {string} otp - 4-6 digit OTP

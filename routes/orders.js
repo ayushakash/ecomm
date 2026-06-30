@@ -9,6 +9,8 @@ const MerchantProduct = require('../models/MerchantProduct');
 const { getPricingCalculator } = require('../utils/pricingUtils');
 const OrderLogService = require('../services/OrderLogService');
 const AbandonedCartService = require('../services/AbandonedCartService');
+const EmailService = require('../services/EmailService');
+const MSG91Service = require('../services/MSG91Service');
 const { cleanOrderResponse } = require('../utils/orderCleanup');
 
 const router = express.Router();
@@ -557,6 +559,32 @@ router.post('/', [
 
         // Background abandoned cart conversion
         await AbandonedCartService.markAsConverted(req.user._id, order._id);
+
+        // Alert the admin/owner about the new order (non-blocking, best-effort).
+        // Primary channel: WhatsApp via MSG91. Email is opt-in (SMTP currently unreliable).
+        try {
+          const waResult = await MSG91Service.sendOrderAlertToAdmin(order);
+          if (waResult.success) {
+            console.log(`📲 [Background] New-order WhatsApp alert sent to admin for ${order.orderNumber} (${waResult.channel})`);
+          } else {
+            console.warn(`📲 [Background] New-order WhatsApp alert not sent for ${order.orderNumber}:`, waResult.error);
+          }
+        } catch (waError) {
+          console.error('Admin new-order WhatsApp alert failed:', waError.message);
+        }
+
+        if (process.env.ADMIN_EMAIL_ALERTS_ENABLED === 'true') {
+          try {
+            const adminResult = await EmailService.sendNewOrderToAdmin(order);
+            if (adminResult.success) {
+              console.log(`📧 [Background] New-order admin email sent for ${order.orderNumber} (${adminResult.channel})`);
+            } else {
+              console.warn(`📧 [Background] New-order admin email not sent for ${order.orderNumber}: ${adminResult.error}`);
+            }
+          } catch (emailError) {
+            console.error('Admin new-order email failed:', emailError.message);
+          }
+        }
       } catch (backgroundError) {
         console.error('Background operation failed during order creation:', backgroundError);
       }
@@ -1189,7 +1217,12 @@ router.put('/:id/cancel', [verifyToken, requireCustomer], async (req, res) => {
     for (const item of order.items) {
       item.itemStatus = 'cancelled';
     }
-    order.paymentStatus = 'cancelled';
+    order.orderStatus = 'cancelled';
+    // 'cancelled' is NOT a valid paymentStatus. If the customer had already
+    // paid, mark it refunded; otherwise (e.g. COD) leave the payment status as-is.
+    if (order.paymentStatus === 'paid') {
+      order.paymentStatus = 'refunded';
+    }
 
     await order.save();
     res.json({ message: 'Order cancelled successfully', order: cleanOrderResponse(order) });
@@ -1267,7 +1300,12 @@ router.put('/admin/:id/cancel', [verifyToken, requireAdmin], async (req, res) =>
     for (const item of order.items) {
       item.itemStatus = 'cancelled';
     }
-    order.paymentStatus = 'cancelled';
+    order.orderStatus = 'cancelled';
+    // 'cancelled' is NOT a valid paymentStatus. If the customer had already
+    // paid, mark it refunded; otherwise (e.g. COD) leave the payment status as-is.
+    if (order.paymentStatus === 'paid') {
+      order.paymentStatus = 'refunded';
+    }
 
     await order.save();
     res.json({ message: 'Order cancelled successfully by admin', order: cleanOrderResponse(order) });
