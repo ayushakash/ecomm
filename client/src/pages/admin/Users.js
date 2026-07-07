@@ -31,6 +31,18 @@ const Users = () => {
     statusMutation.mutate({ userId, isActive });
   };
 
+  // Build a compact one-line string from a user's default saved address
+  const formatAddress = (addr) => {
+    if (!addr) return '-';
+    const parts = [
+      addr.addressLine1,
+      addr.area,
+      addr.city,
+      addr.pincode,
+    ].filter(Boolean);
+    return parts.length ? parts.join(', ') : '-';
+  };
+
 
   // Define columns for users
   const columns = useMemo(
@@ -45,6 +57,13 @@ const Users = () => {
       {
         header: "Email",
         accessorKey: "email",
+      },
+      {
+        header: "Phone",
+        accessorKey: "phone",
+        cell: (info) => (
+          <span className="text-gray-700">{info.getValue() || '-'}</span>
+        ),
       },
       {
         header: "Role",
@@ -67,10 +86,11 @@ const Users = () => {
         },
       },
       {
-        header: "Area",
-        accessorKey: "area",
+        header: "Address",
+        id: "address",
+        accessorFn: (row) => formatAddress(row.defaultAddress), // ✅ makes search work for address
         cell: (info) => (
-          <span className="text-gray-700">{info.getValue() || '-'}</span>
+          <span className="text-gray-700">{info.getValue()}</span>
         ),
       },
       {
@@ -161,6 +181,7 @@ const Users = () => {
                     <div>
                       <h3 className="font-semibold text-gray-900">{user.name}</h3>
                       <p className="text-sm text-gray-500">{user.email}</p>
+                      <p className="text-sm text-gray-500">{user.phone || '-'}</p>
                     </div>
                   </div>
 
@@ -195,11 +216,11 @@ const Users = () => {
                   </span>
                 </div>
 
-                {/* Area */}
-                {user.area && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Area</span>
-                    <span className="text-sm font-medium text-gray-900">{user.area}</span>
+                {/* Default saved address */}
+                {user.defaultAddress && (
+                  <div className="flex items-start justify-between gap-4">
+                    <span className="text-sm text-gray-600 whitespace-nowrap">Address</span>
+                    <span className="text-sm font-medium text-gray-900 text-right">{formatAddress(user.defaultAddress)}</span>
                   </div>
                 )}
               </div>

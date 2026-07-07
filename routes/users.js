@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const Address = require('../models/Address');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -21,12 +22,36 @@ router.get('/', [verifyToken, requireAdmin], async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
+      .lean()
       .exec();
 
     const total = await User.countDocuments(filter);
 
+    // Attach each user's default saved address (from the separate Address collection)
+    const userIds = users.map((u) => u._id);
+    const addresses = await Address.find({
+      user: { $in: userIds },
+      isActive: true
+    })
+      .sort({ isDefault: -1, createdAt: 1 })
+      .lean()
+      .exec();
+
+    const addressByUser = {};
+    for (const addr of addresses) {
+      // First match wins (default sorted first, then oldest)
+      if (!addressByUser[addr.user]) {
+        addressByUser[addr.user] = addr;
+      }
+    }
+
+    const usersWithAddress = users.map((u) => ({
+      ...u,
+      defaultAddress: addressByUser[u._id] || null
+    }));
+
     res.json({
-      users,
+      users: usersWithAddress,
       totalPages: Math.ceil(total / limit),
       currentPage: parseInt(page),
       total
