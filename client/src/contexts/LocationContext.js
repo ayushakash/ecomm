@@ -5,6 +5,19 @@ import { toast } from 'react-hot-toast';
 import { reverseGeocode } from '../services/geocodingService';
 import { normalizeCityName } from '../utils/cityNameMapping';
 
+// ─── DEFAULT CITY FOR GUEST VISITORS ─────────────────────────────────────────
+// Guests must NEVER be walled off from the catalog (GA Jun 2026: ~95% of paid
+// mobile visitors bounced on a blocking "select your city" screen). So guests
+// are ALWAYS auto-assigned a city and see products instantly:
+//   1. Returning guests: their saved city (localStorage).
+//   2. First-time guests: the serviceable city with the MOST stores, fetched
+//      live from /api/merchants/available-cities — so new customers always
+//      land on a city that actually has products.
+//   3. If that lookup fails: the static fallback below.
+// Guests can always switch city via the Header dropdown or the /products
+// picker, or share GPS for precise per-merchant serviceability matching.
+export const DEFAULT_GUEST_CITY = { city: 'Ranchi', state: 'Jharkhand' };
+
 const LocationContext = createContext();
 
 export const useLocation = () => {
@@ -41,18 +54,40 @@ export const LocationProvider = ({ children }) => {
     }
   }, [user]);
 
-  // Restore saved city for returning guest users
+  // Restore saved city for returning guests; FIRST-TIME guests get the busiest
+  // serviceable city (see DEFAULT_GUEST_CITY above) so the catalog renders
+  // instantly. Both fetches are silent: no toasts on plain page load.
   useEffect(() => {
     if (!authLoading && !user) {
       const savedCity = localStorage.getItem('selectedCity');
       if (savedCity) {
         try {
           const cityData = JSON.parse(savedCity);
-          fetchMerchantsByCity(cityData.city, cityData.state);
+          fetchMerchantsByCity(cityData.city, cityData.state, { silent: true });
+          return;
         } catch {
           localStorage.removeItem('selectedCity');
         }
       }
+      // First visit (or corrupt storage): pick the city with the most stores
+      // so new customers immediately see a live catalog.
+      (async () => {
+        try {
+          const response = await merchantAPI.getAvailableCities();
+          const cities = response.cities || [];
+          const best = cities.reduce(
+            (top, c) => (!top || c.merchantCount > top.merchantCount ? c : top),
+            null
+          );
+          if (best) {
+            fetchMerchantsByCity(best.city, best.state, { silent: true });
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to load available cities for guest default:', error);
+        }
+        fetchMerchantsByCity(DEFAULT_GUEST_CITY.city, DEFAULT_GUEST_CITY.state, { silent: true });
+      })();
     }
   }, [authLoading, user]);
 
@@ -144,8 +179,11 @@ export const LocationProvider = ({ children }) => {
     }
   };
 
-  // Fetch merchants by city (for guest users)
-  const fetchMerchantsByCity = async (cityName, stateName) => {
+  // Fetch merchants by city (for guest users).
+  // `silent: true` = automatic/background call (e.g. the Ranchi guest default
+  // on page load) — suppresses all toasts so landing visitors aren't nagged.
+  // Explicit user actions (header picker, city selector) stay noisy (default).
+  const fetchMerchantsByCity = async (cityName, stateName, { silent = false } = {}) => {
     setIsLoadingMerchants(true);
     try {
       const response = await merchantAPI.getMerchants({
@@ -167,17 +205,19 @@ export const LocationProvider = ({ children }) => {
           fallbackApplied: false,
           merchantCount: merchants.length
         });
-        toast.success(`Found ${merchants.length} merchants in ${cityName}!`);
+        if (!silent) toast.success(`Found ${merchants.length} merchants in ${cityName}!`);
       } else {
         setLocationInfo(null);
-        toast.error(
-          `No merchants currently serving ${cityName}. We're expanding to new cities soon!`,
-          { duration: 6000 }
-        );
+        if (!silent) {
+          toast.error(
+            `No merchants currently serving ${cityName}. We're expanding to new cities soon!`,
+            { duration: 6000 }
+          );
+        }
       }
     } catch (error) {
       console.error('Failed to fetch merchants by city:', error);
-      toast.error('Failed to load merchants');
+      if (!silent) toast.error('Failed to load merchants');
       setCityMerchantIds([]);
     } finally {
       setIsLoadingMerchants(false);
@@ -221,11 +261,44 @@ export const LocationProvider = ({ children }) => {
                 coordinates: [longitude, latitude]
               };
 
-              setSelectedCity(cityData);
+              toast.loading('Finding merchants near you...', { id: 'location' });
 
-              toast.loading('Finding merchants in your city...', { id: 'location' });
-              await fetchMerchantsByCity(normalizedCity, addressData.state);
-              toast.dismiss('location');
+              // COORDINATES ARE PRIMARY: match merchants by their own
+              // serviceable delivery radius via /api/merchants/nearby. The
+              // reverse-geocoded city name is only a display label and a
+              // fallback — geocoders return renamed cities ("Mysuru") that
+              // won't string-match onboarded merchants ("Mysore").
+              setIsLoadingMerchants(true);
+              try {
+                const response = await merchantAPI.getNearbyMerchants({
+                  coordinates: { latitude, longitude },
+                  city: normalizedCity,
+                  state: addressData.state,
+                  area: addressData.area,
+                  pincode: addressData.pincode
+                });
+                const merchants = response.merchants || [];
+                setCityMerchantIds(merchants.map(m => m._id));
+                setSelectedCity({ ...cityData, merchantCount: merchants.length });
+                localStorage.setItem('selectedCity', JSON.stringify({ city: normalizedCity, state: addressData.state }));
+
+                if (merchants.length > 0) {
+                  setLocationInfo({
+                    searchRadius: response.searchRadius,
+                    fallbackApplied: response.fallbackApplied,
+                    merchantCount: merchants.length
+                  });
+                  toast.success(`Found ${merchants.length} merchants near you!`, { id: 'location' });
+                } else {
+                  setLocationInfo(null);
+                  toast.error(
+                    `No merchants deliver to your location yet. We're expanding soon!`,
+                    { id: 'location', duration: 6000 }
+                  );
+                }
+              } finally {
+                setIsLoadingMerchants(false);
+              }
               resolve(addressData);
             } else {
               throw new Error('Could not determine city from location');

@@ -21,6 +21,38 @@ const CITY_VARIATIONS = {
   'cochin': ['kochi', 'cochin'],
   'thiruvananthapuram': ['thiruvananthapuram', 'trivandrum'],
   'trivandrum': ['thiruvananthapuram', 'trivandrum'],
+  // Officially renamed cities — geocoders (Nominatim/Google) return the NEW
+  // name while merchants are often onboarded with the traditional one.
+  'mysore': ['mysore', 'mysuru'],
+  'mysuru': ['mysore', 'mysuru'],
+  'gurgaon': ['gurgaon', 'gurugram'],
+  'gurugram': ['gurgaon', 'gurugram'],
+  'allahabad': ['allahabad', 'prayagraj'],
+  'prayagraj': ['allahabad', 'prayagraj'],
+  'vadodara': ['vadodara', 'baroda'],
+  'baroda': ['vadodara', 'baroda'],
+  'mangalore': ['mangalore', 'mangaluru'],
+  'mangaluru': ['mangalore', 'mangaluru'],
+  'hubli': ['hubli', 'hubballi'],
+  'hubballi': ['hubli', 'hubballi'],
+  'belgaum': ['belgaum', 'belagavi'],
+  'belagavi': ['belgaum', 'belagavi'],
+  'shimoga': ['shimoga', 'shivamogga'],
+  'shivamogga': ['shimoga', 'shivamogga'],
+  'tumkur': ['tumkur', 'tumakuru'],
+  'tumakuru': ['tumkur', 'tumakuru'],
+  'gulbarga': ['gulbarga', 'kalaburagi'],
+  'kalaburagi': ['gulbarga', 'kalaburagi'],
+  'bijapur': ['bijapur', 'vijayapura'],
+  'vijayapura': ['bijapur', 'vijayapura'],
+  'varanasi': ['varanasi', 'banaras', 'benares'],
+  'banaras': ['varanasi', 'banaras', 'benares'],
+  'visakhapatnam': ['visakhapatnam', 'vizag'],
+  'vizag': ['visakhapatnam', 'vizag'],
+  'pondicherry': ['pondicherry', 'puducherry'],
+  'puducherry': ['pondicherry', 'puducherry'],
+  'tiruchirappalli': ['tiruchirappalli', 'trichy'],
+  'trichy': ['tiruchirappalli', 'trichy'],
 };
 
 /**
@@ -124,9 +156,7 @@ function getNearbyPincodes(pincode) {
 async function findNearbyMerchants(address, settings, Merchant) {
   const {
     maxDeliveryRadius = 10,
-    maxExpandedRadius = 25,
     minimumMerchantsBeforeExpand = 3,
-    fallbackStrategy = 'expand',
   } = settings.deliveryConfig || {};
 
   const { latitude, longitude } = address.coordinates || {};
@@ -140,15 +170,15 @@ async function findNearbyMerchants(address, settings, Merchant) {
   let nearbyMerchants = [];
   let cityWideMerchants = [];
 
-  // STEP 1: Radius-based search if coordinates available
+  // STEP 1: Serviceability search if coordinates available.
+  // Geo is PRIMARY: no city-name filter here — the customer's reverse-geocoded
+  // city ("Mysuru") often differs from the merchant's onboarded one ("Mysore"),
+  // and coordinates are ground truth. A merchant matches when the customer sits
+  // inside that merchant's own delivery radius (merchant.deliveryRadius,
+  // falling back to the global maxDeliveryRadius setting).
   if (latitude && longitude) {
-    nearbyMerchants = await searchMerchantsByDistance(Merchant, longitude, latitude, city, maxDeliveryRadius);
-    console.log(`📍 Found ${nearbyMerchants.length} merchants within ${maxDeliveryRadius}km`);
-
-    if (nearbyMerchants.length < minimumMerchantsBeforeExpand && fallbackStrategy === 'expand') {
-      nearbyMerchants = await searchMerchantsByDistance(Merchant, longitude, latitude, city, maxExpandedRadius);
-      console.log(`📍 Expanded search: ${nearbyMerchants.length} merchants`);
-    }
+    nearbyMerchants = await searchMerchantsByDistance(Merchant, longitude, latitude, maxDeliveryRadius);
+    console.log(`📍 Found ${nearbyMerchants.length} merchants servicing this location`);
   }
 
   // STEP 2: City-wide search — skip if we already have enough nearby merchants
@@ -185,16 +215,18 @@ async function findNearbyMerchants(address, settings, Merchant) {
 
   // STEP 5: Calculate distance + working hours flag for each merchant
   let allMerchants = Array.from(merchantMap.values()).map(({ merchant, isNearby }) => {
-    const merchantCoords = merchant.location?.coordinates;
+    // Nearby results come from aggregate() (plain objects); fallbacks from find() (documents)
+    const { distanceMeters, ...plain } = merchant.toObject ? merchant.toObject() : merchant;
+    const merchantCoords = plain.location?.coordinates;
     let distance = null;
     if (latitude && longitude && merchantCoords && merchantCoords.length === 2) {
       distance = calculateDistance(latitude, longitude, merchantCoords[1], merchantCoords[0]);
     }
     return {
-      ...merchant.toObject(),
+      ...plain,
       distance: distance !== null ? Math.round(distance * 10) / 10 : null,
       isNearby,
-      isOpen: isCurrentlyOpen(merchant.availability),
+      isOpen: isCurrentlyOpen(plain.availability),
       stateFallback
     };
   });
@@ -217,21 +249,26 @@ async function findNearbyMerchants(address, settings, Merchant) {
 /**
  * Search merchants by distance using MongoDB geospatial query
  */
-async function searchMerchantsByDistance(Merchant, longitude, latitude, city, maxDistanceKm) {
-  return await Merchant.find({
-    city: getCityQuery(city), // Match all name variations (e.g. Bangalore/Bengaluru)
-    activeStatus: 'approved',
-    'availability.isActive': true,
-    location: {
-      $near: {
-        $geometry: {
-          type: 'Point',
-          coordinates: [longitude, latitude]
-        },
-        $maxDistance: maxDistanceKm * 1000 // Convert km to meters
+async function searchMerchantsByDistance(Merchant, longitude, latitude, defaultRadiusKm) {
+  // $geoNear computes the exact distance per merchant; cast a wide discovery
+  // net (100km = schema max deliveryRadius), then enforce each merchant's own
+  // serviceable radius. No city-name filter — coordinates are authoritative.
+  const candidates = await Merchant.aggregate([
+    {
+      $geoNear: {
+        near: { type: 'Point', coordinates: [longitude, latitude] },
+        distanceField: 'distanceMeters',
+        maxDistance: 100 * 1000,
+        query: { activeStatus: 'approved', 'availability.isActive': true },
+        spherical: true
       }
-    }
-  }).limit(50);
+    },
+    { $limit: 200 }
+  ]);
+
+  return candidates
+    .filter(m => m.distanceMeters <= (m.deliveryRadius || defaultRadiusKm) * 1000)
+    .slice(0, 50);
 }
 
 module.exports = {

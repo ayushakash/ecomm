@@ -41,6 +41,40 @@ const CITY_NAME_VARIATIONS = {
   'bhubaneswar': ['bhubaneswar', 'bhubaneshwar'],
   'bhubaneshwar': ['bhubaneswar', 'bhubaneshwar'],
 
+  // Officially renamed cities — geocoders return the NEW name while merchants
+  // are usually onboarded with the traditional one. Keep in sync with the
+  // server table in utils/locationUtils.js (CITY_VARIATIONS).
+  'mysore': ['mysore', 'mysuru'],
+  'mysuru': ['mysore', 'mysuru'],
+  'gurgaon': ['gurgaon', 'gurugram'],
+  'gurugram': ['gurgaon', 'gurugram'],
+  'allahabad': ['allahabad', 'prayagraj'],
+  'prayagraj': ['allahabad', 'prayagraj'],
+  'vadodara': ['vadodara', 'baroda'],
+  'baroda': ['vadodara', 'baroda'],
+  'mangalore': ['mangalore', 'mangaluru'],
+  'mangaluru': ['mangalore', 'mangaluru'],
+  'hubli': ['hubli', 'hubballi'],
+  'hubballi': ['hubli', 'hubballi'],
+  'belgaum': ['belgaum', 'belagavi'],
+  'belagavi': ['belgaum', 'belagavi'],
+  'shimoga': ['shimoga', 'shivamogga'],
+  'shivamogga': ['shimoga', 'shivamogga'],
+  'tumkur': ['tumkur', 'tumakuru'],
+  'tumakuru': ['tumkur', 'tumakuru'],
+  'gulbarga': ['gulbarga', 'kalaburagi'],
+  'kalaburagi': ['gulbarga', 'kalaburagi'],
+  'bijapur': ['bijapur', 'vijayapura'],
+  'vijayapura': ['bijapur', 'vijayapura'],
+  'varanasi': ['varanasi', 'banaras', 'benares'],
+  'banaras': ['varanasi', 'banaras', 'benares'],
+  'visakhapatnam': ['visakhapatnam', 'vizag'],
+  'vizag': ['visakhapatnam', 'vizag'],
+  'pondicherry': ['pondicherry', 'puducherry'],
+  'puducherry': ['pondicherry', 'puducherry'],
+  'tiruchirappalli': ['tiruchirappalli', 'trichy'],
+  'trichy': ['tiruchirappalli', 'trichy'],
+
   // Ranchi variations (for your project)
   'ranchi': ['ranchi']
 };
@@ -92,7 +126,39 @@ export const normalizeCityName = (cityName) => {
     'cochin': 'Kochi',
     'thiruvananthapuram': 'Thiruvananthapuram',
     'trivandrum': 'Thiruvananthapuram',
-    'ranchi': 'Ranchi'
+    'ranchi': 'Ranchi',
+    // Renamed cities → traditional names as used at merchant onboarding
+    'mysuru': 'Mysore',
+    'mysore': 'Mysore',
+    'gurugram': 'Gurgaon',
+    'gurgaon': 'Gurgaon',
+    'prayagraj': 'Allahabad',
+    'allahabad': 'Allahabad',
+    'baroda': 'Vadodara',
+    'vadodara': 'Vadodara',
+    'mangaluru': 'Mangalore',
+    'mangalore': 'Mangalore',
+    'hubballi': 'Hubli',
+    'hubli': 'Hubli',
+    'belagavi': 'Belgaum',
+    'belgaum': 'Belgaum',
+    'shivamogga': 'Shimoga',
+    'shimoga': 'Shimoga',
+    'tumakuru': 'Tumkur',
+    'tumkur': 'Tumkur',
+    'kalaburagi': 'Gulbarga',
+    'gulbarga': 'Gulbarga',
+    'vijayapura': 'Bijapur',
+    'bijapur': 'Bijapur',
+    'banaras': 'Varanasi',
+    'benares': 'Varanasi',
+    'varanasi': 'Varanasi',
+    'vizag': 'Visakhapatnam',
+    'visakhapatnam': 'Visakhapatnam',
+    'puducherry': 'Pondicherry',
+    'pondicherry': 'Pondicherry',
+    'trichy': 'Tiruchirappalli',
+    'tiruchirappalli': 'Tiruchirappalli'
   };
 
   return standardNames[normalized] || cityName;

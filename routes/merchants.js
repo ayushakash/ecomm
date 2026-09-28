@@ -156,7 +156,7 @@ router.post('/nearby', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { addressId, coordinates, city, area, pincode } = req.body;
+    const { addressId, coordinates, city, state, area, pincode } = req.body;
 
     // If addressId provided, fetch the full address
     let address;
@@ -172,6 +172,7 @@ router.post('/nearby', [
       address = {
         coordinates: coordinates || {}, // Can be empty
         city,
+        state: state || '',
         area: area || '',
         pincode: pincode || ''
       };
@@ -408,6 +409,51 @@ router.get('/product/:productId', async (req, res) => {
     res.json(merchants);
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT /api/merchants/:id
+// @desc    Update a merchant's location fields (admin only). Lets admins fix the
+//          auto-geocoded area/city/state so the right city shows in the header dropdown.
+// @access  Private (Admin only)
+// NOTE: must stay below PUT /profile so it doesn't shadow that route.
+router.put('/:id', [
+  verifyToken,
+  requireAdmin,
+  body('area').optional().trim(),
+  body('city').optional().trim(),
+  body('state').optional().trim(),
+  body('address').optional().trim(),
+  body('pincode').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const merchant = await Merchant.findById(req.params.id);
+    if (!merchant) {
+      return res.status(404).json({ message: 'Merchant not found' });
+    }
+
+    // Only location fields are editable here; city normalization runs in the pre-save hook.
+    const allowedUpdates = ['area', 'city', 'state', 'address', 'pincode'];
+    allowedUpdates.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        merchant[field] = req.body[field];
+      }
+    });
+
+    await merchant.save();
+
+    res.json({
+      message: 'Merchant updated successfully',
+      merchant
+    });
+  } catch (error) {
+    console.error('Update merchant (admin) error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
