@@ -63,7 +63,14 @@ export const LocationProvider = ({ children }) => {
       if (savedCity) {
         try {
           const cityData = JSON.parse(savedCity);
-          fetchMerchantsByCity(cityData.city, cityData.state, { silent: true });
+          // GPS-located guests have coordinates persisted — restore via the
+          // serviceability search so a page reload keeps their real matches
+          // (the display city, e.g. "Namkum", often has no name-matched stores).
+          if (cityData.coordinates?.latitude && cityData.coordinates?.longitude) {
+            fetchMerchantsByCoordinates(cityData, { silent: true });
+          } else {
+            fetchMerchantsByCity(cityData.city, cityData.state, { silent: true });
+          }
           return;
         } catch {
           localStorage.removeItem('selectedCity');
@@ -231,6 +238,61 @@ export const LocationProvider = ({ children }) => {
     localStorage.removeItem('selectedCity');
   };
 
+  // Fetch merchants serviceable at exact coordinates (GPS guests).
+  // Coordinates are PRIMARY: merchants match by their own delivery radius via
+  // /api/merchants/nearby — the reverse-geocoded city name is only a display
+  // label and fallback (geocoders return suburbs like "Namkum" or renamed
+  // cities like "Mysuru" that never string-match onboarded merchants).
+  const fetchMerchantsByCoordinates = async (cityData, { silent = false } = {}) => {
+    const { latitude, longitude } = cityData.coordinates;
+    setIsLoadingMerchants(true);
+    try {
+      const response = await merchantAPI.getNearbyMerchants({
+        coordinates: { latitude, longitude },
+        city: cityData.city,
+        state: cityData.state,
+        area: cityData.area,
+        pincode: cityData.pincode
+      });
+      const merchants = response.merchants || [];
+      setCityMerchantIds(merchants.map(m => m._id));
+      setSelectedCity({ ...cityData, merchantCount: merchants.length });
+      // Persist WITH coordinates so reloads keep serviceability matching
+      localStorage.setItem('selectedCity', JSON.stringify({
+        city: cityData.city,
+        state: cityData.state,
+        area: cityData.area,
+        pincode: cityData.pincode,
+        coordinates: { latitude, longitude }
+      }));
+
+      if (merchants.length > 0) {
+        setLocationInfo({
+          searchRadius: response.searchRadius,
+          fallbackApplied: response.fallbackApplied,
+          merchantCount: merchants.length
+        });
+        if (!silent) toast.success(`Found ${merchants.length} merchants near you!`, { id: 'location' });
+      } else {
+        setLocationInfo(null);
+        if (!silent) {
+          toast.error(
+            `No merchants deliver to your location yet. We're expanding soon!`,
+            { id: 'location', duration: 6000 }
+          );
+        }
+      }
+      return merchants.length;
+    } catch (error) {
+      console.error('Failed to fetch merchants by coordinates:', error);
+      if (!silent) toast.error('Failed to load merchants near you', { id: 'location' });
+      setCityMerchantIds([]);
+      return 0;
+    } finally {
+      setIsLoadingMerchants(false);
+    }
+  };
+
   // Request browser GPS location
   const requestLocationPermission = async () => {
     return new Promise((resolve, reject) => {
@@ -258,47 +320,11 @@ export const LocationProvider = ({ children }) => {
                 area: addressData.area,
                 pincode: addressData.pincode,
                 formattedAddress: addressData.formattedAddress,
-                coordinates: [longitude, latitude]
+                coordinates: { latitude, longitude }
               };
 
               toast.loading('Finding merchants near you...', { id: 'location' });
-
-              // COORDINATES ARE PRIMARY: match merchants by their own
-              // serviceable delivery radius via /api/merchants/nearby. The
-              // reverse-geocoded city name is only a display label and a
-              // fallback — geocoders return renamed cities ("Mysuru") that
-              // won't string-match onboarded merchants ("Mysore").
-              setIsLoadingMerchants(true);
-              try {
-                const response = await merchantAPI.getNearbyMerchants({
-                  coordinates: { latitude, longitude },
-                  city: normalizedCity,
-                  state: addressData.state,
-                  area: addressData.area,
-                  pincode: addressData.pincode
-                });
-                const merchants = response.merchants || [];
-                setCityMerchantIds(merchants.map(m => m._id));
-                setSelectedCity({ ...cityData, merchantCount: merchants.length });
-                localStorage.setItem('selectedCity', JSON.stringify({ city: normalizedCity, state: addressData.state }));
-
-                if (merchants.length > 0) {
-                  setLocationInfo({
-                    searchRadius: response.searchRadius,
-                    fallbackApplied: response.fallbackApplied,
-                    merchantCount: merchants.length
-                  });
-                  toast.success(`Found ${merchants.length} merchants near you!`, { id: 'location' });
-                } else {
-                  setLocationInfo(null);
-                  toast.error(
-                    `No merchants deliver to your location yet. We're expanding soon!`,
-                    { id: 'location', duration: 6000 }
-                  );
-                }
-              } finally {
-                setIsLoadingMerchants(false);
-              }
+              await fetchMerchantsByCoordinates(cityData);
               resolve(addressData);
             } else {
               throw new Error('Could not determine city from location');
