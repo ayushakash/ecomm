@@ -1,212 +1,204 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+/**
+ * Cart state. Port of client/src/contexts/CartContext.js:
+ * variant-aware cartKey, gstRate/gstType carried per line, city lock,
+ * AsyncStorage persistence, and a silent 4 s-debounced mirror to
+ * /abandoned-carts/track (guests identified by a persisted guestCartId).
+ */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Toast from 'react-native-toast-message';
-import { CartItem } from '../types';
-import { useSettings } from '../hooks/useSettings';
-import { useAuth } from './AuthContext';
+import * as Crypto from 'expo-crypto';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { abandonedCartAPI, productAPI } from '../services/api';
+import type { CartItem, Product, ProductVariant } from '../types/models';
 
-interface CartContextType {
+const CART_KEY = 'chardeevari.cart';
+const CART_CITY_KEY = 'chardeevari.cartCity';
+const GUEST_ID_KEY = 'chardeevari.guestCartId';
+const TRACK_DEBOUNCE_MS = 4000;
+
+/** "productId_8mm" for variants, "productId" otherwise. */
+export const buildCartKey = (productId: string, variantLabel?: string | null): string =>
+  variantLabel ? `${productId}_${variantLabel}` : productId;
+
+export interface CartContextValue {
   cart: CartItem[];
-  loading: boolean;
-  setLoading: (loading: boolean) => void;
-  addToCart: (product: any, quantity?: number) => boolean;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
-  getCartTotal: () => number;
-  getCartCount: () => number;
-  getCartItem: (productId: string) => CartItem | undefined;
-  isInCart: (productId: string) => boolean;
-  getTotalItems: () => number;
-  isMinimumOrderMet: () => boolean;
-  getMinimumOrderValue: () => number;
-  getRemainingForMinimum: () => number;
+  /** City the cart was filled in; adding from another city should prompt a clear (see useAddToCart). */
+  cartCity: string | null;
+  /** False until AsyncStorage has been read. */
+  isHydrated: boolean;
+  /** Number of distinct lines (web getCartCount). Used for the tab badge. */
+  cartCount: number;
+  /** Sum of units across lines. */
+  totalQuantity: number;
+  /** Σ price × qty using cart prices (pre-GST/delivery; server totals are authoritative). */
+  cartTotal: number;
+  addToCart(product: Product, quantity?: number, city?: string | null, variant?: ProductVariant | null): void;
+  removeFromCart(cartKey: string): void;
+  /** quantity <= 0 removes the line. */
+  updateQuantity(cartKey: string, quantity: number): void;
+  clearCart(): void;
+  setCartCityIfEmpty(city: string | null): void;
+  getCartItem(productId: string, variantLabel?: string | null): CartItem | undefined;
+  /** Any line (any variant) for this product. */
+  isInCart(productId: string): boolean;
+  /** Refresh line prices from GET /products/:id (web syncCartPrices). Returns #lines changed. */
+  syncCartPrices(): Promise<number>;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+const CartContext = createContext<CartContextValue | null>(null);
 
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
+export const useCart = (): CartContextValue => {
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error('useCart must be used within a CartProvider');
+  return ctx;
 };
 
-interface CartProviderProps {
-  children: ReactNode;
+async function getGuestId(): Promise<string> {
+  let id = await AsyncStorage.getItem(GUEST_ID_KEY);
+  if (!id) {
+    id = Crypto.randomUUID();
+    await AsyncStorage.setItem(GUEST_ID_KEY, id);
+  }
+  return id;
 }
 
-export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const { user } = useAuth();
-  const { data: settingsData } = useSettings();
+const isCartArray = (value: unknown): value is CartItem[] =>
+  Array.isArray(value) && value.every((i) => i && typeof i === 'object' && 'cartKey' in i && '_id' in i);
 
-  // Load cart from AsyncStorage on mount
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartCity, setCartCity] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+
   useEffect(() => {
-    loadCart();
+    (async () => {
+      try {
+        const [[, savedCart], [, savedCity]] = await AsyncStorage.multiGet([CART_KEY, CART_CITY_KEY]);
+        const parsed: unknown = JSON.parse(savedCart ?? '[]');
+        if (isCartArray(parsed)) {
+          setCart(parsed);
+          if (savedCity) setCartCity(savedCity);
+        }
+      } catch {
+        // Corrupt storage → start empty.
+      } finally {
+        setIsHydrated(true);
+      }
+    })();
   }, []);
 
-  // Save cart to AsyncStorage whenever it changes (but not on initial load)
   useEffect(() => {
-    if (isInitialized) {
-      saveCart();
-    }
-  }, [cart, isInitialized]);
+    if (!isHydrated) return;
+    AsyncStorage.setItem(CART_KEY, JSON.stringify(cart)).catch(() => {});
+    if (cartCity) AsyncStorage.setItem(CART_CITY_KEY, cartCity).catch(() => {});
+    else AsyncStorage.removeItem(CART_CITY_KEY).catch(() => {});
+  }, [cart, cartCity, isHydrated]);
 
-  const loadCart = async () => {
-    try {
-      const savedCart = await AsyncStorage.getItem('cart');
-      if (savedCart) {
-        setCart(JSON.parse(savedCart));
+  // Abandoned-cart mirror (silent, debounced; cleanup cancels the pending send).
+  useEffect(() => {
+    if (!isHydrated) return;
+    const timer = setTimeout(async () => {
+      const items = cart.map((item) => ({
+        productId: item._id,
+        productName: item.name,
+        variantLabel: item.variantLabel || undefined,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+      abandonedCartAPI.track(items, await getGuestId()).catch(() => {});
+    }, TRACK_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [cart, isHydrated]);
+
+  const addToCart = useCallback<CartContextValue['addToCart']>((product, quantity = 1, city = null, variant = null) => {
+    const cartKey = buildCartKey(product._id, variant?.label);
+    setCart((prev) => {
+      if (prev.some((item) => item.cartKey === cartKey)) {
+        return prev.map((item) => (item.cartKey === cartKey ? { ...item, quantity: item.quantity + quantity } : item));
       }
-    } catch (error) {
-      console.error('Error loading cart from AsyncStorage:', error);
-      setCart([]);
-    } finally {
-      setIsInitialized(true);
-    }
-  };
-
-  const saveCart = async () => {
-    try {
-      await AsyncStorage.setItem('cart', JSON.stringify(cart));
-    } catch (error) {
-      console.error('Error saving cart to AsyncStorage:', error);
-    }
-  };
-
-  const addToCart = (product: any, quantity: number = 1): boolean => {
-    // Check if product is out of stock
-    const availableStock = product.totalStock || product.stock || 0;
-    if (availableStock <= 0) {
-      Toast.show({
-        type: 'error',
-        text1: 'Out of Stock',
-        text2: 'This product is currently out of stock',
-      });
-      return false;
-    }
-
-    const existingItem = cart.find(item => item._id === product._id);
-    const currentQuantityInCart = existingItem ? existingItem.quantity : 0;
-    const newTotalQuantity = currentQuantityInCart + quantity;
-
-    // Check if requested quantity exceeds available stock
-    if (newTotalQuantity > availableStock) {
-      Toast.show({
-        type: 'error',
-        text1: 'Insufficient Stock',
-        text2: `Only ${availableStock - currentQuantityInCart} items available`,
-      });
-      return false;
-    }
-
-    setCart(prevCart => {
-      if (existingItem) {
-        // Update quantity if item already exists
-        return prevCart.map(item =>
-          item._id === product._id
-            ? { ...item, quantity: newTotalQuantity }
-            : item
-        );
-      } else {
-        // Add new item
-        return [...prevCart, {
+      return [
+        ...prev,
+        {
+          cartKey,
           _id: product._id,
           name: product.name,
-          price: product.price,
+          variantLabel: variant?.label || null,
+          price: variant ? variant.price : product.price,
           unit: product.unit,
           quantity,
           images: product.images || [],
-          stock: product.totalStock || product.stock,
-          sku: product.sku,
-          weight: product.weight || 0
-        }];
-      }
+          stock: variant ? variant.stock : product.totalStock ?? product.stock ?? 0,
+          sku: variant?.sku || product.sku,
+          weight: product.weight || 0,
+          gstRate: product.gstRate,
+          gstType: product.gstType,
+        },
+      ];
     });
+    if (city) setCartCity((current) => current ?? city);
+  }, []);
 
-    return true;
-  };
+  const removeFromCart = useCallback((cartKey: string) => {
+    setCart((prev) => prev.filter((item) => item.cartKey !== cartKey));
+  }, []);
 
-  const removeFromCart = (productId: string) => {
-    setCart(prevCart => prevCart.filter(item => item._id !== productId));
-  };
-
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-
-    setCart(prevCart =>
-      prevCart.map(item =>
-        item._id === productId
-          ? { ...item, quantity }
-          : item
-      )
+  const updateQuantity = useCallback((cartKey: string, quantity: number) => {
+    setCart((prev) =>
+      quantity <= 0
+        ? prev.filter((item) => item.cartKey !== cartKey)
+        : prev.map((item) => (item.cartKey === cartKey ? { ...item, quantity } : item)),
     );
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
-  };
+    setCartCity(null);
+  }, []);
 
-  const getCartTotal = (): number => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
+  const setCartCityIfEmpty = useCallback((city: string | null) => {
+    if (city) setCartCity((current) => current ?? city);
+  }, []);
 
-  const getCartCount = (): number => {
-    return cart.length; // Return count of unique products
-  };
+  const syncCartPrices = useCallback(async (): Promise<number> => {
+    const ids = [...new Set(cart.map((item) => item._id))];
+    if (ids.length === 0) return 0;
+    const fresh = await Promise.all(ids.map((id) => productAPI.getProduct(id).catch(() => null)));
+    const priceByKey: Record<string, number> = {};
+    for (const item of cart) {
+      const product = fresh.find((p) => p?._id === item._id);
+      if (!product) continue;
+      const variant = item.variantLabel ? product.variants?.find((v) => v.label === item.variantLabel) : undefined;
+      const price = variant ? variant.price : product.price;
+      if (price !== item.price) priceByKey[item.cartKey] = price;
+    }
+    const changed = Object.keys(priceByKey).length;
+    if (changed > 0) {
+      setCart((prev) =>
+        prev.map((item) => (item.cartKey in priceByKey ? { ...item, price: priceByKey[item.cartKey] } : item)),
+      );
+    }
+    return changed;
+  }, [cart]);
 
-  const getTotalItems = (): number => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
-  };
-
-  const getCartItem = (productId: string): CartItem | undefined => {
-    return cart.find(item => item._id === productId);
-  };
-
-  const isInCart = (productId: string): boolean => {
-    return cart.some(item => item._id === productId);
-  };
-
-  const getMinimumOrderValue = (): number => {
-    return settingsData?.data?.minimumOrderValue || 100;
-  };
-
-  const isMinimumOrderMet = (): boolean => {
-    const total = getCartTotal();
-    const minimumOrder = getMinimumOrderValue();
-    return total >= minimumOrder;
-  };
-
-  const getRemainingForMinimum = (): number => {
-    const total = getCartTotal();
-    const minimumOrder = getMinimumOrderValue();
-    return Math.max(0, minimumOrder - total);
-  };
-
-  const value: CartContextType = {
-    cart,
-    loading,
-    setLoading,
-    addToCart,
-    removeFromCart,
-    updateQuantity,
-    clearCart,
-    getCartTotal,
-    getCartCount,
-    getCartItem,
-    isInCart,
-    getTotalItems,
-    isMinimumOrderMet,
-    getMinimumOrderValue,
-    getRemainingForMinimum,
-  };
+  const value = useMemo<CartContextValue>(
+    () => ({
+      cart,
+      cartCity,
+      isHydrated,
+      cartCount: cart.length,
+      totalQuantity: cart.reduce((n, item) => n + item.quantity, 0),
+      cartTotal: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      setCartCityIfEmpty,
+      getCartItem: (productId, variantLabel = null) =>
+        cart.find((item) => item.cartKey === buildCartKey(productId, variantLabel)),
+      isInCart: (productId) => cart.some((item) => item._id === productId),
+      syncCartPrices,
+    }),
+    [cart, cartCity, isHydrated, addToCart, removeFromCart, updateQuantity, clearCart, setCartCityIfEmpty, syncCartPrices],
+  );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-};
+}

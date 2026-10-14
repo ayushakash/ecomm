@@ -1,147 +1,105 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import { THEME, SIZES } from '../../theme';
+import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { colors, radii, spacing } from '../../theme';
+import { Icon, type IconName } from './Icon';
+import { Text } from './Text';
 
-interface ButtonProps {
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'whatsapp';
+export type ButtonSize = 'sm' | 'md' | 'lg';
+
+export interface ButtonProps {
   title: string;
-  onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'small' | 'medium' | 'large';
+  onPress?: () => void;
+  /** primary = slate (default), secondary = amber CTA (ADD/Place order), outline, ghost, danger, success, whatsapp. */
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
-  icon?: React.ReactNode;
+  leftIcon?: IconName;
+  rightIcon?: IconName;
+  fullWidth?: boolean;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+  accessibilityLabel?: string;
 }
 
-const Button: React.FC<ButtonProps> = ({
+const VARIANTS: Record<ButtonVariant, { bg: string; fg: string; border?: string; pressed: string }> = {
+  primary: { bg: colors.primary, fg: colors.onPrimary, pressed: colors.primaryDark },
+  secondary: { bg: colors.secondary, fg: colors.onSecondary, pressed: colors.secondaryDark },
+  outline: { bg: colors.surface, fg: colors.primary, border: colors.borderStrong, pressed: colors.primarySoft },
+  ghost: { bg: 'transparent', fg: colors.primary, pressed: colors.primarySoft },
+  danger: { bg: colors.danger, fg: colors.textInverse, pressed: colors.dangerDark },
+  success: { bg: colors.success, fg: colors.textInverse, pressed: colors.successDark },
+  whatsapp: { bg: colors.whatsapp, fg: colors.textInverse, pressed: '#1DA851' },
+};
+
+const SIZES: Record<ButtonSize, { height: number; padH: number; icon: number; variant: 'label' | 'button' }> = {
+  sm: { height: 36, padH: spacing.md, icon: 16, variant: 'label' },
+  md: { height: 48, padH: spacing.lg, icon: 18, variant: 'button' },
+  lg: { height: 54, padH: spacing.xl, icon: 20, variant: 'button' },
+};
+
+export function Button({
   title,
   onPress,
   variant = 'primary',
-  size = 'medium',
+  size = 'md',
   loading = false,
   disabled = false,
+  leftIcon,
+  rightIcon,
+  fullWidth = false,
   style,
-  textStyle,
-  icon,
-}) => {
-  const getButtonStyle = () => {
-    const baseStyle = styles.button;
-    const variantStyle = styles[variant];
-    const sizeStyle = styles[`${size}Button`];
-    
-    return [baseStyle, variantStyle, sizeStyle, disabled && styles.disabled, style];
-  };
-
-  const getTextStyle = () => {
-    const baseTextStyle = styles.text;
-    const variantTextStyle = styles[`${variant}Text`];
-    const sizeTextStyle = styles[`${size}Text`];
-    
-    return [baseTextStyle, variantTextStyle, sizeTextStyle, disabled && styles.disabledText, textStyle];
-  };
-
+  testID,
+  accessibilityLabel,
+}: ButtonProps) {
+  const v = VARIANTS[variant];
+  const s = SIZES[size];
+  const inactive = disabled || loading;
   return (
-    <TouchableOpacity
-      style={getButtonStyle()}
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ disabled: inactive, busy: loading }}
       onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
+      disabled={inactive}
+      style={({ pressed }) => [
+        styles.base,
+        {
+          height: s.height,
+          paddingHorizontal: s.padH,
+          backgroundColor: pressed ? v.pressed : v.bg,
+          borderColor: v.border ?? 'transparent',
+          borderWidth: v.border ? StyleSheet.hairlineWidth * 2 : 0,
+        },
+        fullWidth && styles.fullWidth,
+        inactive && !loading && styles.disabled,
+        style,
+      ]}
     >
       {loading ? (
-        <ActivityIndicator 
-          size="small" 
-          color={variant === 'primary' ? THEME.background : THEME.primary} 
-        />
+        <ActivityIndicator color={v.fg} />
       ) : (
-        <>
-          {icon}
-          <Text style={getTextStyle()}>{title}</Text>
-        </>
+        <View style={styles.row}>
+          {leftIcon && <Icon name={leftIcon} size={s.icon} color={v.fg} />}
+          <Text variant={s.variant} style={{ color: v.fg }} numberOfLines={1}>
+            {title}
+          </Text>
+          {rightIcon && <Icon name={rightIcon} size={s.icon} color={v.fg} />}
+        </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  button: {
-    flexDirection: 'row',
+  base: {
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: SIZES.sm,
-    minHeight: 48,
   },
-  
-  // Variants
-  primary: {
-    backgroundColor: THEME.primary,
-  },
-  secondary: {
-    backgroundColor: THEME.secondary,
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: THEME.primary,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-  },
-
-  // Sizes
-  smallButton: {
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.sm,
-    minHeight: 36,
-  },
-  mediumButton: {
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
-    minHeight: 48,
-  },
-  largeButton: {
-    paddingHorizontal: SIZES.xl,
-    paddingVertical: SIZES.lg,
-    minHeight: 56,
-  },
-
-  // Text styles
-  text: {
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  primaryText: {
-    color: THEME.background,
-  },
-  secondaryText: {
-    color: THEME.background,
-  },
-  outlineText: {
-    color: THEME.primary,
-  },
-  ghostText: {
-    color: THEME.primary,
-  },
-
-  // Text sizes
-  smallText: {
-    fontSize: 14,
-  },
-  mediumText: {
-    fontSize: 16,
-  },
-  largeText: {
-    fontSize: 18,
-  },
-
-  // Disabled styles
-  disabled: {
-    backgroundColor: THEME.borderLight,
-    borderColor: THEME.borderLight,
-  },
-  disabledText: {
-    color: THEME.textMuted,
-  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  fullWidth: { alignSelf: 'stretch' },
+  disabled: { opacity: 0.45 },
 });
-
-export default Button;

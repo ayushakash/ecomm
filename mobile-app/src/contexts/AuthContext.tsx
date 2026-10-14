@@ -1,248 +1,311 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+/**
+ * Auth state + flows. Port of client/src/contexts/AuthContext.js and the OTP
+ * logic in client/src/pages/auth/Login.js (WhatsApp OTP; new users register
+ * inline with a name). Customer-only: merchant/admin sessions are rejected.
+ *
+ * Convention: these functions toast their own errors and success messages and
+ * resolve to `{ success, ... }` — they never throw.
+ */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiService from '../services/api';
-import { notificationService } from '../services/notificationService';
-import { User, AuthResponse, LoginCredentials, RegisterData } from '../types';
+import { useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { queryKeys } from '../hooks/queryKeys';
+import { authAPI, getErrorMessage, onSessionExpired, userAPI } from '../services/api';
+import { getGoogleIdToken, googleSignOut, isGoogleSignInAvailable } from '../services/googleSignIn';
+import { tokenStorage } from '../services/tokenStorage';
+import type { AuthResponse, User } from '../types/models';
+import { toast } from '../utils/toast';
 
-interface AuthContextType {
+const USER_CACHE_KEY = 'chardeevari.user';
+
+export type AuthResult<T = object> = ({ success: true } & T) | { success: false; error: string };
+
+export interface AuthContextValue {
   user: User | null;
+  /** True until stored tokens are restored and validated on launch. */
   loading: boolean;
-  token: string | null;
-  login: (credentials: LoginCredentials) => Promise<AuthResponse>;
-  register: (userData: RegisterData) => Promise<AuthResponse>;
-  sendOTP: (phone: string) => Promise<{ success: boolean; userExists: boolean; message?: string }>;
-  loginWithOTP: (phone: string, otp: string) => Promise<AuthResponse>;
-  registerWithOTP: (name: string, phone: string, otp: string) => Promise<AuthResponse>;
-  logout: () => Promise<void>;
-  refreshToken: () => Promise<{ success: boolean }>;
-  updateProfile: (profileData: any) => Promise<{ success: boolean; error?: string }>;
   isAuthenticated: boolean;
-  isAdmin: boolean;
-  isMerchant: boolean;
-  isCustomer: boolean;
+  /** Google users without a phone must link one before checkout (web parity). */
+  needsPhone: boolean;
+  /** False in Expo Go / builds without the native module — hide the Google button. */
+  isGoogleAvailable: boolean;
+
+  /** Step 1. `userExists === false` ⇒ ask for a name, then call verifyOtp with it. */
+  sendOtp(phone: string): Promise<AuthResult<{ userExists: boolean; devOtp?: string }>>;
+  /** Step 2. Logs in existing users; registers new users when `name` is given. */
+  verifyOtp(args: { phone: string; otp: string; name?: string; userExists: boolean }): Promise<AuthResult<{ user: User }>>;
+  /** Native Google account picker → /auth/google. `cancelled` when the user backs out. */
+  loginWithGoogle(): Promise<AuthResult<{ user: User; phoneRequired: boolean } | { cancelled: true }>>;
+  sendLinkPhoneOtp(phone: string): Promise<AuthResult<{ devOtp?: string }>>;
+  linkPhone(phone: string, otp: string): Promise<AuthResult<{ user: User }>>;
+  sendChangeEmailOtp(email: string): Promise<AuthResult<{ devOtp?: string }>>;
+  verifyChangeEmail(email: string, otp: string): Promise<AuthResult<{ user: User }>>;
+  updateProfile(data: Partial<Pick<User, 'name' | 'email'>>): Promise<AuthResult<{ user: User }>>;
+  /** Re-fetch /auth/me. */
+  refreshUser(): Promise<void>;
+  logout(): Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+export const useAuth = (): AuthContextValue => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+const isCachedUser = (value: unknown): value is User =>
+  !!value && typeof value === 'object' && '_id' in value && typeof value._id === 'string';
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+const CUSTOMER_ONLY_MESSAGE = 'This app is for customers. Merchants and admins please use chardeevari.in.';
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
+  const [user, setUserState] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
 
-  // Check if user is authenticated on app load
-  useEffect(() => {
-    checkAuth();
+  const setUser = useCallback((next: User | null) => {
+    setUserState(next);
+    if (next) AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(next)).catch(() => {});
+    else AsyncStorage.removeItem(USER_CACHE_KEY).catch(() => {});
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      const storedToken = await AsyncStorage.getItem('accessToken');
-      const storedUser = await AsyncStorage.getItem('user');
-      
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        
-        // Verify token is still valid
-        try {
-          const response = await apiService.auth.me();
-          setUser(response.data.user);
-        } catch (error) {
-          console.error('Auth check failed:', error);
-          await logout();
+  const clearSession = useCallback(async () => {
+    await tokenStorage.clear();
+    setUser(null);
+    // Drop user-scoped server state (orders, order detail, totals priced for an address).
+    queryClient.removeQueries({ queryKey: queryKeys.ordersAll });
+    queryClient.removeQueries({ queryKey: ['order'] });
+    queryClient.removeQueries({ queryKey: ['cart-pricing'] });
+  }, [queryClient, setUser]);
+
+  // Restore session: cached user renders instantly, /auth/me validates it.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const tokens = await tokenStorage.load();
+        if (!tokens) {
+          await AsyncStorage.removeItem(USER_CACHE_KEY);
+          return;
         }
+        const cached: unknown = JSON.parse((await AsyncStorage.getItem(USER_CACHE_KEY)) ?? 'null');
+        if (isCachedUser(cached) && !cancelled) setUserState(cached);
+        try {
+          const { user: fresh } = await authAPI.me();
+          if (!cancelled) setUser(fresh);
+        } catch (error) {
+          // Offline: keep cached user. Auth failure: interceptor already tried refresh.
+          const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+          if (status === 401 || status === 403) await clearSession();
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (error) {
-      console.error('Error checking auth:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [clearSession, setUser]);
 
-  const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    try {
-      const response = await apiService.auth.login(credentials);
-      const { user: userData, accessToken, refreshToken: refreshTokenValue } = response.data;
+  useEffect(() => onSessionExpired(() => setUser(null)), [setUser]);
 
-      setUser(userData);
-      setToken(accessToken);
-      
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', refreshTokenValue);
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-
-      notificationService.success('Welcome back!', 'Login successful!');
-
-      return { success: true, user: userData, accessToken, refreshToken: refreshTokenValue };
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Login failed';
-      notificationService.error('Login Failed', message);
-      return { success: false, message };
-    }
-  };
-
-  const register = async (userData: RegisterData): Promise<AuthResponse> => {
-    try {
-      const response = await apiService.auth.register(userData);
-      const { user: newUser, accessToken, refreshToken: refreshTokenValue } = response.data;
-
-      setUser(newUser);
-      setToken(accessToken);
-
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', refreshTokenValue);
-      await AsyncStorage.setItem('user', JSON.stringify(newUser));
-
-      // notificationService.success('Welcome!', 'Registration successful!');
-
-      return { success: true, user: newUser, accessToken, refreshToken: refreshTokenValue };
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Registration failed';
-      notificationService.error('Registration Failed', message);
-      return { success: false, message };
-    }
-  };
-
-  const sendOTP = async (phone: string): Promise<{ success: boolean; userExists: boolean; message?: string }> => {
-    try {
-      const response = await apiService.auth.sendOTP({ phone });
-      return {
-        success: true,
-        userExists: response.data.userExists,
-        message: response.data.message
-      };
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to send OTP';
-      notificationService.error('OTP Failed', message);
-      return { success: false, userExists: false, message };
-    }
-  };
-
-  const loginWithOTP = async (phone: string, otp: string): Promise<AuthResponse> => {
-    try {
-      const response = await apiService.auth.verifyOTPLogin({ phone, otp });
-      const { user: userData, accessToken, refreshToken: refreshTokenValue } = response.data;
-
-      setUser(userData);
-      setToken(accessToken);
-
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', refreshTokenValue);
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-
-      // notificationService.success('Welcome back!', 'Login successful!');
-
-      return { success: true, user: userData, accessToken, refreshToken: refreshTokenValue };
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'OTP verification failed';
-      notificationService.error('Login Failed', message);
-      return { success: false, message };
-    }
-  };
-
-  const registerWithOTP = async (name: string, phone: string, otp: string): Promise<AuthResponse> => {
-    try {
-      const response = await apiService.auth.verifyOTPRegister({ name, phone, otp });
-      const { user: newUser, accessToken, refreshToken: refreshTokenValue } = response.data;
-
-      setUser(newUser);
-      setToken(accessToken);
-
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', refreshTokenValue);
-      await AsyncStorage.setItem('user', JSON.stringify(newUser));
-
-      notificationService.success('Welcome!', 'Registration successful!');
-
-      return { success: true, user: newUser, accessToken, refreshToken: refreshTokenValue };
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Registration failed';
-      notificationService.error('Registration Failed', message);
-      return { success: false, message };
-    }
-  };
-
-  const logout = async (): Promise<void> => {
-    try {
-      if (token) {
-        await apiService.auth.logout();
+  /** Persist tokens + user from an auth response. Rejects non-customer roles. */
+  const acceptAuth = useCallback(
+    async (data: AuthResponse): Promise<boolean> => {
+      if (data.user.role !== 'customer') {
+        // Revoke server refresh token for the rejected session, best effort.
+        await tokenStorage.set({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+        await authAPI.logout().catch(() => {});
+        await tokenStorage.clear();
+        toast.error('Customer account required', CUSTOMER_ONLY_MESSAGE);
+        return false;
       }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-      setToken(null);
-      await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
-    }
-  };
+      await tokenStorage.set({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+      setUser(data.user);
+      return true;
+    },
+    [setUser],
+  );
 
-  const refreshToken = async (): Promise<{ success: boolean }> => {
+  const sendOtp = useCallback<AuthContextValue['sendOtp']>(async (phone) => {
     try {
-      const refreshTokenValue = await AsyncStorage.getItem('refreshToken');
-      if (!refreshTokenValue) {
-        throw new Error('No refresh token');
+      const data = await authAPI.sendOtp(phone.trim());
+      if (data.userExists && data.userRole && data.userRole !== 'customer') {
+        toast.error('Customer account required', CUSTOMER_ONLY_MESSAGE);
+        return { success: false, error: CUSTOMER_ONLY_MESSAGE };
       }
-
-      const response = await apiService.auth.refresh(refreshTokenValue);
-      const { accessToken, refreshToken: newRefreshToken } = response.data;
-      
-      setToken(accessToken);
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', newRefreshToken);
-
-      return { success: true };
+      return { success: true, userExists: data.userExists, devOtp: data.otp };
     } catch (error) {
-      console.error('Token refresh failed:', error);
-      await logout();
-      return { success: false };
-    }
-  };
-
-  const updateProfile = async (profileData: any): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const response = await apiService.user.updateProfile(profileData);
-      setUser(response.data.user);
-      await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      notificationService.success('Profile Updated', 'Your profile has been updated successfully!');
-      
-      return { success: true };
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Profile update failed';
-      notificationService.error('Update Failed', message);
+      const message = getErrorMessage(error, 'Failed to send OTP');
+      toast.error(message);
       return { success: false, error: message };
     }
-  };
+  }, []);
 
-  const value: AuthContextType = {
-    user,
-    loading,
-    token,
-    login,
-    register,
-    sendOTP,
-    loginWithOTP,
-    registerWithOTP,
-    logout,
-    refreshToken,
-    updateProfile,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
-    isMerchant: user?.role === 'merchant',
-    isCustomer: user?.role === 'customer',
-  };
+  const verifyOtp = useCallback<AuthContextValue['verifyOtp']>(
+    async ({ phone, otp, name, userExists }) => {
+      try {
+        if (!userExists) {
+          const trimmed = name?.trim() ?? '';
+          if (trimmed.length < 2) {
+            const message = 'Please enter your name (at least 2 characters)';
+            toast.error(message);
+            return { success: false, error: message };
+          }
+          const data = await authAPI.verifyOtpRegister(trimmed, phone.trim(), otp.trim());
+          await acceptAuth(data);
+          toast.success('Account created!', 'You are now logged in.');
+          return { success: true, user: data.user };
+        }
+        const data = await authAPI.verifyOtpLogin(phone.trim(), otp.trim());
+        if (!(await acceptAuth(data))) return { success: false, error: CUSTOMER_ONLY_MESSAGE };
+        toast.success('Login successful!');
+        return { success: true, user: data.user };
+      } catch (error) {
+        const message = getErrorMessage(error, 'OTP verification failed');
+        toast.error(message);
+        return { success: false, error: message };
+      }
+    },
+    [acceptAuth],
+  );
+
+  const loginWithGoogle = useCallback<AuthContextValue['loginWithGoogle']>(async () => {
+    try {
+      const result = await getGoogleIdToken();
+      if (result.type === 'cancelled') return { success: true, cancelled: true };
+      const data = await authAPI.google(result.idToken);
+      if (!(await acceptAuth(data))) return { success: false, error: CUSTOMER_ONLY_MESSAGE };
+      toast.success('Logged in with Google!');
+      return { success: true, user: data.user, phoneRequired: data.phoneRequired };
+    } catch (error) {
+      const message = getErrorMessage(error, 'Google login failed');
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  }, [acceptAuth]);
+
+  const sendLinkPhoneOtp = useCallback<AuthContextValue['sendLinkPhoneOtp']>(async (phone) => {
+    try {
+      const data = await authAPI.sendLinkPhoneOtp(phone.trim());
+      return { success: true, devOtp: data.otp };
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to send OTP');
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  }, []);
+
+  const linkPhone = useCallback<AuthContextValue['linkPhone']>(
+    async (phone, otp) => {
+      try {
+        const data = await authAPI.verifyLinkPhone(phone.trim(), otp.trim());
+        setUser(data.user);
+        toast.success('Phone number verified and linked!');
+        return { success: true, user: data.user };
+      } catch (error) {
+        const message = getErrorMessage(error, 'Phone verification failed');
+        toast.error(message);
+        return { success: false, error: message };
+      }
+    },
+    [setUser],
+  );
+
+  const sendChangeEmailOtp = useCallback<AuthContextValue['sendChangeEmailOtp']>(async (email) => {
+    try {
+      const data = await authAPI.sendChangeEmailOtp(email.trim());
+      return { success: true, devOtp: data.otp };
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to send verification code');
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  }, []);
+
+  const verifyChangeEmail = useCallback<AuthContextValue['verifyChangeEmail']>(
+    async (email, otp) => {
+      try {
+        const data = await authAPI.verifyChangeEmail(email.trim(), otp.trim());
+        setUser(data.user);
+        toast.success('Email updated successfully!');
+        return { success: true, user: data.user };
+      } catch (error) {
+        const message = getErrorMessage(error, 'Email verification failed');
+        toast.error(message);
+        return { success: false, error: message };
+      }
+    },
+    [setUser],
+  );
+
+  const updateProfile = useCallback<AuthContextValue['updateProfile']>(
+    async (profile) => {
+      try {
+        const data = await userAPI.updateProfile(profile);
+        setUser(data.user);
+        toast.success('Profile updated successfully!');
+        return { success: true, user: data.user };
+      } catch (error) {
+        const message = getErrorMessage(error, 'Profile update failed');
+        toast.error(message);
+        return { success: false, error: message };
+      }
+    },
+    [setUser],
+  );
+
+  const refreshUser = useCallback(async () => {
+    if (!tokenStorage.get()) return;
+    try {
+      const { user: fresh } = await authAPI.me();
+      setUser(fresh);
+    } catch {
+      // Interceptor handles expiry; keep current state otherwise.
+    }
+  }, [setUser]);
+
+  const logout = useCallback(async () => {
+    if (tokenStorage.get()) await authAPI.logout().catch(() => {});
+    await googleSignOut();
+    await clearSession();
+  }, [clearSession]);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      loading,
+      isAuthenticated: !!user,
+      needsPhone: !!user && !user.phone,
+      isGoogleAvailable: isGoogleSignInAvailable,
+      sendOtp,
+      verifyOtp,
+      loginWithGoogle,
+      sendLinkPhoneOtp,
+      linkPhone,
+      sendChangeEmailOtp,
+      verifyChangeEmail,
+      updateProfile,
+      refreshUser,
+      logout,
+    }),
+    [
+      user,
+      loading,
+      sendOtp,
+      verifyOtp,
+      loginWithGoogle,
+      sendLinkPhoneOtp,
+      linkPhone,
+      sendChangeEmailOtp,
+      verifyChangeEmail,
+      updateProfile,
+      refreshUser,
+      logout,
+    ],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+}

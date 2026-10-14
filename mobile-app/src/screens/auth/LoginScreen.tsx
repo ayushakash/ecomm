@@ -1,587 +1,596 @@
-import React, { useState } from 'react';
+/**
+ * Login modal. Port of client/src/pages/auth/Login.js:
+ * WhatsApp OTP (phone → 6-digit code; first-time customers add their name and
+ * register inline), Google sign-in when the native module is present, and the
+ * optional phone link a Google account needs before checkout.
+ */
+import * as Haptics from 'expo-haptics';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
+  Image as RNImage,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
-  TouchableOpacity,
+  View,
+  type TextInput,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, Icon, Input, Screen, Text } from '../../components/ui';
+import { WEBSITE_URL } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
-import { THEME, SIZES } from '../../theme';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Card from '../../components/ui/Card';
-import CustomModal from '../../components/ui/CustomModal';
+import { completeLogin } from '../../navigation/authRedirect';
+import type { RootStackScreenProps } from '../../navigation/types';
+import { colors, layout, radii, SCREEN_PADDING, shadows, spacing } from '../../theme';
+import { toast } from '../../utils/toast';
+import { openExternal } from '../../utils/whatsapp';
+import { OTP_LENGTH, OtpInput, type OtpInputHandle } from './components/OtpInput';
 
-interface LoginScreenProps {
-  navigation: any;
-  route?: {
-    params?: {
-      redirectTo?: string;
-      fromCheckout?: boolean;
-    };
-  };
+const LOGO = require('../../../assets/logo.png');
+
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+const OTP_REGEX = /^\d{4,6}$/;
+const RESEND_SECONDS = 30;
+
+/** phone/otp = WhatsApp OTP login; linkPhone/linkOtp = after Google when the account has no phone. */
+type Step = 'phone' | 'otp' | 'linkPhone' | 'linkOtp';
+
+interface FieldErrors {
+  phone?: string;
+  otp?: string;
+  name?: string;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
-  const { loginWithOTP, sendOTP, login } = useAuth();
-  const [step, setStep] = useState(1); // 1: Enter mobile, 2: Enter OTP, 3: Admin email/password
-  const [mobile, setMobile] = useState('');
+const isRoleRejection = (message: string) => /merchant|admin/i.test(message);
+
+function useResendTimer() {
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  useEffect(() => {
+    if (secondsLeft <= 0) return;
+    const id = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [secondsLeft]);
+  const restart = useCallback(() => setSecondsLeft(RESEND_SECONDS), []);
+  const reset = useCallback(() => setSecondsLeft(0), []);
+  return { secondsLeft, restart, reset };
+}
+
+function announceOtpSent(phone: string, devOtp?: string) {
+  if (devOtp) toast.info('OTP sent to your WhatsApp', `For testing: ${devOtp}`, 8000);
+  else toast.success('OTP sent to your WhatsApp', `+91 ${phone}`);
+}
+
+export default function LoginScreen({ navigation, route }: RootStackScreenProps<'Login'>) {
+  const redirect = route.params?.redirect;
+  const insets = useSafeAreaInsets();
+  const { sendOtp, verifyOtp, loginWithGoogle, sendLinkPhoneOtp, linkPhone, isGoogleAvailable } = useAuth();
+
+  const [step, setStep] = useState<Step>('phone');
+  const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ mobile?: string; otp?: string; email?: string; password?: string }>({});
+  const [name, setName] = useState('');
   const [userExists, setUserExists] = useState<boolean | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [showOtpSentMessage, setShowOtpSentMessage] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalConfig, setModalConfig] = useState({
-    title: '',
-    message: '',
-    type: 'info' as 'success' | 'error' | 'warning' | 'info',
-    buttons: [] as Array<{ text: string; onPress: () => void; style?: 'primary' | 'secondary' | 'danger' }>
-  });
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [rejection, setRejection] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const validateMobile = () => {
-    const newErrors: { mobile?: string } = {};
+  const timer = useResendTimer();
+  const otpRef = useRef<OtpInputHandle>(null);
+  const nameRef = useRef<TextInput>(null);
 
-    if (!mobile.trim()) {
-      newErrors.mobile = 'Mobile number is required';
-    } else if (!/^[6-9]\d{9}$/.test(mobile.trim())) {
-      newErrors.mobile = 'Please enter a valid 10-digit mobile number';
-    }
+  const isNewUser = step === 'otp' && userExists === false;
+  const isOtpStep = step === 'otp' || step === 'linkOtp';
+  const busy = sending || verifying || googleLoading;
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const finish = useCallback(() => {
+    Keyboard.dismiss();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    completeLogin(navigation, redirect);
+  }, [navigation, redirect]);
+
+  const fail = () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+
+  const validatePhone = (): boolean => {
+    const value = phone.trim();
+    const error = !value
+      ? 'Mobile number is required'
+      : !PHONE_REGEX.test(value)
+        ? 'Please enter a valid 10-digit mobile number'
+        : undefined;
+    setErrors(error ? { phone: error } : {});
+    return !error;
   };
 
-  const validateOTP = () => {
-    const newErrors: { otp?: string } = {};
-
-    if (!otp.trim()) {
-      newErrors.otp = 'OTP is required';
-    } else if (otp.trim() !== '1234') {
-      newErrors.otp = 'Invalid OTP. Please enter 1234';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateEmailPassword = () => {
-    const newErrors: { email?: string; password?: string } = {};
-
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (!password.trim()) {
-      newErrors.password = 'Password is required';
-    } else if (password.trim().length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSendOTP = async () => {
-    if (!validateMobile()) return;
-
-    setLoading(true);
+  // ── Step 1: send OTP (login) or link-phone OTP (after Google) ────────────
+  const handleSendOtp = async (target: 'otp' | 'linkOtp', isResend = false) => {
+    if (!validatePhone()) return;
+    Keyboard.dismiss();
+    setRejection(null);
+    setSending(true);
     try {
-      const result = await sendOTP(mobile.trim());
-      if (result.success) {
+      if (target === 'otp') {
+        const result = await sendOtp(phone);
+        if (!result.success) {
+          if (isRoleRejection(result.error)) setRejection(result.error);
+          fail();
+          return;
+        }
         setUserExists(result.userExists);
-        // Note: We'll need to enhance the sendOTP API to return userRole
-        setStep(2);
-        setShowOtpSentMessage(true);
-
-        // Auto hide message after 3 seconds
-        setTimeout(() => {
-          setShowOtpSentMessage(false);
-        }, 3000);
+        announceOtpSent(phone, result.devOtp);
+      } else {
+        const result = await sendLinkPhoneOtp(phone);
+        if (!result.success) {
+          fail();
+          return;
+        }
+        announceOtpSent(phone, result.devOtp);
       }
-    } catch (error) {
-      console.error('Send OTP error:', error);
-      setModalConfig({
-        title: 'Oops! Something went wrong',
-        message: 'Failed to send OTP. Please check your connection and try again.',
-        type: 'error',
-        buttons: [{ text: 'Try Again', onPress: () => setModalVisible(false) }]
-      });
-      setModalVisible(true);
+      setOtp('');
+      setErrors({});
+      timer.restart();
+      if (!isResend) setStep(target);
+      else otpRef.current?.focus();
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
-  const handleVerifyOTP = async () => {
-    if (!validateOTP()) return;
-
-    if (!userExists) {
-      // Redirect to registration
-      setModalConfig({
-        title: 'Account Not Found',
-        message: 'This mobile number is not registered. Would you like to create a new account?',
-        type: 'warning',
-        buttons: [
-          { text: 'Cancel', onPress: () => setModalVisible(false), style: 'secondary' },
-          {
-            text: 'Register',
-            onPress: () => {
-              setModalVisible(false);
-              navigation.navigate('Register', route?.params);
-            }
-          }
-        ]
-      });
-      setModalVisible(true);
+  // ── Step 2: verify ────────────────────────────────────────────────────────
+  const handleVerify = async (code = otp) => {
+    if (verifying) return;
+    const next: FieldErrors = {};
+    if (!code.trim()) next.otp = 'OTP is required';
+    else if (!OTP_REGEX.test(code.trim())) next.otp = 'Please enter a valid OTP';
+    if (isNewUser && name.trim().length < 2) next.name = 'Please enter your name (at least 2 characters)';
+    setErrors(next);
+    if (next.name) {
+      nameRef.current?.focus();
       return;
     }
+    if (next.otp) return;
 
-    setLoading(true);
+    Keyboard.dismiss();
+    setVerifying(true);
     try {
-      const result = await loginWithOTP(mobile.trim(), otp.trim());
-      if (result.success) {
-        // Check if user is admin to decide next step
-        if (result.user?.role === 'admin') {
-          // For admin users, move to step 3 for email/password verification
-          setUserRole('admin');
-          setStep(3);
-          setModalConfig({
-            title: 'Phone Verified! ✅',
-            message: 'Please enter your email and password to complete admin authentication.',
-            type: 'success',
-            buttons: [{ text: 'Continue', onPress: () => setModalVisible(false) }]
-          });
-          setModalVisible(true);
-        } else {
-          // For non-admin users, complete login and directly navigate
-          const fromCheckout = route?.params?.fromCheckout;
-
-          if (result.user?.role === 'merchant') {
-            // Redirect merchants to their orders page
-            navigation.navigate('MerchantMain', { screen: 'Orders' });
-          } else if (fromCheckout) {
-            navigation.navigate('GuestMain', { screen: 'Cart' });
-          } else {
-            navigation.navigate('GuestMain', { screen: 'Home' });
-          }
+      if (step === 'linkOtp') {
+        const result = await linkPhone(phone, code);
+        if (result.success) finish();
+        else {
+          setOtp('');
+          fail();
         }
+        return;
       }
-    } catch (error) {
-      console.error('OTP verification error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdminEmailPasswordVerification = async () => {
-    if (!validateEmailPassword()) return;
-
-    setLoading(true);
-    try {
-      const result = await login({ email: email.trim(), password: password.trim() });
+      const result = await verifyOtp({ phone, otp: code, name: name.trim(), userExists: userExists !== false });
       if (result.success) {
-        setModalConfig({
-          title: 'Admin Login Complete! 🎉',
-          message: 'Authentication successful! Redirecting to admin panel...',
-          type: 'success',
-          buttons: [
-            {
-              text: 'Continue',
-              onPress: () => {
-                setModalVisible(false);
-                // Navigate to admin panel - we'll need to handle this in the navigation
-                navigation.navigate('AdminMain');
-              }
-            }
-          ]
-        });
-        setModalVisible(true);
+        finish();
+        return;
       }
-    } catch (error) {
-      console.error('Admin email/password verification error:', error);
-      setModalConfig({
-        title: 'Authentication Failed',
-        message: 'Invalid email or password. Please try again.',
-        type: 'error',
-        buttons: [{ text: 'Try Again', onPress: () => setModalVisible(false) }]
-      });
-      setModalVisible(true);
+      fail();
+      if (isRoleRejection(result.error)) {
+        setRejection(result.error);
+        setStep('phone');
+      } else {
+        setOtp('');
+        otpRef.current?.focus();
+      }
     } finally {
-      setLoading(false);
+      setVerifying(false);
     }
   };
+
+  const handleOtpComplete = (code: string) => {
+    // Auto-submit on the 6th digit unless a new customer still needs to type a name.
+    if (isNewUser && name.trim().length < 2) {
+      nameRef.current?.focus();
+      return;
+    }
+    void handleVerify(code);
+  };
+
+  // ── Google ────────────────────────────────────────────────────────────────
+  const handleGoogle = async () => {
+    setRejection(null);
+    setGoogleLoading(true);
+    try {
+      const result = await loginWithGoogle();
+      if (!result.success) {
+        if (isRoleRejection(result.error)) setRejection(result.error);
+        fail();
+        return;
+      }
+      if ('cancelled' in result) return;
+      if (result.phoneRequired) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        setPhone('');
+        setOtp('');
+        setErrors({});
+        timer.reset();
+        setStep('linkPhone');
+        return;
+      }
+      finish();
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // ── Navigation within the modal ──────────────────────────────────────────
+  const goBackStep = () => {
+    setErrors({});
+    setOtp('');
+    timer.reset();
+    setStep(step === 'linkOtp' ? 'linkPhone' : 'phone');
+  };
+
+  const close = () => {
+    Keyboard.dismiss();
+    // After Google with a missing phone the user is already signed in: skipping
+    // still honours the redirect (checkout asks for the phone again, like web).
+    if (step === 'linkPhone' || step === 'linkOtp') completeLogin(navigation, redirect);
+    else navigation.goBack();
+  };
+
+  useEffect(() => {
+    if (isNewUser) {
+      const id = setTimeout(() => nameRef.current?.focus(), 250);
+      return () => clearTimeout(id);
+    }
+  }, [isNewUser]);
+
+  // ── Copy ─────────────────────────────────────────────────────────────────
+  const title =
+    step === 'phone'
+      ? 'Login or sign up'
+      : step === 'linkPhone'
+        ? 'Add your phone number'
+        : isNewUser
+          ? 'Create your account'
+          : 'Verify your number';
+
+  const subtitle =
+    step === 'phone'
+      ? 'Building materials delivered to your site. Log in with your WhatsApp number.'
+      : step === 'linkPhone'
+        ? "You're signed in with Google. Add a WhatsApp number so merchants can reach you about deliveries."
+        : isNewUser
+          ? "Looks like you're new here! Enter your name and the OTP we sent to your WhatsApp."
+          : 'Enter the OTP sent to your WhatsApp';
+
+  const verifyLabel = step === 'linkOtp' ? 'Verify & link number' : isNewUser ? 'Create Account & Login' : 'Verify & Login';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Ionicons name="call" size={40} color={THEME.primary} />
-          </View>
-          <Text style={styles.title}>
-            {step === 1 ? 'Welcome Back' : step === 2 ? 'Verify Mobile' : 'Complete Authentication'}
-          </Text>
-          <Text style={styles.subtitle}>
-            {step === 1
-              ? 'Enter your mobile number to login'
-              : step === 2
-              ? `Enter OTP sent to +91${mobile}`
-              : 'Enter your email and password to complete login'
-            }
-          </Text>
-        </View>
-
-        {/* Step Indicator */}
-        <View style={styles.stepIndicator}>
-          <View style={[styles.stepDot, step >= 1 && styles.stepDotActive]}>
-            <Text style={[styles.stepDotText, step >= 1 && styles.stepDotTextActive]}>1</Text>
-          </View>
-          <View style={[styles.stepLine, step >= 2 && styles.stepLineActive]} />
-          <View style={[styles.stepDot, step >= 2 && styles.stepDotActive]}>
-            <Text style={[styles.stepDotText, step >= 2 && styles.stepDotTextActive]}>2</Text>
-          </View>
-          {userRole === 'admin' && (
-            <>
-              <View style={[styles.stepLine, step >= 3 && styles.stepLineActive]} />
-              <View style={[styles.stepDot, step >= 3 && styles.stepDotActive]}>
-                <Text style={[styles.stepDotText, step >= 3 && styles.stepDotTextActive]}>3</Text>
-              </View>
-            </>
-          )}
-        </View>
-
-        <Card style={styles.formCard}>
-          {step === 1 ? (
-            // Step 1: Enter Mobile Number
-            <>
-              <Input
-                label="Mobile Number"
-                value={mobile}
-                onChangeText={setMobile}
-                placeholder="Enter your mobile number"
-                keyboardType="numeric"
-                maxLength={10}
-                error={errors.mobile}
-                leftIcon="call-outline"
-              />
-
-              <Button
-                title="Send OTP"
-                onPress={handleSendOTP}
-                loading={loading}
-                style={styles.loginButton}
-              />
-            </>
-          ) : step === 2 ? (
-            // Step 2: Enter OTP
-            <>
-              {showOtpSentMessage && (
-                <View style={styles.otpSentMessage}>
-                  <Ionicons name="checkmark-circle-outline" size={20} color={THEME.success} />
-                  <Text style={styles.otpSentText}>
-                    OTP sent to +91{mobile} successfully! 📱
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.otpInfo}>
-                <Ionicons name="information-circle-outline" size={20} color={THEME.info} />
-                <Text style={styles.otpInfoText}>
-                  For demo purposes, please enter: 1234
-                </Text>
-              </View>
-
-              <Input
-                label="Enter OTP"
-                value={otp}
-                onChangeText={setOtp}
-                placeholder="Enter 4-digit OTP"
-                keyboardType="numeric"
-                maxLength={4}
-                error={errors.otp}
-                leftIcon="lock-closed-outline"
-                textAlign="center"
-                style={styles.otpInput}
-              />
-
-              <View style={styles.otpActions}>
-                <TouchableOpacity
-                  onPress={() => setStep(1)}
-                  style={styles.backButton}
-                >
-                  <Ionicons name="arrow-back" size={20} color={THEME.primary} />
-                  <Text style={styles.backButtonText}>Change Number</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleSendOTP}
-                  style={styles.resendButton}
-                >
-                  <Text style={styles.resendButtonText}>Resend OTP</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Button
-                title="Verify & Login"
-                onPress={handleVerifyOTP}
-                loading={loading}
-                style={styles.loginButton}
-              />
-            </>
-          ) : (
-            // Step 3: Admin Email/Password
-            <>
-              <View style={styles.adminInfo}>
-                <Ionicons name="shield-checkmark-outline" size={20} color={THEME.success} />
-                <Text style={styles.adminInfoText}>
-                  Phone verified! Please enter your admin credentials.
-                </Text>
-              </View>
-
-              <Input
-                label="Email Address"
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email address"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                error={errors.email}
-                leftIcon="mail-outline"
-              />
-
-              <Input
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Enter your password"
-                secureTextEntry
-                error={errors.password}
-                leftIcon="lock-closed-outline"
-              />
-
-              <View style={styles.adminActions}>
-                <TouchableOpacity
-                  onPress={() => setStep(2)}
-                  style={styles.backButton}
-                >
-                  <Ionicons name="arrow-back" size={20} color={THEME.primary} />
-                  <Text style={styles.backButtonText}>Back to OTP</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Button
-                title="Complete Login"
-                onPress={handleAdminEmailPasswordVerification}
-                loading={loading}
-                style={styles.loginButton}
-              />
-            </>
-          )}
-        </Card>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Register')}
-            activeOpacity={0.7}
+    <Screen background={colors.surface}>
+      <View style={[styles.topBar, { paddingTop: insets.top + spacing.xs }]}>
+        {isOtpStep ? (
+          <Pressable
+            onPress={goBackStep}
+            hitSlop={layout.hitSlop}
+            style={styles.iconButton}
+            accessibilityRole="button"
+            accessibilityLabel="Change number"
           >
-            <Text style={styles.signUpText}>Sign Up</Text>
-          </TouchableOpacity>
-        </View>
+            <Icon name="arrow-back" size={22} />
+          </Pressable>
+        ) : (
+          <View style={styles.iconButton} />
+        )}
+        {step === 'linkPhone' || step === 'linkOtp' ? (
+          <Pressable
+            onPress={close}
+            hitSlop={layout.hitSlop}
+            style={styles.skip}
+            accessibilityRole="button"
+            accessibilityLabel="Skip adding phone number"
+          >
+            <Text variant="label" color="textSecondary">
+              Skip for now
+            </Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={close}
+            hitSlop={layout.hitSlop}
+            style={styles.iconButton}
+            accessibilityRole="button"
+            accessibilityLabel="Close login"
+          >
+            <Icon name="close" size={24} />
+          </Pressable>
+        )}
       </View>
 
-      <CustomModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        type={modalConfig.type}
-        buttons={modalConfig.buttons}
-      />
-    </SafeAreaView>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xxl }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View entering={FadeIn.duration(300)} style={styles.hero}>
+            <View style={styles.logoWrap}>
+              <RNImage source={LOGO} style={styles.logo} resizeMode="contain" accessibilityLabel="Chardeevari" />
+            </View>
+          </Animated.View>
+
+          <Animated.View key={step} entering={FadeInDown.duration(280)}>
+            <Text variant="display" style={styles.title}>
+              {title}
+            </Text>
+            <Text variant="body" color="textSecondary" style={styles.subtitle}>
+              {subtitle}
+            </Text>
+
+            {rejection && (step === 'phone' || step === 'linkPhone') ? (
+              <View style={styles.rejection}>
+                <Icon name="storefront-outline" size={20} color="danger" />
+                <View style={styles.flex}>
+                  <Text variant="label" color="dangerDark">
+                    Customer account required
+                  </Text>
+                  <Text variant="bodySm" color="textSecondary" style={styles.rejectionText}>
+                    {rejection}
+                  </Text>
+                  <Pressable
+                    onPress={() => openExternal(WEBSITE_URL)}
+                    accessibilityRole="link"
+                    accessibilityLabel="Open chardeevari.in"
+                    hitSlop={layout.hitSlop}
+                  >
+                    <Text variant="label" color="primary" style={styles.underline}>
+                      Open chardeevari.in
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+
+            {step === 'phone' || step === 'linkPhone' ? (
+              <View style={styles.form}>
+                <Input
+                  label="WhatsApp number"
+                  prefix="+91"
+                  value={phone}
+                  onChangeText={(text) => {
+                    setPhone(text.replace(/\D/g, '').slice(0, 10));
+                    if (errors.phone) setErrors({});
+                    if (rejection) setRejection(null);
+                  }}
+                  placeholder="10-digit WhatsApp number"
+                  keyboardType="phone-pad"
+                  inputMode="tel"
+                  textContentType="telephoneNumber"
+                  autoComplete="tel-national"
+                  maxLength={10}
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={() => handleSendOtp(step === 'phone' ? 'otp' : 'linkOtp')}
+                  error={errors.phone}
+                  hint="OTP will be sent to this WhatsApp number"
+                  right={
+                    PHONE_REGEX.test(phone) ? <Icon name="checkmark-circle" size={20} color="success" /> : undefined
+                  }
+                  accessibilityLabel="WhatsApp number"
+                />
+                <Button
+                  title="Send OTP via WhatsApp"
+                  variant="whatsapp"
+                  size="lg"
+                  leftIcon="logo-whatsapp"
+                  fullWidth
+                  loading={sending}
+                  disabled={busy || phone.length !== 10}
+                  onPress={() => handleSendOtp(step === 'phone' ? 'otp' : 'linkOtp')}
+                  testID="send-otp"
+                />
+
+                {step === 'phone' && isGoogleAvailable ? (
+                  <>
+                    <View style={styles.orRow}>
+                      <View style={styles.orLine} />
+                      <Text variant="caption" color="textMuted">
+                        Or continue with
+                      </Text>
+                      <View style={styles.orLine} />
+                    </View>
+                    <Button
+                      title="Continue with Google"
+                      variant="outline"
+                      size="lg"
+                      leftIcon="logo-google"
+                      fullWidth
+                      loading={googleLoading}
+                      disabled={busy}
+                      onPress={handleGoogle}
+                      testID="google-login"
+                    />
+                  </>
+                ) : null}
+              </View>
+            ) : (
+              <View style={styles.form}>
+                <View style={styles.phoneRow}>
+                  <Icon name="logo-whatsapp" size={18} color="whatsapp" />
+                  <Text variant="title" style={styles.flex}>
+                    +91 {phone}
+                  </Text>
+                  <Pressable
+                    onPress={goBackStep}
+                    hitSlop={layout.hitSlop}
+                    accessibilityRole="button"
+                    accessibilityLabel="Change number"
+                  >
+                    <Text variant="label" color="primary" style={styles.underline}>
+                      Change
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {isNewUser ? (
+                  <Input
+                    ref={nameRef}
+                    label="Your name"
+                    leftIcon="person-outline"
+                    value={name}
+                    onChangeText={(text) => {
+                      setName(text);
+                      if (errors.name) setErrors((e) => ({ ...e, name: undefined }));
+                    }}
+                    placeholder="Enter your full name"
+                    textContentType="name"
+                    autoComplete="name"
+                    autoCapitalize="words"
+                    returnKeyType="next"
+                    onSubmitEditing={() => otpRef.current?.focus()}
+                    error={errors.name}
+                    accessibilityLabel="Your name"
+                  />
+                ) : null}
+
+                <View>
+                  <Text variant="label" color="textSecondary" style={styles.otpLabel}>
+                    Enter OTP
+                  </Text>
+                  <OtpInput
+                    ref={otpRef}
+                    value={otp}
+                    onChange={(next) => {
+                      setOtp(next);
+                      if (errors.otp) setErrors((e) => ({ ...e, otp: undefined }));
+                    }}
+                    onComplete={handleOtpComplete}
+                    error={errors.otp}
+                    autoFocus={!isNewUser}
+                    disabled={verifying}
+                  />
+                </View>
+
+                <View style={styles.resendRow}>
+                  <Text variant="bodySm" color="textSecondary">
+                    Didn't get the code?
+                  </Text>
+                  {timer.secondsLeft > 0 ? (
+                    <Text variant="bodySm" color="textMuted">
+                      Resend in 0:{String(timer.secondsLeft).padStart(2, '0')}
+                    </Text>
+                  ) : (
+                    <Pressable
+                      onPress={() => handleSendOtp(step === 'linkOtp' ? 'linkOtp' : 'otp', true)}
+                      disabled={sending}
+                      hitSlop={layout.hitSlop}
+                      accessibilityRole="button"
+                      accessibilityLabel="Resend OTP"
+                    >
+                      <Text variant="label" color={sending ? 'textMuted' : 'primary'} style={styles.underline}>
+                        {sending ? 'Sending…' : 'Resend OTP'}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+
+                <Button
+                  title={verifyLabel}
+                  size="lg"
+                  fullWidth
+                  loading={verifying}
+                  disabled={busy || otp.length < 4}
+                  onPress={() => handleVerify()}
+                  testID="verify-otp"
+                />
+              </View>
+            )}
+          </Animated.View>
+
+          <View style={styles.footer}>
+            <View style={styles.trustRow}>
+              <Icon name="shield-checkmark-outline" size={16} color="success" />
+              <Text variant="caption" color="textSecondary">
+                Secure login · We never share your number
+              </Text>
+            </View>
+            {step === 'phone' ? (
+              <Text variant="caption" color="textMuted" align="center">
+                Want to sell on Chardeevari?{' '}
+                <Text
+                  variant="caption"
+                  color="primary"
+                  weight="semibold"
+                  style={styles.underline}
+                  onPress={() => openExternal(`${WEBSITE_URL}/merchant-register`)}
+                  accessibilityRole="link"
+                >
+                  Merchant sign up
+                </Text>
+              </Text>
+            ) : null}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.background,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.lg,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: SIZES.xl,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: THEME.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SIZES.lg,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: THEME.text,
-    marginBottom: SIZES.sm,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: THEME.textSecondary,
-    textAlign: 'center',
-  },
-  stepIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SIZES.xl,
-  },
-  stepDot: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: THEME.surface,
-    borderWidth: 2,
-    borderColor: THEME.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepDotActive: {
-    backgroundColor: THEME.primary,
-    borderColor: THEME.primary,
-  },
-  stepDotText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: THEME.textMuted,
-  },
-  stepDotTextActive: {
-    color: THEME.background,
-  },
-  stepLine: {
-    width: 40,
-    height: 2,
-    backgroundColor: THEME.border,
-    marginHorizontal: SIZES.sm,
-  },
-  stepLineActive: {
-    backgroundColor: THEME.primary,
-  },
-  formCard: {
-    marginBottom: SIZES.xl,
-  },
-  otpSentMessage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: THEME.success + '15',
-    padding: SIZES.md,
-    borderRadius: SIZES.md,
-    marginBottom: SIZES.md,
-  },
-  otpSentText: {
-    fontSize: 14,
-    color: THEME.success,
-    marginLeft: SIZES.sm,
-    flex: 1,
-    fontWeight: '500',
-  },
-  otpInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: THEME.info + '15',
-    padding: SIZES.md,
-    borderRadius: SIZES.md,
-    marginBottom: SIZES.lg,
-  },
-  otpInfoText: {
-    fontSize: 14,
-    color: THEME.info,
-    marginLeft: SIZES.sm,
-    flex: 1,
-  },
-  otpInput: {
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: 'bold',
-    letterSpacing: 8,
-  },
-  otpActions: {
+  flex: { flex: 1 },
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: SIZES.lg,
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.xs,
   },
-  adminInfo: {
-    flexDirection: 'row',
+  iconButton: {
+    width: layout.touchMin,
+    height: layout.touchMin,
     alignItems: 'center',
-    backgroundColor: THEME.success + '15',
-    padding: SIZES.md,
-    borderRadius: SIZES.md,
-    marginBottom: SIZES.lg,
-  },
-  adminInfoText: {
-    fontSize: 14,
-    color: THEME.success,
-    marginLeft: SIZES.sm,
-    flex: 1,
-  },
-  adminActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    marginVertical: SIZES.lg,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 14,
-    color: THEME.primary,
-    marginLeft: SIZES.xs,
-    fontWeight: '500',
-  },
-  resendButton: {
-    padding: SIZES.sm,
-  },
-  resendButtonText: {
-    fontSize: 14,
-    color: THEME.primary,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
-  },
-  loginButton: {
-    marginTop: SIZES.sm,
-  },
-  footer: {
-    flexDirection: 'row',
     justifyContent: 'center',
+    borderRadius: radii.pill,
+  },
+  skip: { minHeight: layout.touchMin, justifyContent: 'center', paddingHorizontal: spacing.md },
+  content: { paddingHorizontal: SCREEN_PADDING + spacing.xs, flexGrow: 1 },
+  hero: { alignItems: 'flex-start', marginTop: spacing.sm, marginBottom: spacing.xxl },
+  logoWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radii.xl,
+    backgroundColor: colors.brandSoft,
+    ...shadows.sm,
+  },
+  logo: { width: 128, height: 71 },
+  title: { marginBottom: spacing.sm },
+  subtitle: { marginBottom: spacing.xxl },
+  form: { gap: spacing.lg },
+  rejection: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.dangerSoft,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    marginBottom: spacing.lg,
+  },
+  rejectionText: { marginTop: spacing.xxs, marginBottom: spacing.sm },
+  underline: { textDecorationLine: 'underline' },
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.xs },
+  orLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong },
+  phoneRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  footerText: {
-    fontSize: 16,
-    color: THEME.textSecondary,
-  },
-  signUpText: {
-    fontSize: 16,
-    color: THEME.primary,
-    fontWeight: '600',
-  },
+  otpLabel: { marginBottom: spacing.sm },
+  resendRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  footer: { marginTop: 'auto', paddingTop: spacing.xxxl, gap: spacing.md, alignItems: 'center' },
+  trustRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
 });
-
-export default LoginScreen;

@@ -1,0 +1,188 @@
+/**
+ * City Name Mapping Utility. Port of client/src/utils/cityNameMapping.js.
+ * Handles variations in city names (e.g., Bengaluru vs Bangalore)
+ */
+
+// Map of common city name variations
+const CITY_NAME_VARIATIONS: Record<string, string[]> = {
+  // Bengaluru variations
+  'bengaluru': ['bangalore', 'bengaluru', 'bangaluru', 'bengalore'],
+  'bangalore': ['bangalore', 'bengaluru', 'bangaluru', 'bengalore'],
+
+  // Mumbai variations
+  'mumbai': ['mumbai', 'bombay'],
+  'bombay': ['mumbai', 'bombay'],
+
+  // Chennai variations
+  'chennai': ['chennai', 'madras'],
+  'madras': ['chennai', 'madras'],
+
+  // Kolkata variations
+  'kolkata': ['kolkata', 'calcutta'],
+  'calcutta': ['kolkata', 'calcutta'],
+
+  // Pune variations
+  'pune': ['pune', 'poona'],
+  'poona': ['pune', 'poona'],
+
+  // Delhi variations
+  'delhi': ['delhi', 'new delhi'],
+  'new delhi': ['delhi', 'new delhi'],
+
+  // Kochi variations
+  'kochi': ['kochi', 'cochin'],
+  'cochin': ['kochi', 'cochin'],
+
+  // Thiruvananthapuram variations
+  'thiruvananthapuram': ['thiruvananthapuram', 'trivandrum'],
+  'trivandrum': ['thiruvananthapuram', 'trivandrum'],
+
+  // Bhubaneswar variations
+  'bhubaneswar': ['bhubaneswar', 'bhubaneshwar'],
+  'bhubaneshwar': ['bhubaneswar', 'bhubaneshwar'],
+
+  // Officially renamed cities — geocoders return the NEW name while merchants
+  // are usually onboarded with the traditional one. Keep in sync with the
+  // server table in utils/locationUtils.js (CITY_VARIATIONS).
+  'mysore': ['mysore', 'mysuru'],
+  'mysuru': ['mysore', 'mysuru'],
+  'gurgaon': ['gurgaon', 'gurugram'],
+  'gurugram': ['gurgaon', 'gurugram'],
+  'allahabad': ['allahabad', 'prayagraj'],
+  'prayagraj': ['allahabad', 'prayagraj'],
+  'vadodara': ['vadodara', 'baroda'],
+  'baroda': ['vadodara', 'baroda'],
+  'mangalore': ['mangalore', 'mangaluru'],
+  'mangaluru': ['mangalore', 'mangaluru'],
+  'hubli': ['hubli', 'hubballi'],
+  'hubballi': ['hubli', 'hubballi'],
+  'belgaum': ['belgaum', 'belagavi'],
+  'belagavi': ['belgaum', 'belagavi'],
+  'shimoga': ['shimoga', 'shivamogga'],
+  'shivamogga': ['shimoga', 'shivamogga'],
+  'tumkur': ['tumkur', 'tumakuru'],
+  'tumakuru': ['tumkur', 'tumakuru'],
+  'gulbarga': ['gulbarga', 'kalaburagi'],
+  'kalaburagi': ['gulbarga', 'kalaburagi'],
+  'bijapur': ['bijapur', 'vijayapura'],
+  'vijayapura': ['bijapur', 'vijayapura'],
+  'varanasi': ['varanasi', 'banaras', 'benares'],
+  'banaras': ['varanasi', 'banaras', 'benares'],
+  'visakhapatnam': ['visakhapatnam', 'vizag'],
+  'vizag': ['visakhapatnam', 'vizag'],
+  'pondicherry': ['pondicherry', 'puducherry'],
+  'puducherry': ['pondicherry', 'puducherry'],
+  'tiruchirappalli': ['tiruchirappalli', 'trichy'],
+  'trichy': ['tiruchirappalli', 'trichy'],
+
+  // Ranchi variations (for your project)
+  'ranchi': ['ranchi']
+};
+
+/**
+ * Get all possible variations of a city name
+ * @param {string} cityName - Input city name
+ * @returns {string[]} - Array of all possible variations
+ */
+export const getCityVariations = (cityName?: string | null): string[] => {
+  if (!cityName) return [];
+
+  const normalized = cityName.toLowerCase().trim();
+
+  // Check if we have this city in our mapping
+  if (CITY_NAME_VARIATIONS[normalized]) {
+    return CITY_NAME_VARIATIONS[normalized];
+  }
+
+  // If not in mapping, return the original name
+  return [normalized];
+};
+
+/**
+ * Normalize city name to a standard form
+ * @param {string} cityName - Input city name
+ * @returns {string} - Normalized city name
+ */
+export const normalizeCityName = (cityName?: string | null): string => {
+  if (!cityName) return '';
+
+  const normalized = cityName.toLowerCase().trim();
+
+  // Map to standard name
+  const standardNames: Record<string, string> = {
+    'bengaluru': 'Bangalore',
+    'bangalore': 'Bangalore',
+    'mumbai': 'Mumbai',
+    'bombay': 'Mumbai',
+    'chennai': 'Chennai',
+    'madras': 'Chennai',
+    'kolkata': 'Kolkata',
+    'calcutta': 'Kolkata',
+    'delhi': 'Delhi',
+    'new delhi': 'Delhi',
+    'pune': 'Pune',
+    'poona': 'Pune',
+    'kochi': 'Kochi',
+    'cochin': 'Kochi',
+    'thiruvananthapuram': 'Thiruvananthapuram',
+    'trivandrum': 'Thiruvananthapuram',
+    'ranchi': 'Ranchi',
+    // Renamed cities → traditional names as used at merchant onboarding
+    'mysuru': 'Mysore',
+    'mysore': 'Mysore',
+    'gurugram': 'Gurgaon',
+    'gurgaon': 'Gurgaon',
+    'prayagraj': 'Allahabad',
+    'allahabad': 'Allahabad',
+    'baroda': 'Vadodara',
+    'vadodara': 'Vadodara',
+    'mangaluru': 'Mangalore',
+    'mangalore': 'Mangalore',
+    'hubballi': 'Hubli',
+    'hubli': 'Hubli',
+    'belagavi': 'Belgaum',
+    'belgaum': 'Belgaum',
+    'shivamogga': 'Shimoga',
+    'shimoga': 'Shimoga',
+    'tumakuru': 'Tumkur',
+    'tumkur': 'Tumkur',
+    'kalaburagi': 'Gulbarga',
+    'gulbarga': 'Gulbarga',
+    'vijayapura': 'Bijapur',
+    'bijapur': 'Bijapur',
+    'banaras': 'Varanasi',
+    'benares': 'Varanasi',
+    'varanasi': 'Varanasi',
+    'vizag': 'Visakhapatnam',
+    'visakhapatnam': 'Visakhapatnam',
+    'puducherry': 'Pondicherry',
+    'pondicherry': 'Pondicherry',
+    'trichy': 'Tiruchirappalli',
+    'tiruchirappalli': 'Tiruchirappalli'
+  };
+
+  return standardNames[normalized] || cityName;
+};
+
+/**
+ * Check if two city names are the same (considering variations)
+ * @param {string} city1 - First city name
+ * @param {string} city2 - Second city name
+ * @returns {boolean} - True if they represent the same city
+ */
+export const areSameCities = (city1?: string | null, city2?: string | null): boolean => {
+  if (!city1 || !city2) return false;
+
+  const normalized1 = city1.toLowerCase().trim();
+  const normalized2 = city2.toLowerCase().trim();
+
+  // Direct match
+  if (normalized1 === normalized2) return true;
+
+  // Check variations
+  const variations1 = getCityVariations(normalized1);
+  const variations2 = getCityVariations(normalized2);
+
+  // Check if there's any overlap in variations
+  return variations1.some(v1 => variations2.includes(v1));
+};

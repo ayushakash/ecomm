@@ -1,148 +1,102 @@
-import React from 'react';
-import { View, TextInput, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { THEME, SIZES } from '../../theme';
+import React, { forwardRef, useState } from 'react';
+import { StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import { colors, fonts, radii, spacing } from '../../theme';
+import { Icon, type IconName } from './Icon';
+import { Text } from './Text';
 
-interface InputProps {
+export interface InputProps extends Omit<TextInputProps, 'style'> {
   label?: string;
-  placeholder?: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  secureTextEntry?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
-  error?: string;
-  disabled?: boolean;
-  multiline?: boolean;
-  numberOfLines?: number;
-  leftIcon?: string;
-  style?: ViewStyle;
-  inputStyle?: TextStyle;
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  autoCorrect?: boolean;
-  returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
-  onSubmitEditing?: () => void;
-  blurOnSubmit?: boolean;
-  editable?: boolean;
+  /** Error text; also turns the border red. */
+  error?: string | null;
+  hint?: string;
+  leftIcon?: IconName;
+  /** Static prefix inside the field, e.g. "+91". */
+  prefix?: string;
+  /** Trailing element (icon button, "Change" link, spinner). */
+  right?: React.ReactNode;
+  containerStyle?: StyleProp<ViewStyle>;
+  /** Multi-line text area height (enables multiline). */
+  textAreaHeight?: number;
 }
 
-const Input: React.FC<InputProps> = ({
-  label,
-  placeholder,
-  value,
-  onChangeText,
-  secureTextEntry = false,
-  keyboardType = 'default',
-  error,
-  disabled = false,
-  multiline = false,
-  numberOfLines = 1,
-  leftIcon,
-  style,
-  inputStyle,
-  autoCapitalize = 'none',
-  autoCorrect = false,
-  returnKeyType = 'done',
-  onSubmitEditing,
-  blurOnSubmit = true,
-  editable = true,
-}) => {
+export const Input = forwardRef<TextInput, InputProps>(function Input(
+  { label, error, hint, leftIcon, prefix, right, containerStyle, textAreaHeight, onFocus, onBlur, editable = true, ...rest },
+  ref,
+) {
+  const [focused, setFocused] = useState(false);
+  const borderColor = error ? colors.danger : focused ? colors.primary : colors.border;
   return (
-    <View style={[styles.container, style]}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      
-      <View style={[
-        styles.inputContainer,
-        error && styles.error,
-        disabled && styles.disabled,
-      ]}>
-        {leftIcon && (
-          <Ionicons 
-            name={leftIcon as any} 
-            size={20} 
-            color={THEME.textMuted} 
-            style={styles.leftIcon} 
-          />
+    <View style={containerStyle}>
+      {label && (
+        <Text variant="label" color="textSecondary" style={styles.label}>
+          {label}
+        </Text>
+      )}
+      <View
+        style={[
+          styles.field,
+          { borderColor, backgroundColor: editable ? colors.surface : colors.surfaceMuted },
+          focused && styles.focused,
+          textAreaHeight ? { height: textAreaHeight, alignItems: 'flex-start', paddingVertical: spacing.md } : null,
+        ]}
+      >
+        {leftIcon && <Icon name={leftIcon} size={18} color={focused ? 'primary' : 'textMuted'} />}
+        {prefix && (
+          <Text variant="title" color="textSecondary">
+            {prefix}
+          </Text>
         )}
-        
         <TextInput
-          style={[
-            styles.input, 
-            leftIcon && styles.inputWithLeftIcon, 
-            multiline && styles.multilineInput,
-            inputStyle
-          ]}
-          placeholder={placeholder}
-          placeholderTextColor={THEME.textMuted}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType}
-          editable={!disabled && editable}
-          multiline={multiline}
-          numberOfLines={numberOfLines}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={autoCorrect}
-          returnKeyType={returnKeyType}
-          onSubmitEditing={onSubmitEditing}
-          blurOnSubmit={blurOnSubmit}
-          textAlignVertical={multiline ? 'top' : 'center'}
+          ref={ref}
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          editable={editable}
+          multiline={!!textAreaHeight}
+          textAlignVertical={textAreaHeight ? 'top' : 'center'}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          style={[styles.input, textAreaHeight ? { height: '100%' } : null]}
+          {...rest}
         />
+        {right}
       </View>
-      
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error ? (
+        <Text variant="caption" color="danger" style={styles.helper}>
+          {error}
+        </Text>
+      ) : hint ? (
+        <Text variant="caption" color="textMuted" style={styles.helper}>
+          {hint}
+        </Text>
+      ) : null}
     </View>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: SIZES.md,
-  },
-  label: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '600',
-    color: THEME.text,
-    marginBottom: SIZES.xs,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: THEME.surface,
-    borderWidth: 1,
-    borderColor: THEME.border,
-    borderRadius: SIZES.sm,
-    minHeight: SIZES.inputHeight,
-  },
-  error: {
-    borderColor: THEME.error,
-  },
-  disabled: {
-    backgroundColor: THEME.borderLight,
-    borderColor: THEME.borderLight,
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.md,
-    fontSize: SIZES.fontMd,
-    color: THEME.text,
-    textAlignVertical: 'center',
-  },
-  multilineInput: {
-    textAlignVertical: 'top',
-    paddingTop: SIZES.md,
-  },
-  inputWithLeftIcon: {
-    paddingLeft: SIZES.sm,
-  },
-  leftIcon: {
-    marginLeft: SIZES.md,
-  },
-  errorText: {
-    fontSize: SIZES.fontXs,
-    color: THEME.error,
-    marginTop: SIZES.xs,
-  },
 });
 
-export default React.memo(Input);
+const styles = StyleSheet.create({
+  label: { marginBottom: spacing.xs + 2 },
+  field: {
+    minHeight: 50,
+    borderWidth: 1.5,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  focused: { borderColor: colors.primary },
+  input: {
+    flex: 1,
+    fontFamily: fonts.medium,
+    fontSize: 15,
+    color: colors.text,
+    paddingVertical: spacing.sm,
+  },
+  helper: { marginTop: spacing.xs },
+});

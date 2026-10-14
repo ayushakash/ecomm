@@ -1,226 +1,295 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Toast from 'react-native-toast-message';
-import { API_BASE_URL } from '../constants';
+/**
+ * REST client for the Express backend (routes/*.js under /api).
+ * Port of client/src/services/api.js, customer surface only. Every function
+ * resolves to the response BODY (never the axios response).
+ */
+import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
+import { API_BASE_URL } from '../config';
+import { toast } from '../utils/toast';
+import { tokenStorage } from './tokenStorage';
+import type {
+  Address,
+  AddressInput,
+  AuthResponse,
+  AuthTokens,
+  AvailableCity,
+  CalculatorLeadInput,
+  CartTotals,
+  CartTotalsItemInput,
+  CityPricesResponse,
+  Category,
+  CityMaster,
+  Coordinates,
+  CreateOrderInput,
+  CreateOrderResponse,
+  DeliveryPreview,
+  GeocodedPlace,
+  GoogleAuthResponse,
+  Merchant,
+  NearbyMerchantsRequest,
+  NearbyMerchantsResponse,
+  Order,
+  OrderLifecycleEvent,
+  OrderListResponse,
+  OrderStatus,
+  PlaceSuggestion,
+  PricingItemInput,
+  Product,
+  ProductListResponse,
+  ProductQuery,
+  PublicSettings,
+  SendOtpResponse,
+  User,
+} from '../types/models';
 
-class ApiService {
-  private api: AxiosInstance;
-
-  constructor() {
-    this.api = axios.create({
-      baseURL: API_BASE_URL,
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    this.setupInterceptors();
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Suppress the global error toast (caller handles/ignores the error). */
+    silent?: boolean;
   }
-
-  private setupInterceptors() {
-    // Request interceptor
-    this.api.interceptors.request.use(
-      async (config) => {
-        try {
-          const token = await AsyncStorage.getItem('accessToken');
-
-          // Check if this is a public endpoint that doesn't need a token
-          const isPublicEndpoint = config.url?.includes('/auth/') ||
-                                   config.url?.includes('/products') ||
-                                   config.url?.includes('/settings') ||
-                                   config.url?.includes('/categories');
-
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          } else if (!isPublicEndpoint) {
-            console.warn('No access token found for protected API request');
-            delete config.headers.Authorization;
-          }
-
-          return config;
-        } catch (error) {
-          console.error('Error in request interceptor:', error);
-          return Promise.reject(error);
-        }
-      },
-      (error) => {
-        console.error('Request interceptor error:', error);
-        return Promise.reject(error);
-      }
-    );
-
-    // Response interceptor
-    this.api.interceptors.response.use(
-      (response) => {
-        return response;
-      },
-      async (error) => {
-        const originalRequest = error.config;
-
-        // Handle 401 errors (unauthorized)
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true;
-
-          try {
-            const refreshToken = await AsyncStorage.getItem('refreshToken');
-            if (refreshToken) {
-              const response = await axios.post(
-                `${API_BASE_URL}/api/auth/refresh`,
-                { refreshToken }
-              );
-
-              const { accessToken, refreshToken: newRefreshToken } = response.data;
-              await AsyncStorage.setItem('accessToken', accessToken);
-              await AsyncStorage.setItem('refreshToken', newRefreshToken);
-
-              // Retry the original request
-              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-              return this.api(originalRequest);
-            }
-          } catch (refreshError) {
-            // Refresh token failed, clear storage and redirect to login
-            await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
-            // Note: Navigation should be handled by AuthContext
-            return Promise.reject(refreshError);
-          }
-        }
-
-        // Handle other errors
-        const message = error.response?.data?.message || 'Something went wrong';
-        
-        // Don't show toast for 404 errors or validation errors
-        if (error.response?.status !== 404 && error.response?.status !== 422) {
-          Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: message,
-          });
-        }
-
-        return Promise.reject(error);
-      }
-    );
-  }
-
-  // Generic API methods
-  async get<T>(url: string, params?: any): Promise<AxiosResponse<T>> {
-    return this.api.get(url, { params });
-  }
-
-  async post<T>(url: string, data?: any): Promise<AxiosResponse<T>> {
-    return this.api.post(url, data);
-  }
-
-  async put<T>(url: string, data?: any): Promise<AxiosResponse<T>> {
-    return this.api.put(url, data);
-  }
-
-  async delete<T>(url: string, config?: any): Promise<AxiosResponse<T>> {
-    return this.api.delete(url, config);
-  }
-
-  // Auth API
-  auth = {
-    login: (credentials: any) => this.post('/api/auth/login', credentials),
-    register: (userData: any) => this.post('/api/auth/register', userData),
-    sendOTP: (data: { phone: string }) => this.post('/api/auth/send-otp', data),
-    verifyOTPLogin: (data: { phone: string; otp: string }) => this.post('/api/auth/verify-otp-login', data),
-    verifyOTPRegister: (data: { name: string; phone: string; otp: string }) => this.post('/api/auth/verify-otp-register', data),
-    logout: () => this.post('/api/auth/logout'),
-    refresh: (refreshToken: string) => this.post('/api/auth/refresh', { refreshToken }),
-    me: () => this.get('/api/auth/me'),
-  };
-
-  // User API
-  user = {
-    getProfile: () => this.get('/api/users/profile'),
-    updateProfile: (profileData: any) => this.put('/api/users/profile', profileData),
-    getUsers: (params?: any) => this.get('/api/users', params),
-    updateUserStatus: (userId: string, status: any) => this.put(`/api/users/${userId}/status`, status),
-    updateUserRole: (userId: string, role: any) => this.put(`/api/users/${userId}/role`, role),
-    getAreas: () => this.get('/api/users/areas'),
-  };
-
-  // Merchant API
-  merchant = {
-    onboard: (merchantData: any) => this.post('/api/merchants/onboard', merchantData),
-    getMerchants: (params?: any) => this.get('/api/merchants', params),
-    getMerchantsByArea: (area: string) => this.get(`/api/merchants/area/${area}`),
-    getMerchant: (id: string) => this.get(`/api/merchants/${id}`),
-    updateMerchantStatus: (id: string, status: any) => this.put(`/api/merchants/${id}/status`, status),
-    updateProfile: (profileData: any) => this.put('/api/merchants/profile', profileData),
-    getProfile: () => this.get('/api/merchants/profile/me'),
-    getMerchantsByProduct: (productId: string) => this.get(`/api/merchants/product/${productId}`),
-  };
-
-  // Product API
-  product = {
-    getProducts: (params?: any) => this.get('/api/products', params),
-    getMasterProducts: (params?: any) => this.get('/api/products/master-products', params),
-    getProduct: (id: string) => this.get(`/api/products/${id}`),
-    getById: (id: string) => this.get(`/api/products/${id}`),
-    createProduct: (productData: any) => this.post('/api/products', productData),
-    updateProduct: (id: string, productData: any) => this.put(`/api/products/${id}`, productData),
-    deleteProduct: (id: string) => this.delete(`/api/products/${id}`),
-    updateStock: (id: string, data: any) => this.put(`/api/products/${id}/stock`, data),
-    toggleProduct: (id: string, enabled: boolean) => this.put(`/api/products/${id}/enable`, { enabled }),
-    getCategories: () => this.get('/api/products/categories'),
-    addCategories: (category: any) => this.post('/api/products/categories', category),
-    getMerchantProducts: (params?: any) => this.get('/api/products/merchant/my', params),
-  };
-
-  // Order API
-  order = {
-    createOrder: (orderData: any) => this.post('/api/orders', orderData),
-    getOrders: (params?: any) => this.get('/api/orders', params),
-    getOrder: (id: string) => this.get(`/api/orders/${id}`),
-    updateOrderStatus: (id: string, status: string, note?: string) =>
-      this.put(`/api/orders/${id}/status`, { status, note }),
-    updateOrderItemStatus: (orderId: string, itemId: string, status: string, note?: string) =>
-      this.put(`/api/orders/${orderId}/items/${itemId}/status`, { status, note }),
-    bulkUpdateOrderItemsStatus: (orderId: string, itemIds: string[], status: string, note?: string) =>
-      this.put(`/api/orders/${orderId}/items/bulk-status`, { itemIds, status, note }),
-    cancelOrder: (id: string) => this.put(`/api/orders/${id}/cancel`),
-    getAnalytics: () => this.get('/api/orders/analytics/summary'),
-    getAdminDashboard: () => this.get('/api/orders/admin/dashboard'),
-    getMerchantDashboard: () => this.get('/api/orders/merchant/dashboard'),
-    getMerchantAnalytics: () => this.get('/api/orders/merchant/analytics/summary'),
-    assignItem: (orderId: string, itemId: string) =>
-      this.put(`/api/orders/${orderId}/items/${itemId}/assign`),
-    bulkAssignItems: (orderId: string, itemIds: string[]) =>
-      this.put(`/api/orders/${orderId}/items/bulk-assign`, { itemIds }),
-    autoAssignItem: (orderId: string, itemId: string, merchantId: string) =>
-      this.put(`/api/orders/${orderId}/assign-merchant`, { itemId, merchantId }),
-    getUnassignedOrders: () => this.get('/api/orders/status/unassigned'),
-    respondToOrder: (orderId: string, itemId: string, action: string) =>
-      this.post('/api/orders/respond', { orderId, itemId, action }),
-    rejectItem: (orderId: string, itemId: string) =>
-      this.post(`/api/orders/${orderId}/items/${itemId}/reject`),
-    getOrderLifecycle: (orderId: string) => this.get(`/api/orders/${orderId}/lifecycle`),
-  };
-
-  // Settings API
-  settings = {
-    getSettings: () => this.get('/api/settings'),
-    updateSettings: (settings: any) => this.put('/api/settings', settings),
-    calculatePricing: (items: any, customerData: any) => 
-      this.post('/api/settings/calculate-pricing', { items, customerData }),
-    getDeliveryPreview: () => this.get('/api/settings/delivery-preview'),
-  };
-
-  // Address API
-  addresses = {
-    getAllAddresses: () => this.get('/api/addresses').then(res => res.data),
-    getAddress: (id: string) => this.get(`/api/addresses/${id}`),
-    createAddress: (addressData: any) => this.post('/api/addresses', addressData),
-    updateAddress: (id: string, addressData: any) => this.put(`/api/addresses/${id}`, addressData),
-    deleteAddress: (id: string) => this.delete(`/api/addresses/${id}`),
-    setDefaultAddress: (id: string) => this.put(`/api/addresses/${id}/default`),
-    getDefaultAddress: () => this.get('/api/addresses/default/get'),
-  };
 }
 
-const apiService = new ApiService();
-export default apiService;
-export const api = apiService;
+type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+/** Extract the backend's message (`message` or express-validator `errors[0].msg`). */
+export const getErrorMessage = (error: unknown, fallback = 'Something went wrong'): string => {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as { message?: string; errors?: { msg?: string }[] } | undefined;
+    if (data?.message) return data.message;
+    if (data?.errors?.[0]?.msg) return data.errors[0].msg;
+    if (!error.response) return 'Network error. Please check your connection.';
+  }
+  return fallback;
+};
+
+const sessionExpiredListeners = new Set<() => void>();
+
+/** AuthContext subscribes to clear user state when refresh fails. Returns unsubscribe. */
+export const onSessionExpired = (listener: () => void): (() => void) => {
+  sessionExpiredListeners.add(listener);
+  return () => sessionExpiredListeners.delete(listener);
+};
+
+api.interceptors.request.use((config) => {
+  const tokens = tokenStorage.get();
+  if (tokens?.accessToken) config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+  return config;
+});
+
+// Single-flight refresh: concurrent 401s share one /auth/refresh call.
+let refreshInFlight: Promise<AuthTokens> | null = null;
+
+const refreshTokens = (refreshToken: string): Promise<AuthTokens> => {
+  refreshInFlight ??= axios
+    .post<AuthTokens>(`${API_BASE_URL}/auth/refresh`, { refreshToken }, { timeout: 15000 })
+    .then(async ({ data }) => {
+      await tokenStorage.set({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+      return data;
+    })
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const original = error.config as RetriableConfig | undefined;
+    const status = error.response?.status;
+    const tokens = tokenStorage.get();
+
+    if (status === 401 && original && !original._retry && tokens?.refreshToken) {
+      original._retry = true;
+      try {
+        const fresh = await refreshTokens(tokens.refreshToken);
+        original.headers.Authorization = `Bearer ${fresh.accessToken}`;
+        return api(original);
+      } catch (refreshError) {
+        await tokenStorage.clear();
+        sessionExpiredListeners.forEach((listener) => listener());
+        toast.info('Session expired', 'Please log in again.');
+        return Promise.reject(refreshError);
+      }
+    }
+
+    // Same policy as web: no toast for 404/422; callers may opt out with `silent`.
+    if (!original?.silent && status !== 404 && status !== 422) {
+      toast.error(getErrorMessage(error));
+    }
+    return Promise.reject(error);
+  },
+);
+
+const SILENT: AxiosRequestConfig = { silent: true };
+
+// ─── Auth (routes/auth.js) ───────────────────────────────────────────────────
+// Auth calls are silent: AuthContext toasts its own contextual messages.
+export const authAPI = {
+  sendOtp: (phone: string) =>
+    api.post<SendOtpResponse>('/auth/send-otp', { phone }, SILENT).then((r) => r.data),
+  /** Existing user/merchant login. */
+  verifyOtpLogin: (phone: string, otp: string) =>
+    api.post<AuthResponse>('/auth/verify-otp-login', { phone, otp }, SILENT).then((r) => r.data),
+  /** First-time user: creates a customer with `name` using the OTP from sendOtp. */
+  verifyOtpRegister: (name: string, phone: string, otp: string) =>
+    api.post<AuthResponse>('/auth/verify-otp-register', { name, phone, otp }, SILENT).then((r) => r.data),
+  /** `credential` = Google ID token (audience = web client ID). */
+  google: (credential: string) =>
+    api.post<GoogleAuthResponse>('/auth/google', { credential }, SILENT).then((r) => r.data),
+  sendLinkPhoneOtp: (phone: string) =>
+    api
+      .post<{ message: string; otp?: string }>('/auth/link-phone/send-otp', { phone }, SILENT)
+      .then((r) => r.data),
+  verifyLinkPhone: (phone: string, otp: string) =>
+    api.post<{ message: string; user: User }>('/auth/link-phone/verify', { phone, otp }, SILENT).then((r) => r.data),
+  sendChangeEmailOtp: (email: string) =>
+    api
+      .post<{ message: string; otp?: string }>('/auth/change-email/send-otp', { email }, SILENT)
+      .then((r) => r.data),
+  verifyChangeEmail: (email: string, otp: string) =>
+    api.post<{ message: string; user: User }>('/auth/change-email/verify', { email, otp }, SILENT).then((r) => r.data),
+  refresh: (refreshToken: string) =>
+    api.post<AuthTokens>('/auth/refresh', { refreshToken }, SILENT).then((r) => r.data),
+  me: () => api.get<{ user: User }>('/auth/me', SILENT).then((r) => r.data),
+  logout: () => api.post<{ message: string }>('/auth/logout', undefined, SILENT).then((r) => r.data),
+};
+
+// ─── Users (routes/users.js) ─────────────────────────────────────────────────
+export const userAPI = {
+  getProfile: () => api.get<{ user: User }>('/users/profile').then((r) => r.data),
+  updateProfile: (data: Partial<Pick<User, 'name' | 'email'>>) =>
+    api.put<{ message: string; user: User }>('/users/profile', data, SILENT).then((r) => r.data),
+};
+
+// ─── Merchants (routes/merchants.js) ─────────────────────────────────────────
+export const merchantAPI = {
+  getAvailableCities: () =>
+    api
+      .get<{ success: boolean; cities: AvailableCity[]; count: number }>('/merchants/available-cities', SILENT)
+      .then((r) => r.data),
+  /** Public when filtering by city + activeStatus=approved (guest city mode). */
+  getMerchantsByCity: (city: string, state?: string) =>
+    api
+      .get<{ merchants: Merchant[] }>('/merchants', { params: { city, state, activeStatus: 'approved' }, silent: true })
+      .then((r) => r.data),
+  getNearbyMerchants: (body: NearbyMerchantsRequest) =>
+    api.post<NearbyMerchantsResponse>('/merchants/nearby', body, SILENT).then((r) => r.data),
+};
+
+// ─── Products (routes/products.js) ───────────────────────────────────────────
+export const productAPI = {
+  getProducts: ({ merchantIds, ...params }: ProductQuery = {}) =>
+    api
+      .get<ProductListResponse>('/products', {
+        params: { ...params, merchantIds: merchantIds?.length ? merchantIds.join(',') : undefined },
+      })
+      .then((r) => r.data),
+  getProduct: (id: string) => api.get<Product>(`/products/${id}`).then((r) => r.data),
+  getCategories: () => api.get<Category[]>('/products/categories').then((r) => r.data),
+};
+
+// ─── Orders (routes/orders.js) ───────────────────────────────────────────────
+export const orderAPI = {
+  /** Guest-accessible. addressId only honoured for logged-in users (city pricing). */
+  calculateCartTotals: (items: CartTotalsItemInput[], customerArea?: string | null, addressId?: string | null) =>
+    api
+      .post<CartTotals>('/orders/calculate-cart-totals', { items, customerArea, addressId }, SILENT)
+      .then((r) => r.data),
+  createOrder: (body: CreateOrderInput) => api.post<CreateOrderResponse>('/orders', body).then((r) => r.data),
+  getOrders: (params: { status?: OrderStatus; page?: number; limit?: number } = {}) =>
+    api.get<OrderListResponse>('/orders', { params }).then((r) => r.data),
+  getOrder: (id: string) => api.get<{ order: Order }>(`/orders/${id}`).then((r) => r.data.order),
+  cancelOrder: (id: string) =>
+    api.put<{ message: string; order: Order }>(`/orders/${id}/cancel`).then((r) => r.data),
+  getOrderLifecycle: (orderId: string) =>
+    api
+      .get<{
+        success: boolean;
+        order: Pick<Order, 'orderNumber' | 'customerName' | 'orderStatus' | 'totalAmount'> & {
+          lifecycle: OrderLifecycleEvent[];
+        };
+      }>(`/orders/${orderId}/lifecycle`)
+      .then((r) => r.data),
+};
+
+// ─── Abandoned carts (routes/abandonedCarts.js) ──────────────────────────────
+export const abandonedCartAPI = {
+  /**
+   * optionalAuth: token identifies users, guestId identifies guests. Always silent.
+   * Conversion is server-side (POST /orders marks the cart converted) — no client call.
+   */
+  track: (
+    cartItems: { productId: string; productName: string; variantLabel?: string; quantity: number; price: number }[],
+    guestId: string,
+  ) => api.post('/abandoned-carts/track', { cartItems, guestId }, SILENT).then((r) => r.data),
+};
+
+// ─── Settings (routes/settings.js) ───────────────────────────────────────────
+export const settingsAPI = {
+  getPublic: () => api.get<PublicSettings>('/settings/public', SILENT).then((r) => r.data),
+  /** Auth required. */
+  calculatePricing: (items: PricingItemInput[], customerData?: { distance?: number; area?: string }) =>
+    api.post<CartTotals>('/settings/calculate-pricing', { items, customerData }).then((r) => r.data),
+  /** Auth required. */
+  getDeliveryPreview: () => api.get<DeliveryPreview>('/settings/delivery-preview').then((r) => r.data),
+};
+
+// ─── Addresses (routes/addresses.js) — all auth required ─────────────────────
+export const addressAPI = {
+  getAll: () => api.get<{ data: Address[] }>('/addresses').then((r) => r.data.data),
+  get: (id: string) => api.get<{ data: Address }>(`/addresses/${id}`).then((r) => r.data.data),
+  create: (body: AddressInput) => api.post<{ data: Address }>('/addresses', body).then((r) => r.data.data),
+  update: (id: string, body: Partial<AddressInput>) =>
+    api.put<{ data: Address }>(`/addresses/${id}`, body).then((r) => r.data.data),
+  remove: (id: string) => api.delete<{ success: boolean; message: string }>(`/addresses/${id}`).then((r) => r.data),
+  setDefault: (id: string) => api.put<{ data: Address }>(`/addresses/${id}/default`).then((r) => r.data.data),
+  getDefault: () => api.get<{ data: Address | null }>('/addresses/default/get', SILENT).then((r) => r.data.data),
+};
+
+// ─── Geocoding (routes/geo.js — Ola Maps with OpenStreetMap fallback, public) ─
+export const geoAPI = {
+  reverse: ({ latitude, longitude }: Coordinates) =>
+    api
+      .get<{ success: boolean; place: GeocodedPlace }>('/geo/reverse', { ...SILENT, params: { lat: latitude, lng: longitude } })
+      .then((r) => r.data.place),
+  search: (q: string, near?: Coordinates) =>
+    api
+      .get<{ success: boolean; results: PlaceSuggestion[] }>('/geo/search', {
+        ...SILENT,
+        params: { q, lat: near?.latitude, lng: near?.longitude },
+      })
+      .then((r) => r.data.results),
+};
+
+// ─── Cities (routes/cities.js) ───────────────────────────────────────────────
+export const cityAPI = {
+  getAll: (params: { isActive?: boolean } = {}) =>
+    api.get<{ success: boolean; cities: CityMaster[]; count: number }>('/cities', { params }).then((r) => r.data),
+  /** Active CityMaster rows (admin-managed pricing cities). */
+  getAvailable: () =>
+    api
+      .get<{ success: boolean; cities: { _id: string; city: string; state: string }[] }>('/cities/available', SILENT)
+      .then((r) => r.data),
+};
+
+// ─── Calculator leads (routes/calculatorLeads.js) — public ───────────────────
+export const calculatorLeadAPI = {
+  create: (lead: CalculatorLeadInput) =>
+    api.post<{ success: boolean; id: string }>('/calculator-leads', lead, SILENT).then((r) => r.data),
+};
+
+// ─── Analytics (routes/analytics.js) — public ─────────────────────────────────
+export const analyticsAPI = {
+  /** Average material prices from approved merchants in a city (calculator "Market price"). */
+  getCityPrices: (city: string) =>
+    api.get<CityPricesResponse>(`/analytics/city-prices/${encodeURIComponent(city)}`, SILENT).then((r) => r.data),
+};
+
+export default api;
