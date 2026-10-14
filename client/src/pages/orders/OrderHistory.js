@@ -458,9 +458,11 @@ const OrderHistory = () => {
                         <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
                           order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
                           order.paymentStatus === 'failed' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
+                          'bg-blue-100 text-blue-800'
                         }`}>
-                          {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                          {order.paymentStatus === 'pending'
+                            ? 'Pay on Delivery'
+                            : order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
                         </span>
                       </div>
                     </div>

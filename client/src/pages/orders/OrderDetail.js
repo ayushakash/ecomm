@@ -198,11 +198,11 @@ const OrderDetail = () => {
                 order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
                 order.paymentStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
                 order.paymentStatus === 'refunded' ? 'bg-blue-100 text-blue-700' :
-                'bg-yellow-100 text-yellow-700'
+                'bg-blue-100 text-blue-700'
               }`}>
                 {order.paymentStatus === 'paid' ? 'Paid' :
                  order.paymentStatus === 'cancelled' ? 'Cancelled' :
-                 order.paymentStatus === 'refunded' ? 'Refunded' : 'Pending (COD)'}
+                 order.paymentStatus === 'refunded' ? 'Refunded' : 'Pay on Delivery'}
               </span>
             </div>
           </div>

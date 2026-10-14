@@ -111,7 +111,7 @@ export function buildInvoiceHtml(order: Order): string {
       <div class="kv"><span>Invoice No:</span><span class="strong">${escapeHtml(order.orderNumber)}</span></div>
       <div class="kv"><span>Invoice Date:</span><span class="strong">${escapeHtml(new Date(order.createdAt).toLocaleDateString('en-IN'))}</span></div>
       <div class="kv"><span>Payment Method:</span><span class="strong">${escapeHtml(order.paymentMethod?.toUpperCase() || 'COD')}</span></div>
-      <div class="kv"><span>Payment Status:</span><span class="strong">${escapeHtml(order.paymentStatus?.toUpperCase() || 'PENDING')}</span></div>
+      <div class="kv"><span>Payment Status:</span><span class="strong">${escapeHtml(!order.paymentStatus || order.paymentStatus === 'pending' ? 'PAY ON DELIVERY' : order.paymentStatus.toUpperCase())}</span></div>
     </div>
     <div>
       <h3>Bill To</h3>

@@ -122,7 +122,7 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Payment Status:</span>
-                      <span className="font-semibold">{order.paymentStatus?.toUpperCase() || 'PENDING'}</span>
+                      <span className="font-semibold">{!order.paymentStatus || order.paymentStatus === 'pending' ? 'PAY ON DELIVERY' : order.paymentStatus.toUpperCase()}</span>
                     </div>
                   </div>
                 </div>

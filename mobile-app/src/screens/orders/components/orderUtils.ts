@@ -61,7 +61,8 @@ export const PAYMENT_STATUS_BADGE: Record<PaymentStatus, { label: string; tone: 
   paid: { label: 'Paid', tone: 'success' },
   refunded: { label: 'Refunded', tone: 'info' },
   failed: { label: 'Failed', tone: 'danger' },
-  pending: { label: 'Pending (COD)', tone: 'warning' },
+  // Unpaid COD is the normal state, not a problem — never show "Pending" to customers.
+  pending: { label: 'Pay on Delivery', tone: 'info' },
 };
 
 export type DeliveryEta = { label: string; tone: 'success' | 'info' | 'primary'; caption?: string };
