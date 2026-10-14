@@ -31,6 +31,8 @@ services:
       N8N_ENABLED: ${N8N_ENABLED:-false}
       ABANDONED_CART_ENABLED: ${ABANDONED_CART_ENABLED:-true}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      # Ola Maps (geocoding / place search); falls back to OpenStreetMap when unset
+      OLA_MAPS_API_KEY: ${OLA_MAPS_API_KEY}
       # MinIO Storage Configuration
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-storage.chardeevari.in}
       MINIO_PORT: ${MINIO_PORT:-443}
