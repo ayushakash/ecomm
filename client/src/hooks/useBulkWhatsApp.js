@@ -9,8 +9,17 @@ export const useBulkWhatsApp = () => {
     refetchOnWindowFocus: false,
   });
 
-  // DB value takes priority, env is fallback
-  const number = data?.bulkOrderPhone || process.env.REACT_APP_BULK_WHATSAPP || '';
+  // DB value takes priority, env is fallback.
+  // wa.me requires full international format (no +). Admin-entered numbers are
+  // often bare 10-digit Indian mobiles — normalize: strip non-digits, prepend 91.
+  const raw = data?.bulkOrderPhone || process.env.REACT_APP_BULK_WHATSAPP || '';
+  const digits = String(raw).replace(/\D/g, '');
+  const number = digits.length === 10 ? `91${digits}` : digits;
+
+  // Call-to-order number (admin-configurable; falls back to WhatsApp number)
+  const callRaw = data?.callOrderPhone || raw;
+  const callDigits = String(callRaw).replace(/\D/g, '');
+  const callNumber = callDigits.length === 10 ? `91${callDigits}` : callDigits;
 
   const getWhatsAppLink = (product, quantity) => {
     if (!number) return null;
@@ -24,5 +33,16 @@ export const useBulkWhatsApp = () => {
     return `https://wa.me/${number}?text=${encodeURIComponent(msg)}`;
   };
 
-  return { number, getWhatsAppLink, getSimpleWhatsAppLink };
+  // Full-cart order link — used on the cart page so guests can order via
+  // WhatsApp without creating an account.
+  const getCartWhatsAppLink = (cartItems, totalAmount) => {
+    if (!number || !cartItems?.length) return null;
+    const lines = cartItems.map(i =>
+      `• ${i.name}${i.variantLabel ? ` (${i.variantLabel})` : ''} × ${i.quantity} — ₹${(i.price * i.quantity).toLocaleString('en-IN')}`
+    );
+    const msg = `Hi, I want to order from chardeevari.in:\n\n${lines.join('\n')}\n\nTotal: ₹${Number(totalAmount || 0).toLocaleString('en-IN')}\n\nPlease confirm availability and delivery.`;
+    return `https://wa.me/${number}?text=${encodeURIComponent(msg)}`;
+  };
+
+  return { number, callNumber, getWhatsAppLink, getSimpleWhatsAppLink, getCartWhatsAppLink };
 };

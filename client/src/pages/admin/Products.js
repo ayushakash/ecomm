@@ -623,13 +623,14 @@ const ProductModal = ({ formData, setFormData, categories, onSubmit, onClose, on
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Description</label>
+          <label className="block text-sm font-medium text-gray-700">Description <span className="text-red-500">*</span></label>
           <textarea
             name="description"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             rows="3"
+            required
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

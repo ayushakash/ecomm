@@ -148,6 +148,20 @@ const AppSettingsSchema = new mongoose.Schema({
     default: ''
   },
 
+  // Serviceable areas note — shown publicly in the site-wide announcement strip.
+  // Empty string hides the strip.
+  serviceAreasNote: {
+    type: String,
+    default: 'Kadru, Harmu, Ashok Nagar, Doranda'
+  },
+
+  // Click-to-call number — shown on product/cart "Call to Order" buttons.
+  // Falls back to bulkOrderPhone when empty.
+  callOrderPhone: {
+    type: String,
+    default: ''
+  },
+
 
   // GST Mode Configuration
   gstMode: {

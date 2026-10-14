@@ -99,6 +99,7 @@ export const merchantAPI = {
   getMerchantsByArea: (area) => api.get(`/api/merchants/area/${area}`),
   getMerchant: (id) => api.get(`/api/merchants/${id}`),
   updateMerchantStatus: (id, status) => api.put(`/api/merchants/${id}/status`, status),
+  updateMerchant: (id, data) => api.put(`/api/merchants/${id}`, data).then(res => res.data),
   updateProfile: (profileData) => api.put('/api/merchants/profile', profileData).then(res => res.data),
   getProfile: () => api.get('/api/merchants/profile/me').then(res => res.data),
   getMerchantsByProduct: (productId) => api.get(`/api/merchants/product/${productId}`).then(res => res.data),
@@ -142,6 +143,12 @@ export const orderAPI = {
   respondToOrder: (orderId, itemId, action) =>api.post('/api/orders/respond', { orderId, itemId, action }).then(res => res.data),
   rejectItem: (orderId, itemId) =>api.post(`/api/orders/${orderId}/items/${itemId}/reject`),
   getOrderLifecycle: (orderId) => api.get(`/api/orders/${orderId}/lifecycle`).then(res => res.data)
+};
+
+export const abandonedCartAPI = {
+  track: (cartItems, guestId) => api.post('/api/abandoned-carts/track', { cartItems, guestId }).then(res => res.data),
+  getAnalytics: (params) => api.get('/api/abandoned-carts/analytics', { params }).then(res => res.data),
+  getAll: (params) => api.get('/api/abandoned-carts/all', { params }).then(res => res.data)
 };
 
 export const settingsAPI = {

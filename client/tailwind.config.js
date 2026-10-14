@@ -70,10 +70,29 @@ module.exports = {
           700: '#b91c1c',
           800: '#991b1b',
           900: '#7f1d1d',
-        }
+        },
+        // Brand: Chardeevari Orange (redesign accent)
+        brand: {
+          50: '#FFF7EF',
+          100: '#FFF1E3',
+          200: '#F7D8B6',
+          300: '#FBBF77',
+          400: '#F7A65A',
+          500: '#F18C34',  // Main brand orange
+          600: '#E07A1F',
+          700: '#C76A12',
+        },
+        // Ink: Chardeevari Navy (redesign text/surfaces)
+        ink: {
+          500: '#2C3E54',
+          600: '#22303f',
+          700: '#1E2A3A',  // Main navy
+          800: '#161F2B',
+          900: '#0B1220',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',

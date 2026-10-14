@@ -13,6 +13,11 @@ const Merchants = () => {
 
   const [globalFilter, setGlobalFilter] = useState(""); // 🔎 search state
 
+  // Location-edit modal state
+  const emptyForm = { area: "", city: "", state: "", address: "", pincode: "" };
+  const [editingMerchant, setEditingMerchant] = useState(null); // merchant being edited (or null)
+  const [editForm, setEditForm] = useState(emptyForm);
+
   // Status update mutation
   const statusMutation = useMutation({
     mutationFn: ({ merchantId, status }) => merchantAPI.updateMerchantStatus(merchantId, { activeStatus: status }),
@@ -25,8 +30,37 @@ const Merchants = () => {
     }
   });
 
+  // Location update mutation (admin edits area/city/state so the right city shows in the header dropdown)
+  const editMutation = useMutation({
+    mutationFn: ({ merchantId, data }) => merchantAPI.updateMerchant(merchantId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["merchants"]);
+      toast.success("Merchant location updated successfully!");
+      setEditingMerchant(null);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Failed to update merchant");
+    }
+  });
+
   const handleStatusChange = (merchantId, status) => {
     statusMutation.mutate({ merchantId, status });
+  };
+
+  const openEdit = (merchant) => {
+    setEditingMerchant(merchant);
+    setEditForm({
+      area: merchant.area || "",
+      city: merchant.city || "",
+      state: merchant.state || "",
+      address: merchant.address || "",
+      pincode: merchant.pincode || "",
+    });
+  };
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    editMutation.mutate({ merchantId: editingMerchant._id, data: editForm });
   };
 
   // Define table columns for merchants
@@ -81,6 +115,12 @@ const Merchants = () => {
         header: "Actions",
         cell: ({ row }) => (
           <div className="flex space-x-2">
+            <button
+              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-full font-medium"
+              onClick={() => openEdit(row.original)}
+            >
+              Edit
+            </button>
             {row.original.activeStatus === 'pending' && (
               <>
                 <button
@@ -208,6 +248,12 @@ const Merchants = () => {
               {/* Actions */}
               <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
                 <div className="flex space-x-2">
+                  <button
+                    className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                    onClick={() => openEdit(merchant)}
+                  >
+                    Edit
+                  </button>
                   {merchant.activeStatus === 'pending' && (
                     <>
                       <button
@@ -246,6 +292,68 @@ const Merchants = () => {
           )}
         />
       </div>
+
+      {/* Edit location modal */}
+      {editingMerchant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <form onSubmit={handleEditSubmit}>
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="text-lg font-semibold text-gray-900">Edit Location</h2>
+                <p className="text-sm text-gray-500">{editingMerchant.name}</p>
+              </div>
+
+              <div className="px-5 py-4 space-y-4">
+                <p className="text-xs text-gray-500">
+                  City controls which entry appears in the header city dropdown.
+                </p>
+                {[
+                  { key: "city", label: "City" },
+                  { key: "state", label: "State" },
+                  { key: "area", label: "Area" },
+                  { key: "pincode", label: "Pincode" },
+                ].map((f) => (
+                  <div key={f.key}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                    <input
+                      type="text"
+                      value={editForm[f.key]}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <textarea
+                    rows={2}
+                    value={editForm.address}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, address: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="px-5 py-4 border-t border-gray-100 flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingMerchant(null)}
+                  className="px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editMutation.isPending}
+                  className="px-4 py-2 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {editMutation.isPending ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

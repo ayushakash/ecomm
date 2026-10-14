@@ -15,51 +15,52 @@ const isStandalone = () =>
 
 const InstallBanner = () => {
   const [show, setShow] = useState(false);
-  const [platform, setPlatform] = useState(null); // 'ios' | 'android' | null
+  const [platform, setPlatform] = useState(null); // 'ios' | 'android-native' | null
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   useEffect(() => {
     if (isStandalone() || !isMobile()) return;
 
+    // ── 2nd-session gate (do not remove — see GA report Jun 2026) ──────────
+    // Never pitch the PWA install during a visitor's FIRST session: first-time
+    // ad visitors were bouncing off landing interruptions before seeing any
+    // product. A "session" = one browser session (sessionStorage lifetime).
+    let sessions = parseInt(localStorage.getItem('pwa-session-count'), 10) || 0;
+    if (!sessionStorage.getItem('pwa-session-marked')) {
+      sessions += 1;
+      localStorage.setItem('pwa-session-count', String(sessions));
+      sessionStorage.setItem('pwa-session-marked', '1');
+    }
+    if (sessions < 2) return;
+
     const dismissed = localStorage.getItem('pwa-banner-dismissed');
     if (dismissed && Date.now() - parseInt(dismissed) < 24 * 60 * 60 * 1000) return;
 
     if (isIOS()) {
+      // iOS has no install API — manual instructions are the only path.
       setPlatform('ios');
-      setTimeout(() => setShow(true), 3000);
-      return;
+      const t = setTimeout(() => setShow(true), 3000);
+      return () => clearTimeout(t);
     }
 
     if (isAndroid()) {
-      // Try to capture Chrome's native prompt
+      // Android: show ONLY when Chrome hands us the native install prompt.
+      // (The old unconditional 5s "manual instructions" fallback was removed —
+      // it interrupted every visit even when installation wasn't possible.)
+      let t;
       const handler = (e) => {
         e.preventDefault();
         setDeferredPrompt(e);
         setPlatform('android-native');
-        setTimeout(() => setShow(true), 3000);
+        t = setTimeout(() => setShow(true), 3000);
       };
       window.addEventListener('beforeinstallprompt', handler);
-
-      // Fallback: if native prompt doesn't fire in 5s, show manual instructions
-      const fallback = setTimeout(() => {
-        setPlatform('android-manual');
-        setShow(true);
-      }, 5000);
-
       return () => {
         window.removeEventListener('beforeinstallprompt', handler);
-        clearTimeout(fallback);
+        clearTimeout(t);
       };
     }
   }, []);
-
-  // If native prompt was captured, cancel the fallback timer by hiding it
-  useEffect(() => {
-    if (platform === 'android-native') setShow(false);
-    if (deferredPrompt && platform === 'android-native') {
-      setTimeout(() => setShow(true), 3000);
-    }
-  }, [deferredPrompt, platform]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -116,20 +117,6 @@ const InstallBanner = () => {
           >
             Install App
           </button>
-        )}
-
-        {platform === 'android-manual' && (
-          <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-700 space-y-1.5">
-            <p className="font-semibold text-gray-800">Add to Android home screen:</p>
-            <div className="flex items-center gap-2">
-              <span className="bg-green-100 text-green-700 rounded-full w-5 h-5 flex items-center justify-center font-bold flex-shrink-0">1</span>
-              <span>Tap <strong>⋮</strong> (menu) in Chrome</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="bg-green-100 text-green-700 rounded-full w-5 h-5 flex items-center justify-center font-bold flex-shrink-0">2</span>
-              <span>Tap <strong>"Add to Home screen"</strong></span>
-            </div>
-          </div>
         )}
       </div>
     </div>

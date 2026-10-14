@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import analytics from '../../services/analytics';
 import SEO from '../../components/SEO/SEO';
 import { PageSpinner } from '../../components/ui/Spinner';
+import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -17,6 +18,7 @@ const ProductDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const { number: waNumber, callNumber } = useBulkWhatsApp();
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
@@ -109,10 +111,11 @@ const ProductDetail = () => {
     );
   }
 
-  // Generate dynamic SEO data
-  const productTitle = `Buy ${product.name} Online in Ranchi | ${product.category || 'Construction Material'} | Chardeevari`;
-  const productDescription = `${product.description?.substring(0, 150) || `Buy ${product.name} online in Ranchi, Jharkhand`}. Best price Rs ${product.price}. Premium quality ${product.category || 'construction material'} with doorstep delivery. ${product.totalStock > 0 ? 'In Stock' : 'Limited Stock'} - Order now at Chardeevari!`;
-  const productKeywords = `buy ${product.name} Ranchi, ${product.name} price Ranchi, ${product.category} suppliers Ranchi, ${product.name} online Jharkhand, ${product.category} dealers Ranchi, construction materials Ranchi, ${product.name} home delivery, buy ${product.category} online, Chardeevari ${product.category}`;
+  // Generate dynamic SEO data (category is a populated object — use its name)
+  const categoryName = product.category?.name || (typeof product.category === 'string' ? product.category : 'Construction Material');
+  const productTitle = `Buy ${product.name} Online in Ranchi | ${categoryName} | Chardeevari`;
+  const productDescription = `${product.description?.substring(0, 150) || `Buy ${product.name} online in Ranchi, Jharkhand`}. Best price Rs ${product.price}. Premium quality ${categoryName} with doorstep delivery. ${product.totalStock > 0 ? 'In Stock' : 'Limited Stock'} - Order now at Chardeevari!`;
+  const productKeywords = `buy ${product.name} Ranchi, ${product.name} price Ranchi, ${categoryName} suppliers Ranchi, ${product.name} online Jharkhand, ${categoryName} dealers Ranchi, construction materials Ranchi, ${product.name} home delivery, buy ${categoryName} online, Chardeevari ${categoryName}`;
 
   return (
     <div className="bg-gray-50">
@@ -307,10 +310,33 @@ const ProductDetail = () => {
                 </>
               ) : (
                 <>
+                  {product.mrp > activePrice && (
+                    <span className="text-sm text-gray-400 font-medium line-through">
+                      ₹{product.mrp.toLocaleString()}
+                    </span>
+                  )}
                   <span className="text-xl lg:text-2xl font-bold text-gray-900">₹{activePrice?.toLocaleString()}</span>
                   {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
+                  {product.mrp > activePrice && (
+                    <span className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                      {Math.round((1 - activePrice / product.mrp) * 100)}% OFF
+                    </span>
+                  )}
                 </>
               )}
+            </div>
+
+            {/* Trust badges */}
+            <div className="flex flex-wrap gap-2 text-xs font-semibold">
+              <span className="inline-flex items-center bg-green-50 text-green-700 px-2.5 py-1 rounded-full">
+                ⚡ Delivery in 60 min — Ranchi
+              </span>
+              <span className="inline-flex items-center bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
+                💵 Pay on Delivery
+              </span>
+              <span className="inline-flex items-center bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">
+                ✓ 100% genuine · GST billing
+              </span>
             </div>
 
             {/* Variant Size Picker */}
@@ -395,13 +421,13 @@ const ProductDetail = () => {
               {activeStock > 0 && (!hasVariants || selectedVariant) && (
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium text-gray-700">Qty</span>
-                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden h-11 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-400 transition-colors">
                     <button
                       onClick={decrementQuantity}
                       disabled={quantity <= 1}
-                      className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                      className="w-11 h-full shrink-0 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40 transition-colors"
                     >
-                      <MinusIcon className="h-4 w-4" />
+                      <MinusIcon className="h-5 w-5" />
                     </button>
                     <input
                       type="number"
@@ -409,14 +435,14 @@ const ProductDetail = () => {
                       max={activeStock}
                       value={quantity}
                       onChange={handleQuantityInput}
-                      className="w-12 text-center text-sm font-semibold border-x border-gray-300 py-2 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-20 h-full text-center text-base font-bold border-x border-gray-300 focus:outline-none caret-brand-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button
                       onClick={incrementQuantity}
                       disabled={quantity >= activeStock}
-                      className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                      className="w-11 h-full shrink-0 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40 transition-colors"
                     >
-                      <PlusIcon className="h-4 w-4" />
+                      <PlusIcon className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
@@ -439,6 +465,30 @@ const ProductDetail = () => {
                   Buy Now
                 </button>
               </div>
+
+              {/* WhatsApp + Call CTAs — customers buy via chat/phone; meet them there */}
+              {waNumber && (
+                <div className="flex gap-3">
+                  <a
+                    href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
+                      `Hi, I want to order:\n${product.name}${selectedVariant ? ` (${selectedVariant.label})` : ''} — ₹${activePrice?.toLocaleString() || ''}${product.unit ? `/${product.unit}` : ''}\nQty: ${quantity}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] hover:bg-[#1ebe5b] text-white rounded-xl text-sm font-semibold transition-colors"
+                  >
+                    Order on WhatsApp
+                  </a>
+                  <a
+                    href={`tel:+${callNumber || waNumber}`}
+                    onClick={() => { if (window.gtag) window.gtag('event', 'call_click', { page: 'product' }); }}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-[#25D366] text-[#1ebe5b] rounded-xl text-sm font-semibold hover:bg-green-50 transition-colors"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                    Call to Order
+                  </a>
+                </div>
+              )}
 
               {hasVariants && !selectedVariant && (
                 <p className="text-xs text-center text-amber-600 font-medium">

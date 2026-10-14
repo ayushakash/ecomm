@@ -118,13 +118,45 @@ const Home = () => {
         ]}
       />
       {/* Hero Banner */}
-      <div className="bg-primary-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="text-center">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2">Welcome to Chardeevari</h1>
-            <p className="text-gray-100 text-sm sm:text-base mb-6">Find the best construction materials from verified merchants</p>
-
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+        <div
+          className="relative overflow-hidden rounded-[22px] text-white px-5 py-6 sm:px-9 sm:py-9 shadow-[0_16px_30px_-16px_rgba(30,42,58,0.6)]"
+          style={{ background: 'radial-gradient(120% 140% at 85% 0%,#2C3E54 0%,#1E2A3A 55%)' }}
+        >
+          {/* orange glow */}
+          <div
+            className="pointer-events-none absolute -right-7 -top-7 w-40 h-40 rounded-full"
+            style={{ background: 'radial-gradient(circle,rgba(241,140,52,.32),transparent 70%)' }}
+          />
+          <div className="relative max-w-2xl">
+            <span className="inline-flex items-center gap-1.5 bg-brand-500/15 border border-brand-500/40 text-brand-300 text-[11px] font-bold px-2.5 py-1.5 rounded-full tracking-wide">
+              ★ Trusted since 2000 · Ranchi ka bharosa
+            </span>
+            <h1 className="mt-3 text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight">
+              Order Building Materials Online in <span className="text-brand-400">Ranchi</span>
+            </h1>
+            <p className="mt-2 text-sm sm:text-base text-[#B7C0CC] leading-relaxed">
+              Cement, TMT steel (sariya), sand, bricks &amp; aggregates — apne hi fleet se same-day delivery, ghar tak.
+            </p>
+            <div className="mt-3.5 inline-flex items-center gap-2 bg-success-400/15 border border-success-500/45 px-3 py-1.5 rounded-xl">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 13h11V6H3v7Zm11-4h4l3 3v2h-7V9Z" stroke="#4ADE80" strokeWidth="1.8" strokeLinejoin="round"/><circle cx="7" cy="17.5" r="2" stroke="#4ADE80" strokeWidth="1.8"/><circle cx="17.5" cy="17.5" r="2" stroke="#4ADE80" strokeWidth="1.8"/></svg>
+              <span className="text-xs font-bold text-success-300">⚡ 60-min delivery · Own fleet</span>
+            </div>
           </div>
+        </div>
+
+        {/* trust strip */}
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
+          {[
+            { v: '25+', a: 'Years in', b: 'business', c: 'text-ink-700' },
+            { v: 'On-time', a: 'Own-fleet', b: 'delivery', c: 'text-success-600' },
+            { v: '100%', a: 'Genuine', b: 'brands', c: 'text-ink-700' },
+          ].map((t) => (
+            <div key={t.v} className="bg-white border border-[#E7E9ED] rounded-2xl py-2.5 px-2 text-center">
+              <div className={`text-base sm:text-xl font-extrabold ${t.c}`}>{t.v}</div>
+              <div className="text-[10px] sm:text-xs font-semibold text-gray-500 leading-tight mt-0.5">{t.a}<br />{t.b}</div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -139,7 +171,7 @@ const Home = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search materials..."
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                className="w-full pl-12 pr-4 py-3 border border-[#E7E9ED] rounded-2xl focus:ring-2 focus:ring-brand-400 focus:border-brand-400 text-sm"
               />
               <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             </form>
@@ -148,10 +180,10 @@ const Home = () => {
             <div className="relative price-filter-container">
               <button
                 onClick={() => setShowPriceFilter(!showPriceFilter)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-semibold transition-colors whitespace-nowrap ${
                   (priceRange.min || priceRange.max)
-                    ? 'bg-primary-50 border border-primary-300 text-primary-700'
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'bg-brand-50 border border-brand-200 text-brand-600'
+                    : 'bg-white border border-[#E7E9ED] text-ink-700 hover:bg-gray-50'
                 }`}
               >
                 <FunnelIcon className="h-5 w-5" />
@@ -326,7 +358,7 @@ const Home = () => {
       <div className="bg-white border-b border-gray-200 py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900">Categories</h2>
+            <h2 className="text-lg font-extrabold text-ink-700 tracking-tight">Categories</h2>
             <div className="flex gap-2 md:hidden">
               <button
                 onClick={() => scrollCategories('left')}
@@ -353,10 +385,10 @@ const Home = () => {
               {/* All Products */}
               <button
                 onClick={() => handleCategoryChange('all')}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex-shrink-0 whitespace-nowrap ${
+                className={`px-4 py-2.5 rounded-full text-sm font-bold transition-all flex-shrink-0 whitespace-nowrap border ${
                   selectedCategory === 'all'
-                    ? 'bg-primary-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-ink-700 border-ink-700 text-white'
+                    : 'bg-white border-[#E7E9ED] text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 All Products
@@ -367,10 +399,10 @@ const Home = () => {
                 <button
                   key={category._id}
                   onClick={() => handleCategoryChange(category._id)}
-                  className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex-shrink-0 whitespace-nowrap ${
+                  className={`px-4 py-2.5 rounded-full text-sm font-bold transition-all flex-shrink-0 whitespace-nowrap border ${
                     selectedCategory === category._id
-                      ? 'bg-primary-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-ink-700 border-ink-700 text-white'
+                      : 'bg-white border-[#E7E9ED] text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   {category.name}
@@ -385,10 +417,10 @@ const Home = () => {
       {/* Results Summary */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            {selectedCategory === 'all' ? 'All Products' : categoriesData?.find(cat => cat._id === selectedCategory)?.name || 'Products'}
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-700 tracking-tight">
+            {selectedCategory === 'all' ? 'All Building Materials' : categoriesData?.find(cat => cat._id === selectedCategory)?.name || 'Products'}
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
             {productsData?.totalProducts || 0} products found
           </p>
         </div>

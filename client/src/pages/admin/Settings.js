@@ -40,7 +40,9 @@ const Settings = () => {
     autoReduceStockOnDelivery: true,
     minimumOrderValue: 100,
     platformFeeRate: 0.02,
-    bulkOrderPhone: ''
+    bulkOrderPhone: '',
+    callOrderPhone: '',
+    serviceAreasNote: ''
   });
 
 
@@ -148,6 +150,37 @@ const Settings = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <p className="text-xs text-gray-500 mt-1">With country code, no + or spaces. Shown on product pages for bulk enquiries.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Call-to-Order Phone Number
+                    </label>
+                    <input
+                      type="text"
+                      name="callOrderPhone"
+                      value={formData.callOrderPhone || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 9122867593 (empty = use WhatsApp number)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Used by the "Call to Order" buttons on product and cart pages. Leave empty to use the Bulk Order WhatsApp number.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Service Areas Note
+                    </label>
+                    <input
+                      type="text"
+                      name="serviceAreasNote"
+                      value={formData.serviceAreasNote || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Kadru, Harmu, Ashok Nagar, Doranda"
+                      maxLength={200}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Shown in the site-wide "Delivering in" strip. Leave empty to hide the strip.</p>
                   </div>
 
                   <div>

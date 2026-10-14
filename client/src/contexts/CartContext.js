@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { abandonedCartAPI } from '../services/api';
 
 const CartContext = createContext();
 
@@ -14,6 +15,16 @@ export const useCart = () => {
 // variant products: "productId_8mm", plain products: "productId"
 const buildCartKey = (productId, variantLabel) =>
   variantLabel ? `${productId}_${variantLabel}` : productId;
+
+// Stable anonymous id so guest carts can be tracked server-side
+const getGuestId = () => {
+  let id = localStorage.getItem('guestCartId');
+  if (!id) {
+    id = (crypto.randomUUID?.() || `g-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+    localStorage.setItem('guestCartId', id);
+  }
+  return id;
+};
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
@@ -49,6 +60,25 @@ export const CartProvider = ({ children }) => {
       }
     }
   }, [cart, cartCity, isInitialized]);
+
+  // Mirror cart to the server (abandoned-cart tracking) — debounced, silent.
+  // Logged-in users are identified by their token; guests by guestCartId.
+  const trackTimer = useRef(null);
+  useEffect(() => {
+    if (!isInitialized) return;
+    clearTimeout(trackTimer.current);
+    trackTimer.current = setTimeout(() => {
+      const items = cart.map(item => ({
+        productId: item._id,
+        productName: item.name,
+        variantLabel: item.variantLabel || undefined,
+        quantity: item.quantity,
+        price: item.price
+      }));
+      abandonedCartAPI.track(items, getGuestId()).catch(() => {});
+    }, 4000);
+    return () => clearTimeout(trackTimer.current);
+  }, [cart, isInitialized]);
 
   /**
    * Add a product to cart.

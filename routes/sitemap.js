@@ -16,6 +16,12 @@ const STATIC_PATHS = [
   { path: '/blog/cement-calculation-1000-sqft-ranchi', changefreq: 'monthly', priority: '0.7' },
   { path: '/blog/msand-vs-river-sand-jharkhand', changefreq: 'monthly', priority: '0.7' },
   { path: '/blog/best-tmt-bars-ranchi-2026', changefreq: 'monthly', priority: '0.7' },
+  // SEO landing pages — keep in sync with client App.js routes, reactSnap.include & landingConfig.js
+  { path: '/cement-price-ranchi', changefreq: 'weekly', priority: '0.8' },
+  { path: '/tmt-steel-price-ranchi', changefreq: 'weekly', priority: '0.8' },
+  { path: '/bricks-supplier-ranchi', changefreq: 'weekly', priority: '0.8' },
+  { path: '/sand-supplier-ranchi', changefreq: 'weekly', priority: '0.8' },
+  { path: '/construction-materials-ranchi', changefreq: 'weekly', priority: '0.8' },
 ];
 
 const xmlEscape = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
-import { merchantAPI } from '../../services/api';
+import { merchantAPI, settingsAPI } from '../../services/api';
 import {
   ShoppingCartIcon,
   UserIcon,
@@ -21,6 +21,14 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
   const [availableCities, setAvailableCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [serviceAreasNote, setServiceAreasNote] = useState('');
+
+  // Fetch public settings for the service-areas strip (silent on failure)
+  useEffect(() => {
+    settingsAPI.getPublic()
+      .then((data) => setServiceAreasNote(data.serviceAreasNote || ''))
+      .catch(() => {});
+  }, []);
 
   // Fetch available cities on component mount
   useEffect(() => {
@@ -383,6 +391,12 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
           </div>
         </div>
       </div>
+
+      {serviceAreasNote && (
+        <div className="bg-primary-600 text-white text-center text-xs sm:text-sm px-4 py-1.5">
+          🚚 Currently delivering in: <span className="font-semibold">{serviceAreasNote}</span>
+        </div>
+      )}
 
     </header>
   );

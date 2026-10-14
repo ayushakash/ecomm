@@ -171,7 +171,7 @@ const CitySelectorScreen = ({ fetchMerchantsByCity, requestLocationPermission })
 // ─── Main ProductList ─────────────────────────────────────────────────────────
 
 const ProductList = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const {
     selectedAddress, merchantIds,
     selectedCity, cityMerchantIds,
@@ -222,8 +222,10 @@ const ProductList = () => {
     }
   };
 
-  // Loading state
-  if (isLoadingMerchants) {
+  // Loading state — also covers the window while auth resolves and the guest
+  // default city (Ranchi — see DEFAULT_GUEST_CITY in LocationContext.js) is
+  // being applied. Guests must NEVER flash the city-picker wall on landing.
+  if (isLoadingMerchants || authLoading) {
     return (
       <div className="flex flex-col justify-center items-center py-16">
         <PageSpinner />
@@ -232,7 +234,9 @@ const ProductList = () => {
     );
   }
 
-  // Guest with no city selected — show inline city picker
+  // FALLBACK ONLY: guests normally have Ranchi auto-applied by LocationContext
+  // (DEFAULT_GUEST_CITY), so this picker appears only if that fetch failed or
+  // the user explicitly cleared their city. It must never be the landing UX.
   if (!user && !selectedCity) {
     return (
       <CitySelectorScreen

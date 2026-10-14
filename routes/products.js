@@ -159,6 +159,10 @@ router.post(
       }
     } catch (error) {
       console.error("Add product error:", error);
+      if (error.name === "ValidationError") {
+        const fields = Object.values(error.errors).map((e) => e.message).join("; ");
+        return res.status(400).json({ message: fields });
+      }
       res.status(500).json({ message: "Server error" });
     }
   }

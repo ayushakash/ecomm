@@ -1,10 +1,14 @@
 const mongoose = require('mongoose');
 
 const abandonedCartSchema = new mongoose.Schema({
+  // Either userId (logged-in) or guestId (anonymous visitor) identifies the cart
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    index: true
+  },
+  guestId: {
+    type: String,
     index: true
   },
   sessionId: String,
@@ -14,10 +18,11 @@ const abandonedCartSchema = new mongoose.Schema({
       ref: 'Product',
       required: true
     },
+    productName: String,
+    variantLabel: String,
     merchantId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
+      ref: 'User'
     },
     quantity: {
       type: Number,
@@ -76,6 +81,7 @@ const abandonedCartSchema = new mongoose.Schema({
 // Index for abandoned cart cleanup and notifications
 abandonedCartSchema.index({ lastActivity: 1 });
 abandonedCartSchema.index({ userId: 1, isConverted: 1 });
+abandonedCartSchema.index({ guestId: 1, isConverted: 1 });
 abandonedCartSchema.index({ createdAt: 1 });
 
 module.exports = mongoose.model('AbandonedCart', abandonedCartSchema);

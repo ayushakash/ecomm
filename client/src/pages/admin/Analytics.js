@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { orderAPI } from '../../services/api';
+import { orderAPI, abandonedCartAPI } from '../../services/api';
 import api from '../../services/api';
 import { ChartBarIcon, CurrencyRupeeIcon, ShoppingCartIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import {
@@ -67,6 +67,16 @@ const Analytics = () => {
   const { data: calculatorUsage } = useQuery({
     queryKey: ['calculator-usage', searchDays],
     queryFn: () => api.get(`/api/analytics/calculator-usage?days=${searchDays}`).then(res => res.data),
+  });
+
+  const { data: abandonedAnalytics } = useQuery({
+    queryKey: ['abandoned-analytics'],
+    queryFn: () => abandonedCartAPI.getAnalytics(),
+  });
+
+  const { data: abandonedCarts } = useQuery({
+    queryKey: ['abandoned-carts'],
+    queryFn: () => abandonedCartAPI.getAll({ limit: 10, isConverted: 'false' }),
   });
 
   console.log('Analytics:', analytics);
@@ -629,6 +639,74 @@ const Analytics = () => {
                 ))
               ) : (
                 <p className="text-gray-600 text-center py-8">No product view data available</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Abandoned Carts */}
+        <div className="mt-6 bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <ShoppingCartIcon className="h-5 w-5 text-orange-500" />
+            Abandoned Carts
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {abandonedAnalytics?.overview?.totalCarts || 0} carts tracked ·{' '}
+            {abandonedAnalytics?.overview?.convertedCarts || 0} converted ·{' '}
+            ₹{Math.round(abandonedAnalytics?.overview?.abandonedValue || 0).toLocaleString()} value sitting in carts
+          </p>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Most added products */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Most Added Products</h4>
+              {abandonedAnalytics?.topProducts?.length > 0 ? (
+                <div className="space-y-2">
+                  {abandonedAnalytics.topProducts.slice(0, 8).map((p) => (
+                    <div key={p._id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">{p.productName || 'Unknown product'}</span>
+                        <span className="text-xs text-gray-500 ml-2">{p.uniqueCustomers} customer{p.uniqueCustomers !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full text-xs font-semibold">
+                          {p.totalQuantity} added
+                        </span>
+                        <div className="text-xs text-gray-500 mt-0.5">₹{Math.round(p.totalValue).toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm py-4">No cart activity tracked yet</p>
+              )}
+            </div>
+
+            {/* Recent abandoned carts per customer */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Recent Abandoned Carts</h4>
+              {abandonedCarts?.carts?.length > 0 ? (
+                <div className="space-y-2">
+                  {abandonedCarts.carts.slice(0, 8).map((c) => (
+                    <div key={c._id} className="bg-gray-50 rounded-lg px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900">
+                          {c.userDetails?.name || c.userId?.name || 'Guest visitor'}
+                          {(c.userDetails?.phone || c.userId?.phone) && (
+                            <span className="text-xs text-gray-500 ml-2">{c.userDetails?.phone || c.userId?.phone}</span>
+                          )}
+                        </span>
+                        <span className="text-sm font-semibold text-gray-900">₹{Math.round(c.totalValue).toLocaleString()}</span>
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {(c.cartItems || []).map(i => `${i.productName || 'Item'}${i.variantLabel ? ` (${i.variantLabel})` : ''} ×${i.quantity}`).join(', ')}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">{new Date(c.lastActivity).toLocaleString('en-IN')}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm py-4">No abandoned carts yet</p>
               )}
             </div>
           </div>

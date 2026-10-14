@@ -19,6 +19,46 @@ const isSmtpConfigured = () =>
 const FROM = () =>
   `"Chardeevari" <${process.env.SMTP_USER || 'noreply@chardeevari.com'}>`;
 
+// ─── Diagnostics ─────────────────────────────────────────────────────────────
+
+/**
+ * Report which SMTP-related env vars are present, WITHOUT exposing secrets.
+ * Host/Port are optional (have defaults); USER/PASS are required.
+ * @returns {{ vars: Object, missing: string[], configured: boolean }}
+ */
+const checkEnv = () => {
+  const vars = {
+    SMTP_HOST: process.env.SMTP_HOST || '(default) smtp.gmail.com',
+    SMTP_PORT: process.env.SMTP_PORT || '(default) 587',
+    SMTP_USER: process.env.SMTP_USER || null,
+    SMTP_PASS: process.env.SMTP_PASS ? `set (${process.env.SMTP_PASS.length} chars)` : null,
+    ADMIN_EMAIL: process.env.ADMIN_EMAIL || process.env.SMTP_USER || null,
+  };
+  const missing = [];
+  if (!process.env.SMTP_USER) missing.push('SMTP_USER');
+  if (!process.env.SMTP_PASS) missing.push('SMTP_PASS');
+  return { vars, missing, configured: missing.length === 0 };
+};
+
+/**
+ * Verify SMTP credentials + connectivity WITHOUT sending an email.
+ * Uses nodemailer's transporter.verify() (opens connection + authenticates).
+ * @returns {{ success: boolean, error?: string, code?: string } & ReturnType<typeof checkEnv>}
+ */
+const verifyConnection = async () => {
+  const env = checkEnv();
+  if (!env.configured) {
+    return { success: false, error: `Missing env: ${env.missing.join(', ')}`, ...env };
+  }
+  try {
+    const transporter = createTransporter();
+    await transporter.verify();
+    return { success: true, ...env };
+  } catch (error) {
+    return { success: false, error: error.message, code: error.code, ...env };
+  }
+};
+
 // ─── Base send function ──────────────────────────────────────────────────────
 
 /**
@@ -268,6 +308,13 @@ const EmailService = {
    * Generic send — use this when none of the above templates fit
    */
   send,
+
+  /**
+   * Diagnostics — inspect env config and verify SMTP without sending.
+   */
+  checkEnv,
+  verifyConnection,
+  isSmtpConfigured,
 };
 
 module.exports = EmailService;

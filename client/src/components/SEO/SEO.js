@@ -3,14 +3,26 @@ import { Helmet } from 'react-helmet-async';
 
 // Configurable via env so OG images / canonical / JSON-LD point at the real site.
 const SITE_URL = (process.env.REACT_APP_SITE_URL || 'https://chardeevari.in').replace(/\/$/, '');
-const BUSINESS_PHONE = process.env.REACT_APP_BUSINESS_PHONE || ''; // e.g. +91-9XXXXXXXXX
+// Must match the Google Business Profile exactly (NAP consistency).
+const BUSINESS_PHONE = process.env.REACT_APP_BUSINESS_PHONE || '+91-6201176610';
+const BUSINESS_ADDRESS = {
+  '@type': 'PostalAddress',
+  streetAddress: 'New AG Co-operative Colony, Kadru',
+  addressLocality: 'Ranchi',
+  addressRegion: 'Jharkhand',
+  postalCode: '834002',
+  addressCountry: 'IN'
+};
 
 const SEO = ({
   title = 'Cheap Construction Materials in Ranchi - Cement, Steel, Sand, Bricks',
   description = 'Buy cheap construction materials online in Ranchi, Jharkhand. Lowest prices on cement, steel (TMT bars), sand, aggregates & bricks with doorstep delivery. Compare verified merchant prices & order online.',
   keywords = 'cheap cement in Ranchi, cheap steel in Ranchi, cheap construction material in Ranchi, cement price in Ranchi, TMT steel price Ranchi, sand price Ranchi, bricks Ranchi, building materials online Ranchi, construction materials Jharkhand',
   image = '/logo512.png',
-  url = typeof window !== 'undefined' ? window.location.href : SITE_URL,
+  // Canonical: always SITE_URL + path. Never window.location.href — it bakes the
+  // react-snap prerender origin (localhost:45678) into static HTML and lets
+  // query strings (?category=...) declare themselves canonical.
+  url = typeof window !== 'undefined' ? `${SITE_URL}${window.location.pathname}` : SITE_URL,
   type = 'website',
   noindex = false,
   product = null, // Product schema data
@@ -34,12 +46,7 @@ const SEO = ({
       url: siteUrl,
       logo: `${siteUrl}/logo512.png`,
       description: 'Leading construction materials supplier in Ranchi, Jharkhand',
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: 'Ranchi',
-        addressRegion: 'Jharkhand',
-        addressCountry: 'IN'
-      },
+      address: BUSINESS_ADDRESS,
       areaServed: {
         '@type': 'City',
         name: 'Ranchi'
@@ -56,13 +63,7 @@ const SEO = ({
       image: `${siteUrl}/logo512.png`,
       url: siteUrl,
       description: 'Buy cheap cement, steel, sand, aggregates and bricks online in Ranchi with doorstep delivery.',
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: 'Ranchi',
-        addressRegion: 'Jharkhand',
-        postalCode: '834001',
-        addressCountry: 'IN'
-      },
+      address: BUSINESS_ADDRESS,
       geo: {
         '@type': 'GeoCoordinates',
         latitude: 23.3441,
@@ -73,12 +74,21 @@ const SEO = ({
         name: 'Ranchi'
       },
       priceRange: '₹₹',
-      openingHoursSpecification: {
-        '@type': 'OpeningHoursSpecification',
-        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-        opens: '08:00',
-        closes: '19:00'
-      },
+      // Matches GBP hours: Mon–Sat 10:00–19:00, Sun 10:00–14:00
+      openingHoursSpecification: [
+        {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+          opens: '10:00',
+          closes: '19:00'
+        },
+        {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: 'Sunday',
+          opens: '10:00',
+          closes: '14:00'
+        }
+      ],
       ...(BUSINESS_PHONE && { telephone: BUSINESS_PHONE })
     });
 
@@ -190,7 +200,9 @@ const SEO = ({
   const structuredData = generateStructuredData();
 
   return (
-    <Helmet>
+    // defer={false}: apply head tags synchronously. The default rAF-deferred
+    // flush races react-snap's snapshot — pages randomly miss all SEO tags.
+    <Helmet defer={false}>
       {/* Basic Meta Tags */}
       <title>{fullTitle}</title>
       <meta name="description" content={description} />

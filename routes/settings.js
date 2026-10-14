@@ -8,12 +8,17 @@ const router = express.Router();
 
 /**
  * GET /api/settings/public
- * No auth — returns ONLY bulkOrderPhone from AppSettings, nothing else.
+ * No auth — returns ONLY public display fields from AppSettings, nothing else.
  */
 router.get('/public', async (req, res) => {
   try {
-    const settings = await AppSettings.findOne().select('bulkOrderPhone').lean();
-    res.json({ bulkOrderPhone: settings?.bulkOrderPhone || '' });
+    const settings = await AppSettings.findOne().select('bulkOrderPhone serviceAreasNote minimumOrderValue callOrderPhone').lean();
+    res.json({
+      bulkOrderPhone: settings?.bulkOrderPhone || '',
+      serviceAreasNote: settings?.serviceAreasNote || '',
+      minimumOrderValue: settings?.minimumOrderValue ?? 0,
+      callOrderPhone: settings?.callOrderPhone || ''
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -69,6 +74,8 @@ router.put('/', [
   body('deliveryFeeSplit.platformPercent').optional().isInt({ min: 0, max: 100 }).withMessage('Platform delivery percent must be 0-100'),
   body('applyGSTOnPlatformFee').optional().isBoolean().withMessage('applyGSTOnPlatformFee must be boolean'),
   body('bulkOrderPhone').optional().isString().trim().withMessage('bulkOrderPhone must be a string'),
+  body('callOrderPhone').optional().isString().trim().withMessage('callOrderPhone must be a string'),
+  body('serviceAreasNote').optional().isString().trim().isLength({ max: 200 }).withMessage('serviceAreasNote must be a string of max 200 chars'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

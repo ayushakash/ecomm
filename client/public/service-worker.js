@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chardeevari-v2';
+const CACHE_NAME = 'chardeevari-v3';
 const STATIC_ASSETS = ['/', '/manifest.json', '/logo.webp', '/logo192.png'];
 
 // Install - cache static assets
@@ -19,11 +19,15 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch - network first for API, cache first for static
+// Fetch strategy:
+// - API / non-GET / cross-origin: network only (never intercepted)
+// - Page navigations (HTML): NETWORK FIRST, cache fallback when offline.
+//   Cache-first here would pin users to a stale shell referencing old hashed
+//   bundles after a deploy, 404-ing lazy chunks until a second visit.
+// - Hashed static assets: cache first with background refresh.
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
 
-  // Always go to network for API calls, non-GET, or cross-origin
   if (
     url.includes('/api/') ||
     event.request.method !== 'GET' ||
@@ -32,17 +36,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(event.request).then((cached) => cached || caches.match('/'))
+        )
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      const networkFetch = fetch(event.request).then((response) => {
-        // Cache successful responses for static assets
-        if (response && response.status === 200 && response.type === 'basic') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      });
-      // Return cached immediately, update in background
+      const networkFetch = fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => cached); // offline: fall back to whatever we have
       return cached || networkFetch;
     })
   );

@@ -23,6 +23,7 @@ const productSchema = new mongoose.Schema({
 
   // ✅ Master catalog fields
   price: { type: Number, default: 0 }, // base/fallback price
+  mrp: { type: Number, default: 0, min: 0 }, // printed MRP for strikethrough display; 0 = hidden
   unit: {
     type: String,
     enum: ["kg", "ton", "bag", "piece", "cubic-meter", "sq-ft"],

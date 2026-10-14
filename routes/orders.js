@@ -4,7 +4,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Merchant = require('../models/Merchant');
 const Address = require('../models/Address');
-const { verifyToken, requireCustomer, requireMerchantOrAdmin, requireAdmin } = require('../middleware/auth');
+const { verifyToken, requireCustomer, requireMerchantOrAdmin, requireAdmin, optionalAuth } = require('../middleware/auth');
 const MerchantProduct = require('../models/MerchantProduct');
 const { getPricingCalculator } = require('../utils/pricingUtils');
 const OrderLogService = require('../services/OrderLogService');
@@ -20,9 +20,11 @@ const router = express.Router();
  * CALCULATE CART TOTALS (for checkout preview)
  * ---------------------------
  */
+// Guest-accessible: guests get the same settings-driven pricing as logged-in
+// customers (fixes guests seeing hardcoded +18% GST). addressId is honored
+// only for authenticated users to prevent address-ID probing.
 router.post('/calculate-cart-totals', [
-  verifyToken,
-  requireCustomer,
+  optionalAuth,
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.productId').isMongoId().withMessage('Valid product ID is required'),
   body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1')
@@ -38,7 +40,7 @@ router.post('/calculate-cart-totals', [
 
     // Get cityId from address for city-specific pricing
     let cityId = null;
-    if (addressId) {
+    if (addressId && req.user) {
       const address = await Address.findById(addressId);
       if (address && address.city) {
         const CityMaster = require('../models/CityMaster');
@@ -147,8 +149,8 @@ router.post('/calculate-cart-totals', [
 
     // Calculate totals
     const customerData = {
-      distance: req.user.distance || 0,
-      area: customerArea || req.user.area
+      distance: req.user?.distance || 0,
+      area: customerArea || req.user?.area
     };
 
     const totals = pricingCalculator.calculateOrderTotals(cartItems, customerData);

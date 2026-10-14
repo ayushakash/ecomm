@@ -20,9 +20,13 @@ ARG REACT_APP_MSG91_WIDGET_ID=356a61686571383330363834
 # Analytics / ad-tracking. CRA inlines these at build time, so they MUST be
 # present here — otherwise the deployed site loads no Pixel/GA at all (silent).
 # Pixel ID and GA ID are public client-side values, safe as defaults.
-ARG REACT_APP_META_PIXEL_ID=1004934193392142
+ARG REACT_APP_META_PIXEL_ID=1963793367623148
 ARG REACT_APP_GA_MEASUREMENT_ID=G-04CDWZJGE9
 ARG REACT_APP_ANALYTICS_ENABLED=true
+
+# Set to "false" to skip react-snap SEO prerendering for a much faster build.
+# Safe when the change does not affect public/SEO-indexed pages (e.g. admin-only work).
+ARG PRERENDER=true
 
 # Copy package files
 COPY package*.json ./
@@ -38,6 +42,7 @@ COPY . .
 ENV CI=false \
     GENERATE_SOURCEMAP=false \
     NODE_OPTIONS="--max-old-space-size=4096" \
+    PRERENDER=$PRERENDER \
     REACT_APP_API_URL=$REACT_APP_API_URL \
     REACT_APP_MSG91_AUTH_KEY=$REACT_APP_MSG91_AUTH_KEY \
     REACT_APP_MSG91_WIDGET_ID=$REACT_APP_MSG91_WIDGET_ID \

@@ -80,6 +80,15 @@ app.use('/api/webhooks', require('./routes/webhooks'));
 
 // MSG91 OTP Test routes
 
+// External price sync API (static API key)
+app.use('/api/price-sync', require('./routes/priceSync'));
+
+// Meta Commerce Catalog feed (public — polled by Meta Commerce Manager)
+app.use('/api/meta', require('./routes/metaCatalog'));
+
+// SEO: product Open Graph pages for link scrapers (WhatsApp/FB previews)
+app.use('/api/og', require('./routes/og'));
+
 // SEO: dynamic sitemap (must be before the SPA catch-all so it isn't swallowed)
 app.use('/', require('./routes/sitemap'));
 

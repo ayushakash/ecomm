@@ -9,6 +9,7 @@ import { CartProvider } from './contexts/CartContext';
 import { LocationProvider } from './contexts/LocationContext';
 import GoogleOneTap from './components/GoogleOneTap';
 import analytics from './services/analytics';
+import { LANDING_CONFIGS } from './pages/landing/landingConfig';
 
 // Layout Components (not lazy — needed immediately)
 import Layout from './components/layout/Layout';
@@ -29,6 +30,7 @@ const Contact = lazy(() => import('./pages/Contact'));
 const Calculator = lazy(() => import('./pages/Calculator'));
 const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
+const MaterialLanding = lazy(() => import('./pages/landing/MaterialLanding'));
 
 // Protected Pages — lazy loaded
 const Profile = lazy(() => import('./pages/profile/Profile'));
@@ -101,6 +103,12 @@ function AppRoutes() {
           <Route path="calculator" element={<Calculator />} />
           <Route path="blog" element={<Blog />} />
           <Route path="blog/:slug" element={<BlogPost />} />
+          {/* SEO landing pages — high-intent Ranchi material searches */}
+          <Route path="cement-price-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.cement} />} />
+          <Route path="tmt-steel-price-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.steel} />} />
+          <Route path="bricks-supplier-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.bricks} />} />
+          <Route path="sand-supplier-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.sand} />} />
+          <Route path="construction-materials-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.all} />} />
         </Route>
 
         <Route path="/pending-approval" element={<PendingApproval />} />

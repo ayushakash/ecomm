@@ -3,22 +3,30 @@ const NotificationService = require('./NotificationService');
 const notificationConfig = require('../config/notifications');
 
 class AbandonedCartService {
-  // Track cart activity
-  async trackCartActivity(userId, cartItems, userDetails) {
+  // Track cart activity. identity: { userId?, guestId? } — at least one set.
+  // When both are present (guest just logged in), the guest cart is claimed
+  // into the user's cart so markAsConverted(userId) finds it at order time.
+  async trackCartActivity({ userId, guestId }, cartItems, userDetails) {
     try {
+      const idClauses = [];
+      if (userId) idClauses.push({ userId });
+      if (guestId) idClauses.push({ guestId });
+      const query = { isConverted: false, $or: idClauses };
+
       if (!cartItems || cartItems.length === 0) {
-        // Remove abandoned cart if cart is empty
-        await AbandonedCart.deleteOne({ userId, isConverted: false });
+        // Remove abandoned cart(s) if cart is empty
+        await AbandonedCart.deleteMany(query);
         return null;
       }
 
       const totalValue = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-      // Find existing abandoned cart or create new one
-      let abandonedCart = await AbandonedCart.findOne({ 
-        userId, 
-        isConverted: false 
-      });
+      // Find existing abandoned cart (matches either identity); a guest cart
+      // found after login gets claimed so markAsConverted(userId) works later
+      let abandonedCart = await AbandonedCart.findOne(query);
+      if (abandonedCart && userId && !abandonedCart.userId) {
+        abandonedCart.userId = userId;
+      }
 
       if (abandonedCart) {
         // Update existing cart
@@ -28,11 +36,12 @@ class AbandonedCartService {
         }));
         abandonedCart.totalValue = totalValue;
         abandonedCart.lastActivity = new Date();
-        abandonedCart.userDetails = userDetails;
+        if (userDetails) abandonedCart.userDetails = userDetails;
       } else {
         // Create new abandoned cart
         abandonedCart = new AbandonedCart({
           userId,
+          guestId,
           cartItems: cartItems.map(item => ({
             ...item,
             addedAt: new Date()
@@ -45,9 +54,11 @@ class AbandonedCartService {
       }
 
       await abandonedCart.save();
-      
-      // Schedule notifications if not already scheduled
-      this.scheduleNotifications(abandonedCart._id);
+
+      // Schedule notifications only when we can actually reach the person
+      if (abandonedCart.userDetails?.phone || abandonedCart.userDetails?.email) {
+        this.scheduleNotifications(abandonedCart._id);
+      }
 
       return abandonedCart;
     } catch (error) {
@@ -301,6 +312,35 @@ class AbandonedCartService {
         }
       ]);
 
+      // Most-added products across abandoned carts (which items people cart most)
+      const topProducts = await AbandonedCart.aggregate([
+        { $match: matchFilter },
+        { $unwind: '$cartItems' },
+        {
+          $group: {
+            _id: '$cartItems.productId',
+            productName: { $last: '$cartItems.productName' },
+            timesAdded: { $sum: 1 },
+            totalQuantity: { $sum: '$cartItems.quantity' },
+            totalValue: { $sum: { $multiply: ['$cartItems.price', '$cartItems.quantity'] } },
+            uniqueCustomers: { $addToSet: { $ifNull: ['$userId', '$guestId'] } },
+            convertedCount: { $sum: { $cond: ['$isConverted', 1, 0] } }
+          }
+        },
+        {
+          $project: {
+            productName: 1,
+            timesAdded: 1,
+            totalQuantity: 1,
+            totalValue: 1,
+            convertedCount: 1,
+            uniqueCustomers: { $size: '$uniqueCustomers' }
+          }
+        },
+        { $sort: { timesAdded: -1 } },
+        { $limit: 20 }
+      ]);
+
       return {
         overview: {
           totalCarts,
@@ -311,7 +351,8 @@ class AbandonedCartService {
         },
         valueRanges: valueRangeAnalytics,
         timeline: timelineData,
-        notifications: notificationAnalytics
+        notifications: notificationAnalytics,
+        topProducts
       };
     } catch (error) {
       console.error('Error fetching abandoned cart analytics:', error);
