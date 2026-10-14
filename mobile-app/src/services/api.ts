@@ -166,6 +166,9 @@ export const userAPI = {
   getProfile: () => api.get<{ user: User }>('/users/profile').then((r) => r.data),
   updateProfile: (data: Partial<Pick<User, 'name' | 'email'>>) =>
     api.put<{ message: string; user: User }>('/users/profile', data, SILENT).then((r) => r.data),
+  /** Permanently delete the signed-in customer's account (409 when orders are in progress). */
+  deleteAccount: () =>
+    api.delete<{ success: boolean; message: string }>('/users/me', { ...SILENT, data: { confirm: 'DELETE' } }).then((r) => r.data),
 };
 
 // ─── Merchants (routes/merchants.js) ─────────────────────────────────────────

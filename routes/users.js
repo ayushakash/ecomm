@@ -2,6 +2,11 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Address = require('../models/Address');
+const Order = require('../models/Order');
+const AbandonedCart = require('../models/AbandonedCart');
+const OTP = require('../models/OTP');
+const Review = require('../models/Review');
+const Analytics = require('../models/Analytics');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -208,6 +213,62 @@ router.put('/:id/role', [
   } catch (error) {
     console.error('Update user role error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Orders still being fulfilled block deletion (merchant/rider needs the contact details).
+const OPEN_ORDER_STATUSES = ['pending', 'approved', 'assigned', 'processing', 'shipped'];
+
+// @route   DELETE /api/users/me
+// @desc    Customer deletes their own account (Play Store / privacy requirement).
+//          Personal data is erased: profile fields cleared + account disabled, saved
+//          addresses, carts, OTPs and reviews deleted. Order records are retained for
+//          GST/tax obligations but no longer linked to a usable account.
+// @access  Private (customers). Body: { confirm: "DELETE" }
+router.delete('/me', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'customer') {
+      return res.status(403).json({
+        message: 'Merchant and admin accounts cannot be deleted from the app. Please contact support.'
+      });
+    }
+    if (req.body?.confirm !== 'DELETE') {
+      return res.status(400).json({ message: 'Please confirm account deletion.' });
+    }
+
+    const userId = req.user._id;
+    const openOrders = await Order.countDocuments({ customerId: userId, orderStatus: { $in: OPEN_ORDER_STATUSES } });
+    if (openOrders > 0) {
+      return res.status(409).json({
+        code: 'OPEN_ORDERS',
+        openOrders,
+        message: `You have ${openOrders} order${openOrders > 1 ? 's' : ''} in progress. Please wait until delivered or cancel ${openOrders > 1 ? 'them' : 'it'} before deleting your account.`
+      });
+    }
+
+    const phone = req.user.phone;
+    await Promise.all([
+      Address.deleteMany({ user: userId }),
+      AbandonedCart.deleteMany({ userId }),
+      OTP.deleteMany(phone ? { $or: [{ userId }, { phone }] } : { userId }),
+      Review.deleteMany({ user: userId }),
+      Analytics.updateMany({ userId }, { $unset: { userId: 1 } })
+    ]);
+
+    // Anonymise rather than remove: orders reference customerId. Clearing phone/email/
+    // googleId frees them, so the same person can sign up again as a new customer.
+    await User.updateOne(
+      { _id: userId },
+      {
+        $set: { name: 'Deleted user', isActive: false, isPhoneVerified: false, deletedAt: new Date() },
+        $unset: { phone: 1, email: 1, googleId: 1, password: 1, refreshToken: 1, otp: 1, otpExpiry: 1 }
+      }
+    );
+
+    res.json({ success: true, message: 'Your account and personal data have been deleted.' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ message: 'Could not delete account. Please try again or contact support.' });
   }
 });
 

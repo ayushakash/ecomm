@@ -45,6 +45,8 @@ export interface AuthContextValue {
   /** Re-fetch /auth/me. */
   refreshUser(): Promise<void>;
   logout(): Promise<void>;
+  /** Delete the account server-side, then clear the local session. Error is returned, not toasted. */
+  deleteAccount(): Promise<AuthResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -273,6 +275,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await clearSession();
   }, [clearSession]);
 
+  const deleteAccount = useCallback<AuthContextValue['deleteAccount']>(async () => {
+    try {
+      await userAPI.deleteAccount();
+    } catch (error) {
+      return { success: false, error: getErrorMessage(error, 'Could not delete account. Please try again.') };
+    }
+    // Server already disabled the account and its tokens; only local state remains.
+    await googleSignOut();
+    await clearSession();
+    return { success: true };
+  }, [clearSession]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -290,6 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       refreshUser,
       logout,
+      deleteAccount,
     }),
     [
       user,
@@ -304,6 +319,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       refreshUser,
       logout,
+      deleteAccount,
     ],
   );
 

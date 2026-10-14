@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { addressAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import AddressFormModal from '../../components/modals/AddressFormModal';
+import DeleteAccountPanel from '../../components/account/DeleteAccountPanel';
 import {
   MapPinIcon,
   PlusIcon,
@@ -435,6 +436,8 @@ const Profile = () => {
             </div>
           )}
         </div>
+
+        {user?.role === 'customer' && <DeleteAccountPanel />}
 
       </div>
 

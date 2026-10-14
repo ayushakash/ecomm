@@ -124,6 +124,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Permanently delete the signed-in customer's account (DELETE /api/users/me).
+  // Returns { success } or { success: false, error, code } — 409 OPEN_ORDERS when orders are in progress.
+  const deleteAccount = async () => {
+    try {
+      await api.delete('/api/users/me', { data: { confirm: 'DELETE' } });
+    } catch (error) {
+      return {
+        success: false,
+        code: error.response?.data?.code,
+        error: error.response?.data?.message || 'Could not delete account. Please try again.',
+      };
+    }
+    // Server already disabled the account; clear the local session.
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    delete api.defaults.headers.common['Authorization'];
+    return { success: true };
+  };
+
   const refreshToken = async () => {
     try {
       const refreshTokenValue = localStorage.getItem('refreshToken');
@@ -310,6 +331,7 @@ export const AuthProvider = ({ children }) => {
     sendLinkPhoneOTP,
     setAuthData,
     logout,
+    deleteAccount,
     refreshToken,
     updateProfile,
     isAuthenticated: !!user,

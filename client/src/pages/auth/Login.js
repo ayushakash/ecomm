@@ -176,7 +176,7 @@ const Login = () => {
           if (userData.role === 'merchant') {
             navigate('/merchant');
           } else {
-            navigate('/');
+            navigate(from || '/');
           }
         }
       } else {

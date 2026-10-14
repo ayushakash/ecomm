@@ -57,6 +57,11 @@ const userSchema = new mongoose.Schema({
     enum: ['phone', 'google'],
     default: 'phone'
   },
+  // Set when the customer deletes their account (record is anonymised, not removed,
+  // so past orders/invoices keep a valid customerId).
+  deletedAt: {
+    type: Date
+  },
 }, {
   timestamps: true
 });

@@ -19,6 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { MainTabScreenProps } from '../../navigation/types';
 import { colors, radii, shadows, spacing, SCREEN_PADDING } from '../../theme';
 import { callPhone, openExternal } from '../../utils/whatsapp';
+import { DeleteAccountSheet } from './components/DeleteAccountSheet';
 import { VerifyChangeSheet } from './components/VerifyChangeSheet';
 
 /** Contact details from web pages/Contact.js. */
@@ -87,6 +88,7 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
   const [savingName, setSavingName] = useState(false);
   const [verifyKind, setVerifyKind] = useState<'phone' | 'email' | null>(null);
   const [contactSheet, setContactSheet] = useState(false);
+  const [deleteSheet, setDeleteSheet] = useState(false);
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
@@ -235,7 +237,14 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
 
         <MenuGroup items={shopItems} />
         <MenuGroup items={helpItems} />
-        {isAuthenticated && <MenuGroup items={[{ icon: 'log-out-outline', label: 'Log out', onPress: confirmLogout, danger: true }]} />}
+        {isAuthenticated && (
+          <MenuGroup
+            items={[
+              { icon: 'log-out-outline', label: 'Log out', onPress: confirmLogout, danger: true },
+              { icon: 'trash-outline', label: 'Delete account', onPress: () => setDeleteSheet(true), danger: true },
+            ]}
+          />
+        )}
 
         <Text variant="caption" color="textMuted" align="center">
           Chardeevari v{version}
@@ -257,6 +266,8 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
         sendOtp={verifyKind === 'phone' ? sendLinkPhoneOtp : sendChangeEmailOtp}
         verify={verifyKind === 'phone' ? linkPhone : verifyChangeEmail}
       />
+
+      <DeleteAccountSheet visible={deleteSheet} onClose={() => setDeleteSheet(false)} />
 
       <BottomSheet visible={contactSheet} onClose={() => setContactSheet(false)} title="Contact us" subtitle="We're here to help!">
         <View style={styles.contactList}>
