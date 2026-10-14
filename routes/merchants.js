@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Merchant = require('../models/Merchant');
 const User = require('../models/User');
-const { verifyToken, requireAdmin, requireMerchant, requireApprovedMerchant } = require('../middleware/auth');
+const { verifyToken, requireAdmin, requireMerchant, requireApprovedMerchant, optionalAuth } = require('../middleware/auth');
 const Product = require('../models/Product');
 const MerchantProduct = require('../models/MerchantProduct');
 const AppSettings = require('../models/AppSettings');
@@ -10,6 +10,11 @@ const { findNearbyMerchants, getCityQuery } = require('../utils/locationUtils');
 const mongoose = require('mongoose');
 
 const router = express.Router();
+
+// Never sent to anyone; admins additionally see contact/KYC/push fields.
+const SECRET_FIELDS = '-password -refreshToken -otp -otpExpiry';
+const PUBLIC_FIELDS = `${SECRET_FIELDS} -email -documents -deviceTokens -notificationSettings`;
+const merchantFieldsFor = (req) => (req.user?.role === 'admin' ? SECRET_FIELDS : PUBLIC_FIELDS);
 
 // @route   POST /api/merchants/onboard
 // @desc    Onboard a new merchant (legacy route - prefer /api/auth/register-merchant)
@@ -205,7 +210,7 @@ router.post('/nearby', [
 // @route   GET /api/merchants
 // @desc    Get all merchants with filtering (admin) or public filtered by city
 // @access  Private (Admin only) OR Public (when filtering by city with activeStatus=approved)
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { area, status, city, state, activeStatus, page = 1, limit = 100 } = req.query;
 
@@ -237,7 +242,7 @@ router.get('/', async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
-      .select('-password -refreshToken -otp -otpExpiry') // Exclude sensitive fields
+      .select(merchantFieldsFor(req))
       .exec();
 
     const total = await Merchant.countDocuments(filter);
@@ -257,14 +262,14 @@ router.get('/', async (req, res) => {
 // @route   GET /api/merchants/area/:area
 // @desc    Get merchants by area (public)
 // @access  Public
-router.get('/area/:area', async (req, res) => {
+router.get('/area/:area', optionalAuth, async (req, res) => {
   try {
     const { area } = req.params;
     
     const merchants = await Merchant.find({
       area: { $regex: area, $options: 'i' },
       activeStatus: 'approved'
-    });
+    }).select(merchantFieldsFor(req));
 
     res.json({ merchants });
   } catch (error) {

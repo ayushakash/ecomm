@@ -215,8 +215,19 @@ async function findNearbyMerchants(address, settings, Merchant) {
 
   // STEP 5: Calculate distance + working hours flag for each merchant
   let allMerchants = Array.from(merchantMap.values()).map(({ merchant, isNearby }) => {
-    // Nearby results come from aggregate() (plain objects); fallbacks from find() (documents)
-    const { distanceMeters, ...plain } = merchant.toObject ? merchant.toObject() : merchant;
+    // Nearby results come from aggregate() (plain objects); fallbacks from find() (documents).
+    // Both bypass Merchant#toJSON, so strip credentials/private data here — this feeds a public route.
+    const {
+      distanceMeters,
+      password,
+      refreshToken,
+      otp,
+      otpExpiry,
+      deviceTokens,
+      documents,
+      email,
+      ...plain
+    } = merchant.toObject ? merchant.toObject() : merchant;
     const merchantCoords = plain.location?.coordinates;
     let distance = null;
     if (latitude && longitude && merchantCoords && merchantCoords.length === 2) {
