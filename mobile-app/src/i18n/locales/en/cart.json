@@ -1,0 +1,58 @@
+{
+  "title": "Cart",
+  "itemCount_one": "{{count}} item",
+  "itemCount_other": "{{count}} items",
+  "clear": {
+    "title": "Clear cart?",
+    "message": "All items will be removed from your cart.",
+    "cancel": "Cancel",
+    "confirm": "Clear",
+    "button": "Clear cart"
+  },
+  "empty": {
+    "title": "Your cart is empty",
+    "message": "Discover quality construction materials and start building!",
+    "action": "Start shopping"
+  },
+  "cta": {
+    "minimum": "Minimum order: {{amount}}",
+    "login": "Login to checkout",
+    "proceed": "Proceed to checkout"
+  },
+  "addMore": "Add more items",
+  "swipeTip": "Tip: swipe an item left to remove it",
+  "billDetails": "Bill details",
+  "loginNotice": {
+    "title": "Login required",
+    "message": "Please login to proceed with checkout"
+  },
+  "minimumNotice": {
+    "title": "Minimum order required",
+    "message": "Add items worth {{remaining}} more to meet the minimum order value of {{minimum}}"
+  },
+  "whatsappOrder": "Order on WhatsApp — no login needed",
+  "callToOrder": "Call to order",
+  "callToOrderBulk": "Call to order — best rate for bulk",
+  "toPay": "To pay",
+  "subtotal": "Subtotal",
+  "lineItem": {
+    "remove": "Remove",
+    "openA11y": "Open {{name}}",
+    "removeA11y": "Remove {{name}}"
+  },
+  "bill": {
+    "freeDeliveryUnlocked": "Yay! You get free delivery on this order",
+    "freeDeliveryRemaining": "Add {{amount}} more for free delivery",
+    "subtotalItems_one": "Subtotal ({{count}} item)",
+    "subtotalItems_other": "Subtotal ({{count}} items)",
+    "total": "Total",
+    "updating": "Updating prices…",
+    "baseAmount": "Base amount",
+    "gst": "GST",
+    "gstIncluded": "GST (included)",
+    "delivery": "Delivery",
+    "free": "FREE",
+    "platformFee": "Platform fee",
+    "gstIncludedHint": "Prices shown are final (GST included)."
+  }
+}

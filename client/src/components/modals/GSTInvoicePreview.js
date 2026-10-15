@@ -1,7 +1,9 @@
 import React from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const GSTInvoicePreview = ({ show, onHide, order }) => {
+  const { t } = useTranslation('checkout');
   if (!show || !order) return null;
 
   const handleDownload = () => {
@@ -76,11 +78,12 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white">GST Tax Invoice</h2>
+            <h2 className="text-2xl font-bold text-white">{t('invoice.title')}</h2>
             <p className="text-blue-100 text-sm">#{order.orderNumber}</p>
           </div>
           <button
             onClick={onHide}
+            aria-label={t('invoice.close')}
             className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
           >
             <XMarkIcon className="w-6 h-6" />
@@ -93,51 +96,51 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
             {/* Company Header */}
             <div className="text-center border-b-4 border-gray-800 pb-6 mb-6">
               <h1 className="text-3xl font-bold text-blue-700 mb-2">CharDeevaari</h1>
-              <p className="text-gray-600">E-Commerce Platform for Building Materials</p>
+              <p className="text-gray-600">{t('invoice.tagline')}</p>
               <p className="text-sm text-gray-500 mt-2">
-                Address: Business Tower, Tech Park, Bangalore - 560001<br />
-                Email: support@chardeevari.in | Phone: +91-8069772324<br />
+                {t('invoice.addressLabel')}: Business Tower, Tech Park, Bangalore - 560001<br />
+                {t('invoice.emailLabel')}: support@chardeevari.in | {t('invoice.phoneLabel')}: +91-8069772324<br />
                 <span className="font-semibold">GSTIN: 29ABCDE1234F1Z5</span>
               </p>
             </div>
 
             {/* Invoice Title & Details */}
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">TAX INVOICE</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('invoice.taxInvoice')}</h2>
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <h3 className="font-bold text-gray-700 mb-2 text-sm uppercase">Invoice Details</h3>
+                  <h3 className="font-bold text-gray-700 mb-2 text-sm uppercase">{t('invoice.details')}</h3>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Invoice No:</span>
+                      <span className="text-gray-600">{t('invoice.number')}:</span>
                       <span className="font-semibold">{order.orderNumber}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Invoice Date:</span>
+                      <span className="text-gray-600">{t('invoice.date')}:</span>
                       <span className="font-semibold">{invoiceDate.toLocaleDateString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Payment Method:</span>
+                      <span className="text-gray-600">{t('invoice.paymentMethod')}:</span>
                       <span className="font-semibold">{order.paymentMethod?.toUpperCase() || 'COD'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Payment Status:</span>
-                      <span className="font-semibold">{!order.paymentStatus || order.paymentStatus === 'pending' ? 'PAY ON DELIVERY' : order.paymentStatus.toUpperCase()}</span>
+                      <span className="text-gray-600">{t('invoice.paymentStatus')}:</span>
+                      <span className="font-semibold">{!order.paymentStatus || order.paymentStatus === 'pending' ? t('invoice.payOnDelivery') : order.paymentStatus.toUpperCase()}</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-gray-700 mb-2 text-sm uppercase">Bill To</h3>
+                  <h3 className="font-bold text-gray-700 mb-2 text-sm uppercase">{t('invoice.billTo')}</h3>
                   <div className="text-sm">
                     <p className="font-bold text-gray-800">{deliveryAddress.fullName || order.customerName}</p>
                     <p className="text-gray-600">{deliveryAddress.addressLine1}</p>
                     {deliveryAddress.addressLine2 && <p className="text-gray-600">{deliveryAddress.addressLine2}</p>}
-                    {deliveryAddress.landmark && <p className="text-gray-600">Landmark: {deliveryAddress.landmark}</p>}
+                    {deliveryAddress.landmark && <p className="text-gray-600">{t('invoice.landmark')}: {deliveryAddress.landmark}</p>}
                     <p className="text-gray-600">{deliveryAddress.area}, {deliveryAddress.city}</p>
                     <p className="text-gray-600">{deliveryAddress.state} - {deliveryAddress.pincode}</p>
-                    <p className="text-gray-600 mt-2">Phone: {order.customerPhone}</p>
-                    {order.customerId?.email && <p className="text-gray-600">Email: {order.customerId.email}</p>}
+                    <p className="text-gray-600 mt-2">{t('invoice.phoneLabel')}: {order.customerPhone}</p>
+                    {order.customerId?.email && <p className="text-gray-600">{t('invoice.emailLabel')}: {order.customerId.email}</p>}
                   </div>
                 </div>
               </div>
@@ -148,13 +151,13 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
               <table className="w-full border border-gray-300">
                 <thead>
                   <tr className="bg-blue-700 text-white">
-                    <th className="border border-gray-300 px-4 py-3 text-left text-sm font-bold">S.No</th>
-                    <th className="border border-gray-300 px-4 py-3 text-left text-sm font-bold">Item Description</th>
+                    <th className="border border-gray-300 px-4 py-3 text-left text-sm font-bold">{t('invoice.table.sno')}</th>
+                    <th className="border border-gray-300 px-4 py-3 text-left text-sm font-bold">{t('invoice.table.description')}</th>
                     <th className="border border-gray-300 px-4 py-3 text-center text-sm font-bold">HSN/SAC</th>
-                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-bold">Qty</th>
-                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-bold">Unit</th>
-                    <th className="border border-gray-300 px-4 py-3 text-right text-sm font-bold">Rate (₹)</th>
-                    <th className="border border-gray-300 px-4 py-3 text-right text-sm font-bold">Amount (₹)</th>
+                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-bold">{t('invoice.table.qty')}</th>
+                    <th className="border border-gray-300 px-4 py-3 text-center text-sm font-bold">{t('invoice.table.unit')}</th>
+                    <th className="border border-gray-300 px-4 py-3 text-right text-sm font-bold">{t('invoice.table.rate')}</th>
+                    <th className="border border-gray-300 px-4 py-3 text-right text-sm font-bold">{t('invoice.table.amount')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,7 +185,7 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
               <div className="w-80">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between py-2 border-b border-gray-200">
-                    <span className="text-gray-600">Taxable Amount (Base):</span>
+                    <span className="text-gray-600">{t('invoice.taxableAmount')}:</span>
                     <span className="font-semibold">₹{gstBreakdown.taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
 
@@ -197,33 +200,33 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
                   </div>
 
                   <div className="flex justify-between py-2 border-b-2 border-gray-400">
-                    <span className="text-gray-700 font-medium">Subtotal (Inc. GST):</span>
+                    <span className="text-gray-700 font-medium">{t('invoice.subtotalIncGst')}:</span>
                     <span className="font-semibold">₹{gstBreakdown.subtotalInclusive.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
 
                   {order.deliveryCharge > 0 && (
                     <div className="flex justify-between py-2 border-b border-gray-200">
-                      <span className="text-gray-600">Delivery Charges:</span>
+                      <span className="text-gray-600">{t('invoice.deliveryCharges')}:</span>
                       <span className="font-semibold">₹{order.deliveryCharge.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   )}
 
                   {order.platformFee > 0 && (
                     <div className="flex justify-between py-2 border-b border-gray-200">
-                      <span className="text-gray-600">Platform Fee:</span>
+                      <span className="text-gray-600">{t('invoice.platformFee')}:</span>
                       <span className="font-semibold">₹{order.platformFee.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   )}
 
                   <div className="flex justify-between py-3 border-t-2 border-gray-800 mt-2">
-                    <span className="text-lg font-bold text-gray-800">Grand Total:</span>
+                    <span className="text-lg font-bold text-gray-800">{t('invoice.grandTotal')}:</span>
                     <span className="text-lg font-bold text-gray-800">₹{gstBreakdown.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
 
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-xs text-blue-800 font-semibold">
-                    Total Amount (In Words):
+                    {t('invoice.amountInWords')}:
                   </p>
                   <p className="text-sm text-blue-900 font-bold mt-1">
                     {numberToWords(Math.round(gstBreakdown.grandTotal))} Rupees Only
@@ -234,7 +237,7 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
 
             {/* Terms & Conditions */}
             <div className="border-t-2 border-gray-300 pt-6 mb-6">
-              <h3 className="font-bold text-gray-800 mb-3 text-sm">Terms & Conditions:</h3>
+              <h3 className="font-bold text-gray-800 mb-3 text-sm">{t('invoice.terms')}:</h3>
               <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
                 <li>Goods once sold will not be taken back or exchanged.</li>
                 <li>All disputes are subject to Bangalore jurisdiction only.</li>
@@ -247,14 +250,14 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
             {/* Signature Section */}
             <div className="flex justify-between items-end border-t-2 border-gray-300 pt-6">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Customer Signature</p>
+                <p className="text-sm text-gray-600 mb-1">{t('invoice.customerSignature')}</p>
                 <div className="border-t border-gray-400 w-48 mt-12"></div>
               </div>
               <div className="text-right">
-                <p className="font-bold text-gray-800 text-sm">For CharDeevaari</p>
+                <p className="font-bold text-gray-800 text-sm">{t('invoice.forCompany')}</p>
                 <div className="mt-12">
                   <div className="border-t border-gray-400 w-48 inline-block"></div>
-                  <p className="text-xs text-gray-600 mt-1">Authorized Signatory</p>
+                  <p className="text-xs text-gray-600 mt-1">{t('invoice.authorizedSignatory')}</p>
                 </div>
               </div>
             </div>
@@ -262,10 +265,10 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
             {/* Footer */}
             <div className="text-center mt-8 pt-6 border-t border-gray-200">
               <p className="text-xs text-gray-500">
-                This is a computer-generated invoice. For any queries, please contact our support team.
+                {t('invoice.footer')}
               </p>
               <p className="text-xs text-gray-400 mt-2">
-                Generated on: {new Date().toLocaleString('en-IN')}
+                {t('invoice.generatedOn')}: {new Date().toLocaleString('en-IN')}
               </p>
             </div>
           </div>
@@ -278,7 +281,7 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
               onClick={onHide}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
             >
-              Close
+              {t('invoice.close')}
             </button>
             <button
               onClick={handleDownload}
@@ -287,7 +290,7 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Download / Print Invoice
+              {t('invoice.download')}
             </button>
           </div>
         </div>

@@ -17,8 +17,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO/SEO';
 import { useBulkWhatsApp } from '../hooks/useBulkWhatsApp';
+import { useTranslation } from 'react-i18next';
 
 const Home = () => {
+  const { t } = useTranslation('home');
   const { user } = useAuth();
   const { number: bulkPhone } = useBulkWhatsApp();
   const { selectedAddress, merchantIds, isLoadingMerchants, locationInfo, selectedCity, cityMerchantIds, addresses, setSelectedAddress, requestLocationPermission } = useLocation();
@@ -130,17 +132,17 @@ const Home = () => {
           />
           <div className="relative max-w-2xl">
             <span className="inline-flex items-center gap-1.5 bg-brand-500/15 border border-brand-500/40 text-brand-300 text-[11px] font-bold px-2.5 py-1.5 rounded-full tracking-wide">
-              ★ Trusted since 2000 · Ranchi ka bharosa
+              {t('hero.badge')}
             </span>
             <h1 className="mt-3 text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight">
-              Order Building Materials Online in <span className="text-brand-400">Ranchi</span>
+              {t('hero.titlePrefix')}<span className="text-brand-400">{t('hero.titleCity')}</span>{t('hero.titleSuffix')}
             </h1>
             <p className="mt-2 text-sm sm:text-base text-[#B7C0CC] leading-relaxed">
-              Cement, TMT steel (sariya), sand, bricks &amp; aggregates — apne hi fleet se same-day delivery, ghar tak.
+              {t('hero.subtitle')}
             </p>
             <div className="mt-3.5 inline-flex items-center gap-2 bg-success-400/15 border border-success-500/45 px-3 py-1.5 rounded-xl">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 13h11V6H3v7Zm11-4h4l3 3v2h-7V9Z" stroke="#4ADE80" strokeWidth="1.8" strokeLinejoin="round"/><circle cx="7" cy="17.5" r="2" stroke="#4ADE80" strokeWidth="1.8"/><circle cx="17.5" cy="17.5" r="2" stroke="#4ADE80" strokeWidth="1.8"/></svg>
-              <span className="text-xs font-bold text-success-300">⚡ 60-min delivery · Own fleet</span>
+              <span className="text-xs font-bold text-success-300">{t('hero.fastDelivery')}</span>
             </div>
           </div>
         </div>
@@ -148,13 +150,13 @@ const Home = () => {
         {/* trust strip */}
         <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
           {[
-            { v: '25+', a: 'Years in', b: 'business', c: 'text-ink-700' },
-            { v: 'On-time', a: 'Own-fleet', b: 'delivery', c: 'text-success-600' },
-            { v: '100%', a: 'Genuine', b: 'brands', c: 'text-ink-700' },
-          ].map((t) => (
-            <div key={t.v} className="bg-white border border-[#E7E9ED] rounded-2xl py-2.5 px-2 text-center">
-              <div className={`text-base sm:text-xl font-extrabold ${t.c}`}>{t.v}</div>
-              <div className="text-[10px] sm:text-xs font-semibold text-gray-500 leading-tight mt-0.5">{t.a}<br />{t.b}</div>
+            { id: 'years', c: 'text-ink-700' },
+            { id: 'onTime', c: 'text-success-600' },
+            { id: 'genuine', c: 'text-ink-700' },
+          ].map((s) => (
+            <div key={s.id} className="bg-white border border-[#E7E9ED] rounded-2xl py-2.5 px-2 text-center">
+              <div className={`text-base sm:text-xl font-extrabold ${s.c}`}>{t(`trust.${s.id}.value`)}</div>
+              <div className="text-[10px] sm:text-xs font-semibold text-gray-500 leading-tight mt-0.5">{t(`trust.${s.id}.line1`)}<br />{t(`trust.${s.id}.line2`)}</div>
             </div>
           ))}
         </div>
@@ -170,7 +172,7 @@ const Home = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search materials..."
+                placeholder={t('search.placeholder')}
                 className="w-full pl-12 pr-4 py-3 border border-[#E7E9ED] rounded-2xl focus:ring-2 focus:ring-brand-400 focus:border-brand-400 text-sm"
               />
               <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -187,7 +189,7 @@ const Home = () => {
                 }`}
               >
                 <FunnelIcon className="h-5 w-5" />
-                <span className="hidden sm:inline">Filter</span>
+                <span className="hidden sm:inline">{t('filter.button')}</span>
                 {(priceRange.min || priceRange.max) && (
                   <span className="hidden sm:inline bg-primary-100 text-primary-800 px-2 py-0.5 rounded text-xs">
                     ₹{priceRange.min || '0'} - ₹{priceRange.max || '∞'}
@@ -197,18 +199,18 @@ const Home = () => {
 
               {showPriceFilter && (
                 <div className="absolute top-full right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-10 min-w-[320px]">
-                  <h4 className="font-medium text-gray-900 mb-3">Price Range</h4>
+                  <h4 className="font-medium text-gray-900 mb-3">{t('filter.priceRange')}</h4>
 
                   {/* Preset Price Ranges */}
                   <div className="grid grid-cols-2 gap-2 mb-4">
                     {[
-                      { label: 'Under ₹500', min: '', max: '500' },
-                      { label: '₹500 - ₹1000', min: '500', max: '1000' },
-                      { label: '₹1000 - ₹5000', min: '1000', max: '5000' },
-                      { label: 'Above ₹5000', min: '5000', max: '' }
+                      { id: 'under500', min: '', max: '500' },
+                      { id: 'r500to1000', min: '500', max: '1000' },
+                      { id: 'r1000to5000', min: '1000', max: '5000' },
+                      { id: 'above5000', min: '5000', max: '' }
                     ].map((preset) => (
                       <button
-                        key={preset.label}
+                        key={preset.id}
                         onClick={() => setPriceRange({ min: preset.min, max: preset.max })}
                         className={`px-3 py-2 text-xs border rounded-lg transition-colors ${
                           priceRange.min === preset.min && priceRange.max === preset.max
@@ -216,7 +218,7 @@ const Home = () => {
                             : 'border-gray-300 hover:bg-gray-50'
                         }`}
                       >
-                        {preset.label}
+                        {t(`filter.presets.${preset.id}`)}
                       </button>
                     ))}
                   </div>
@@ -224,7 +226,7 @@ const Home = () => {
                   {/* Custom Range Inputs */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">Min</label>
+                      <label className="block text-xs text-gray-600 mb-1">{t('filter.min')}</label>
                       <input
                         type="number"
                         placeholder="0"
@@ -235,7 +237,7 @@ const Home = () => {
                     </div>
                     <div className="text-gray-500 mt-6">-</div>
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-600 mb-1">Max</label>
+                      <label className="block text-xs text-gray-600 mb-1">{t('filter.max')}</label>
                       <input
                         type="number"
                         placeholder="∞"
@@ -255,13 +257,13 @@ const Home = () => {
                       }}
                       className="flex-1 px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
                     >
-                      Clear
+                      {t('filter.clear')}
                     </button>
                     <button
                       onClick={() => setShowPriceFilter(false)}
                       className="flex-1 px-3 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                     >
-                      Apply
+                      {t('filter.apply')}
                     </button>
                   </div>
                 </div>
@@ -282,8 +284,8 @@ const Home = () => {
                   <MapPinIcon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold text-white text-base leading-tight">Select Your Delivery Location</p>
-                  <p className="text-sm text-primary-100 mt-0.5">Add an address to see products available in your area</p>
+                  <p className="font-semibold text-white text-base leading-tight">{t('location.selectTitle')}</p>
+                  <p className="text-sm text-primary-100 mt-0.5">{t('location.selectSubtitle')}</p>
                 </div>
               </div>
 
@@ -299,16 +301,16 @@ const Home = () => {
                   className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2.5 rounded-xl transition-all text-sm font-medium whitespace-nowrap disabled:opacity-60 backdrop-blur-sm"
                 >
                   {detectingLocation ? (
-                    <><ArrowPathIcon className="h-4 w-4 animate-spin" /> Detecting...</>
+                    <><ArrowPathIcon className="h-4 w-4 animate-spin" /> {t('location.detecting')}</>
                   ) : (
-                    <><ArrowPathIcon className="h-4 w-4" /> Use Current Location</>
+                    <><ArrowPathIcon className="h-4 w-4" /> {t('location.useCurrent')}</>
                   )}
                 </button>
                 <Link
                   to="/profile/addresses"
                   className="flex-1 sm:flex-none flex items-center justify-center bg-white text-primary-700 font-semibold px-4 py-2.5 rounded-xl hover:bg-primary-50 transition-all text-sm whitespace-nowrap shadow-md hover:shadow-lg"
                 >
-                  Add Address
+                  {t('location.addAddress')}
                 </Link>
               </div>
             </div>
@@ -326,10 +328,10 @@ const Home = () => {
                   <MapPinIcon className="w-6 h-6 text-yellow-600 mr-3 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-yellow-900">
-                      No Merchants Available in {selectedAddress.area}, {selectedAddress.city}
+                      {t('location.noMerchantsIn', { area: selectedAddress.area, city: selectedAddress.city })}
                     </p>
                     <p className="text-xs text-yellow-700">
-                      Try selecting a different delivery address or check back later
+                      {t('location.noMerchantsHint')}
                     </p>
                   </div>
                 </div>
@@ -338,14 +340,14 @@ const Home = () => {
                     onClick={() => setShowAddressModal(true)}
                     className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium whitespace-nowrap"
                   >
-                    Change Address
+                    {t('location.changeAddress')}
                   </button>
                 ) : (
                   <Link
                     to="/profile/addresses"
                     className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium whitespace-nowrap"
                   >
-                    Add New Address
+                    {t('location.addNewAddress')}
                   </Link>
                 )}
               </div>
@@ -358,7 +360,7 @@ const Home = () => {
       <div className="bg-white border-b border-gray-200 py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-extrabold text-ink-700 tracking-tight">Categories</h2>
+            <h2 className="text-lg font-extrabold text-ink-700 tracking-tight">{t('categories.title')}</h2>
             <div className="flex gap-2 md:hidden">
               <button
                 onClick={() => scrollCategories('left')}
@@ -391,7 +393,7 @@ const Home = () => {
                     : 'bg-white border-[#E7E9ED] text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                All Products
+                {t('categories.all')}
               </button>
 
               {/* Category Buttons */}
@@ -418,10 +420,10 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-ink-700 tracking-tight">
-            {selectedCategory === 'all' ? 'All Building Materials' : categoriesData?.find(cat => cat._id === selectedCategory)?.name || 'Products'}
+            {selectedCategory === 'all' ? t('results.allMaterials') : categoriesData?.find(cat => cat._id === selectedCategory)?.name || t('results.products')}
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            {productsData?.totalProducts || 0} products found
+            {t('results.found', { count: productsData?.totalProducts || 0 })}
           </p>
         </div>
       </div>
@@ -438,10 +440,10 @@ const Home = () => {
               <MapPinIcon className="w-12 h-12 text-orange-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No merchants in {selectedAddress?.city || selectedCity?.city} yet
+              {t('empty.noMerchantsTitle', { city: selectedAddress?.city || selectedCity?.city })}
             </h3>
             <p className="text-gray-500 mb-8 max-w-sm mx-auto text-sm">
-              We're expanding to new areas soon. Try a different location or check back later.
+              {t('empty.noMerchantsText')}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               {user ? (
@@ -450,7 +452,7 @@ const Home = () => {
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
                 >
                   <MapPinIcon className="w-4 h-4" />
-                  Try a Different Address
+                  {t('empty.tryAddress')}
                 </Link>
               ) : (
                 <button
@@ -458,7 +460,7 @@ const Home = () => {
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
                 >
                   <MapPinIcon className="w-4 h-4" />
-                  Select a Different City
+                  {t('empty.selectCity')}
                 </button>
               )}
             </div>
@@ -468,9 +470,9 @@ const Home = () => {
             <div className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
               <span className="text-gray-400 text-3xl">🔍</span>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('empty.noProductsTitle')}</h3>
             <p className="text-gray-600 mb-6">
-              No products available in this category
+              {t('empty.noProductsText')}
             </p>
           </div>
         ) : (
@@ -514,7 +516,7 @@ const Home = () => {
             {/* Modal Header */}
             <div className="bg-primary-700 px-6 py-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Select Delivery Address</h2>
+                <h2 className="text-xl font-bold text-white">{t('addressModal.title')}</h2>
                 <button
                   onClick={() => setShowAddressModal(false)}
                   className="text-white hover:text-gray-200 transition-colors"
@@ -525,7 +527,7 @@ const Home = () => {
                 </button>
               </div>
               <p className="text-gray-100 text-sm mt-1">
-                Choose an address to see available merchants and products
+                {t('addressModal.subtitle')}
               </p>
             </div>
 
@@ -548,7 +550,7 @@ const Home = () => {
                           <span className="text-base font-semibold text-gray-900">{address.title}</span>
                           {address.isDefault && (
                             <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-medium">
-                              Default
+                              {t('addressModal.default')}
                             </span>
                           )}
                         </div>
@@ -579,13 +581,13 @@ const Home = () => {
                 {addresses.length <= 1 && (
                   <div className="text-center py-8">
                     <MapPinIcon className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600 mb-4">You don't have any other saved addresses</p>
+                    <p className="text-gray-600 mb-4">{t('addressModal.noOther')}</p>
                     <Link
                       to="/profile/addresses"
                       className="inline-block bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
                       onClick={() => setShowAddressModal(false)}
                     >
-                      Add New Address
+                      {t('location.addNewAddress')}
                     </Link>
                   </div>
                 )}
@@ -600,13 +602,13 @@ const Home = () => {
                   className="text-primary-600 hover:text-primary-700 text-sm font-medium"
                   onClick={() => setShowAddressModal(false)}
                 >
-                  Manage Addresses
+                  {t('addressModal.manage')}
                 </Link>
                 <button
                   onClick={() => setShowAddressModal(false)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
                 >
-                  Cancel
+                  {t('addressModal.cancel')}
                 </button>
               </div>
             </div>
@@ -617,7 +619,7 @@ const Home = () => {
       {/* Floating WhatsApp Bulk Order Button */}
       {bulkPhone && (
         <a
-          href={`https://wa.me/${bulkPhone}?text=${encodeURIComponent('Hi, I want to place a bulk order for construction materials.\nPlease share the pricing and availability.')}`}
+          href={`https://wa.me/${bulkPhone}?text=${encodeURIComponent(t('bulk.whatsappMessage'))}`}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-20 md:bottom-6 right-6 z-50 flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white pl-4 pr-5 py-3 rounded-full shadow-xl transition-all duration-200 hover:shadow-2xl hover:scale-105"
@@ -625,7 +627,7 @@ const Home = () => {
           <svg className="w-5 h-5 fill-current flex-shrink-0" viewBox="0 0 24 24">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
           </svg>
-          <span className="text-sm font-semibold">Bulk Order</span>
+          <span className="text-sm font-semibold">{t('bulk.button')}</span>
         </a>
       )}
     </div>

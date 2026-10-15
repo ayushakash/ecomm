@@ -1,0 +1,146 @@
+{
+  "header": {
+    "title": "मटीरियल कैलकुलेटर",
+    "subtitle": "सीमेंट, सरिया, बालू और ईंट का अनुमान"
+  },
+  "materials": {
+    "cement": "सीमेंट",
+    "steel": "सरिया",
+    "steelTmt": "सरिया (TMT)",
+    "steelOrder": "सरिया (TMT)",
+    "sand": "बालू",
+    "sandMSand": "बालू (M-Sand)",
+    "aggregate": "गिट्टी",
+    "aggregate20mm": "गिट्टी (20mm)",
+    "bricks": "ईंट"
+  },
+  "units": {
+    "brick": "ईंट"
+  },
+  "pricing": {
+    "detectingCity": "शहर पता कर रहे हैं…",
+    "noCities": "कोई शहर नहीं",
+    "livePrices": "लाइव कीमत",
+    "estPrices": "अनुमानित कीमत",
+    "modeMarket": "बाज़ार कीमत",
+    "modeCustom": "अपनी कीमत"
+  },
+  "form": {
+    "lengthBreadth": "लंबाई और चौड़ाई",
+    "length": "लंबाई (ft)",
+    "breadth": "चौड़ाई (ft)",
+    "examplePlaceholder": "जैसे {{value}}",
+    "or": "या",
+    "area": "कुल बिल्ट-अप एरिया (sq.ft)",
+    "floors": "कितनी मंज़िल",
+    "floorsHint": "10 तक",
+    "includeFooting": "फुटिंग जोड़ें",
+    "includeFootingHint": "हर कॉलम के लिए नींव का मटीरियल जोड़ता है",
+    "materialPrices": "मटीरियल की कीमत",
+    "priceLabel": "{{name}} (₹/{{unit}})",
+    "calculate": "मटीरियल का हिसाब करें",
+    "recalculate": "फिर से हिसाब करें"
+  },
+  "results": {
+    "layoutTitle": "लेआउट नक्शा",
+    "estimatesTitle": "मटीरियल का अनुमान",
+    "dimensions": "नाप",
+    "area": "एरिया",
+    "floors": "मंज़िल",
+    "columns": "कॉलम",
+    "dimensionsValue": "{{length}} × {{breadth}} ft",
+    "areaValue": "{{area}} sq.ft",
+    "assumedSquare": "एरिया से चौकोर नक्शा माना गया है",
+    "structureTitle": "ढांचे का मटीरियल",
+    "structureSubtotal": "ढांचे का जोड़",
+    "foundationTitle": "नींव का मटीरियल",
+    "foundationSubtotal": "नींव का जोड़",
+    "totalCost": "कुल अनुमानित खर्च",
+    "downloadReport": "रिपोर्ट डाउनलोड करें",
+    "noteLabel": "ध्यान दें:",
+    "noteBody": "ये लगभग अनुमान हैं। असल ज़रूरत डिज़ाइन, बर्बादी और साइट की हालत के हिसाब से बदल सकती है। दिखाई गई कीमत {{city}} बाज़ार के हिसाब से अंदाज़न है।",
+    "localMarket": "लोकल"
+  },
+  "cta": {
+    "title": "कंस्ट्रक्शन मटीरियल खरीदना है?",
+    "subtitle": "अच्छा मटीरियल सीधे आपकी साइट पर डिलीवरी",
+    "subtitleCity": "{{city}} में अच्छा मटीरियल सीधे आपकी साइट पर डिलीवरी",
+    "ordering": "कार्ट में डाल रहे हैं…",
+    "order": "ये मटीरियल ऑर्डर करें",
+    "browse": "प्रोडक्ट देखें",
+    "reviewHint": "मात्रा आपके हिसाब से अनुमानित है — चेकआउट से पहले कार्ट में जांच लें।"
+  },
+  "toasts": {
+    "noLivePrices": "{{city}} के लिए लाइव कीमत नहीं मिली",
+    "usingStandardRates": "स्टैंडर्ड रेट लगा रहे हैं।",
+    "someStandardRates": "कुछ कीमतें स्टैंडर्ड रेट पर हैं",
+    "noLocalData": "लोकल जानकारी नहीं: {{materials}}",
+    "pdfReady": "PDF रिपोर्ट तैयार है",
+    "pdfFailed": "PDF नहीं बन पाया",
+    "tryAgain": "फिर से कोशिश करें।"
+  },
+  "errors": {
+    "dimensionsRequired": "लंबाई और चौड़ाई या एरिया डालें।"
+  },
+  "cityPicker": {
+    "title": "कीमत का शहर",
+    "subtitle": "बाज़ार कीमत इस शहर के दुकानदारों से आती है",
+    "merchantCount_one": "{{count}} दुकानदार",
+    "merchantCount_other": "{{count}} दुकानदार"
+  },
+  "grid": {
+    "a11yLabel": "कॉलम लेआउट: {{length}} गुणा {{breadth}} फुट के नक्शे पर {{colsX}} गुणा {{colsY}} ग्रिड",
+    "feet": "{{value}} ft",
+    "legend": "ग्रिड: {{colsX}} × {{colsY}} (दूरी {{spacing}} ft)",
+    "assumedSquare": "चौकोर नक्शा माना गया"
+  },
+  "lead": {
+    "title": "अपना अनुमान डाउनलोड करें",
+    "subtitle": "PDF रिपोर्ट पाने के लिए अपनी जानकारी डालें",
+    "cancel": "रद्द करें",
+    "download": "डाउनलोड",
+    "nameLabel": "आपका नाम *",
+    "namePlaceholder": "अपना नाम डालें",
+    "phoneLabel": "फ़ोन नंबर *",
+    "phonePlaceholder": "10 अंकों का मोबाइल नंबर",
+    "nameAndPhoneRequired": "अपना नाम और फ़ोन नंबर डालें",
+    "invalidPhone": "सही 10 अंकों का फ़ोन नंबर डालें"
+  },
+  "order": {
+    "replaceTitle": "कार्ट बदलें?",
+    "replaceBody": "आपके कार्ट में {{cartCity}} का सामान है। {{currentCity}} का सामान डालने से अभी का कार्ट खाली हो जाएगा।",
+    "cancel": "रद्द करें",
+    "clearAndAdd": "खाली करके डालें",
+    "noMatchTitle": "प्रोडक्ट अपने-आप नहीं मिले",
+    "noMatchBody": "सामान डालने के लिए कैटलॉग देखें।",
+    "added_one": "{{count}} मटीरियल कार्ट में डाला गया",
+    "added_other": "{{count}} मटीरियल कार्ट में डाले गए",
+    "review": "चेकआउट से पहले मात्रा जांच लें।",
+    "notAvailable": "अभी उपलब्ध नहीं: {{materials}}। ज़रूरत हो तो खुद डालें।"
+  },
+  "pdf": {
+    "subtitle": "कंस्ट्रक्शन मटीरियल का अनुमान",
+    "email": "ईमेल: {{value}}",
+    "phone": "फ़ोन: {{value}}",
+    "customerDetails": "ग्राहक की जानकारी",
+    "name": "नाम: {{value}}",
+    "date": "तारीख: {{value}}",
+    "projectDetails": "प्रोजेक्ट की जानकारी",
+    "location": "जगह: {{value}}",
+    "dimensions": "नाप: {{length}} ft × {{breadth}} ft",
+    "builtUpArea": "बिल्ट-अप एरिया: {{value}} sq.ft",
+    "floors": "मंज़िल: {{value}}",
+    "columns": "ज़रूरी कॉलम: {{columns}} ({{colsX}} × {{colsY}} ग्रिड)",
+    "materialsHeading": "मटीरियल की ज़रूरत और खर्च",
+    "structureHeading": "ढांचे का मटीरियल",
+    "foundationHeading": "नींव का मटीरियल",
+    "structureSubtotal": "ढांचे का जोड़:",
+    "foundationSubtotal": "नींव का जोड़:",
+    "total": "कुल अनुमानित खर्च",
+    "standardPricing": "(स्टैंडर्ड कीमत)",
+    "priceNoteMarket": "* कीमत {{city}} के {{count}} वेरिफाइड दुकानदारों पर आधारित है",
+    "priceNoteStandard": "* कीमतें स्टैंडर्ड अनुमान हैं, बाज़ार के हिसाब से बदल सकती हैं",
+    "disclaimerVariance": "* असल ज़रूरत डिज़ाइन, बर्बादी और साइट की हालत के हिसाब से बदल सकती है",
+    "disclaimerPreliminary": "* यह शुरुआती अनुमान है। आखिरी मात्रा सिविल इंजीनियर से जांच करवा लें।"
+  }
+}

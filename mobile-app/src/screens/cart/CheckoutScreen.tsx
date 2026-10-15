@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +28,7 @@ const COLLAPSED_ITEMS = 3;
 
 /** Port of client/src/pages/cart/Checkout.js (COD only). Wrapped in RequireAuth by the navigator. */
 export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Checkout'>) {
+  const { t } = useTranslation('checkout');
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { cart, cartCity, clearCart, isHydrated } = useCart();
@@ -98,7 +100,7 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
     onError: (error) => {
       // The api interceptor toasts every status except 404/422; surface those here.
       const status = isAxiosError(error) ? error.response?.status : undefined;
-      if (status === 404 || status === 422) toast.error('Failed to place order', getErrorMessage(error));
+      if (status === 404 || status === 422) toast.error(t('toast.orderFailed'), getErrorMessage(error));
     },
   });
 
@@ -129,16 +131,16 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
     const match = addresses.find((a) => a.city.toLowerCase() === cartCity.toLowerCase());
     if (match) {
       setSelectedAddress(match);
-      toast.success(`Switched to ${cartCity} address`);
+      toast.success(t('toast.switchedCity', { city: cartCity }));
     } else {
-      toast.error(`No address found in ${cartCity}`, 'Please add one or clear cart.');
+      toast.error(t('toast.noCityAddress', { city: cartCity }), t('toast.noCityAddressHint'));
     }
   };
 
   const confirmClearCart = () =>
-    Alert.alert('Clear cart?', 'All items will be removed so you can start fresh.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear cart', style: 'destructive', onPress: clearCart },
+    Alert.alert(t('clearCart.title'), t('clearCart.message'), [
+      { text: t('clearCart.cancel'), style: 'cancel' },
+      { text: t('clearCart.confirm'), style: 'destructive', onPress: clearCart },
     ]);
 
   const placeOrder = () => {
@@ -149,19 +151,19 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
       return;
     }
     if (!selectedAddress) {
-      toast.error('Please select a delivery address');
+      toast.error(t('toast.selectAddress'));
       return;
     }
     if (cartCity && selectedAddress.city && cartCity.toLowerCase() !== selectedAddress.city.toLowerCase()) {
       toast.error(
-        'City mismatch',
-        `Cart contains items from ${cartCity} but delivery address is in ${selectedAddress.city}. Please clear your cart or select a ${cartCity} address.`,
+        t('toast.cityMismatchTitle'),
+        t('toast.cityMismatchMessage', { cartCity, addressCity: selectedAddress.city }),
       );
       return;
     }
     const undeliverable = cart.filter((item) => item.merchantId && !merchantIds.includes(item.merchantId));
     if (undeliverable.length > 0) {
-      toast.error(`${undeliverable.length} item(s) in your cart cannot be delivered to the selected address`);
+      toast.error(t('toast.undeliverable', { count: undeliverable.length }));
       return;
     }
     if (!totals) return;
@@ -202,7 +204,7 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
   if (!isHydrated || cart.length === 0) {
     return (
       <Screen>
-        <ScreenHeader title="Checkout" icon="bag-check-outline" />
+        <ScreenHeader title={t('title')} icon="bag-check-outline" />
       </Screen>
     );
   }
@@ -211,14 +213,14 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
   const pricingReady = !!totals && !pricingStale;
   const placeDisabled = !selectedAddress || unavailableItems.length > 0 || !pricingReady;
   const placeLabel = !selectedAddress
-    ? 'Select an address'
+    ? t('cta.selectAddress')
     : unavailableItems.length > 0
-      ? 'Remove unavailable items'
-      : 'Place order';
+      ? t('cta.removeUnavailable')
+      : t('cta.placeOrder');
 
   return (
     <Screen>
-      <ScreenHeader title="Checkout" subtitle="Pay on delivery" icon="bag-check-outline" />
+      <ScreenHeader title={t('title')} subtitle={t('subtitle')} icon="bag-check-outline" />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
@@ -231,10 +233,16 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
               <Icon name="time-outline" size={20} color="info" />
               <View style={styles.flex}>
                 <Text variant="label" weight="semibold">
-                  We're accepting your order, but it's currently outside delivery hours
+                  {t('deliveryHours.title')}
                 </Text>
                 <Text variant="caption" color="textSecondary">
-                  {getDeliveryWindowMessage()} Delivery hours: <Text variant="caption" weight="bold">{DELIVERY_WINDOW_LABEL}</Text>.
+                  {getDeliveryWindowMessage()}{' '}
+                  <Trans
+                    t={t}
+                    i18nKey="deliveryHours.window"
+                    values={{ window: DELIVERY_WINDOW_LABEL }}
+                    components={{ bold: <Text variant="caption" weight="bold" /> }}
+                  />
                 </Text>
               </View>
             </Animated.View>
@@ -244,12 +252,12 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
             <View style={[styles.notice, styles.noticeAmber]}>
               <Icon name="call-outline" size={20} color={colors.warning} />
               <View style={styles.flex}>
-                <Text variant="label" weight="semibold">Phone number required</Text>
+                <Text variant="label" weight="semibold">{t('phoneRequired.title')}</Text>
                 <Text variant="caption" color="textSecondary">
-                  Please verify your phone number before checkout — this helps us confirm your delivery.
+                  {t('phoneRequired.message')}
                 </Text>
                 <Button
-                  title="Verify phone number"
+                  title={t('phoneRequired.action')}
                   size="sm"
                   variant="secondary"
                   onPress={() => setShowPhoneSheet(true)}
@@ -263,15 +271,19 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
             <Animated.View entering={FadeIn} style={[styles.notice, styles.noticeDanger]}>
               <Icon name="warning-outline" size={20} color="danger" />
               <View style={styles.flex}>
-                <Text variant="label" weight="bold" color="dangerDark">City mismatch</Text>
+                <Text variant="label" weight="bold" color="dangerDark">{t('cityMismatch.title')}</Text>
                 <Text variant="caption" color="textSecondary">
-                  Your cart contains items from <Text variant="caption" weight="bold">{cartCity}</Text>, but you're trying
-                  to deliver to <Text variant="caption" weight="bold">{selectedAddress.city}</Text>.
+                  <Trans
+                    t={t}
+                    i18nKey="cityMismatch.message"
+                    values={{ cartCity, addressCity: selectedAddress.city }}
+                    components={{ bold: <Text variant="caption" weight="bold" /> }}
+                  />
                 </Text>
                 <View style={styles.noticeButtons}>
-                  <Button title="Clear cart" size="sm" variant="danger" leftIcon="trash-outline" onPress={confirmClearCart} />
+                  <Button title={t('cityMismatch.clearCart')} size="sm" variant="danger" leftIcon="trash-outline" onPress={confirmClearCart} />
                   <Button
-                    title={`Use ${cartCity} address`}
+                    title={t('cityMismatch.useCity', { city: cartCity })}
                     size="sm"
                     variant="outline"
                     leftIcon="swap-horizontal"
@@ -286,12 +298,15 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
             <View style={[styles.notice, styles.noticeAmber]}>
               <Icon name="alert-circle-outline" size={20} color={colors.warning} />
               <View style={styles.flex}>
-                <Text variant="label" weight="semibold">Some items cannot be delivered to your address</Text>
+                <Text variant="label" weight="semibold">{t('unavailable.title')}</Text>
                 <Text variant="caption" color="textSecondary">
-                  {unavailableItems.length} item(s) in your cart are from merchants not available in{' '}
-                  <Text variant="caption" weight="bold">
-                    {selectedAddress.area}, {selectedAddress.city}
-                  </Text>
+                  <Trans
+                    t={t}
+                    i18nKey="unavailable.message"
+                    count={unavailableItems.length}
+                    values={{ count: unavailableItems.length, place: `${selectedAddress.area}, ${selectedAddress.city}` }}
+                    components={{ bold: <Text variant="caption" weight="bold" /> }}
+                  />
                 </Text>
                 {unavailableItems.map((item) => (
                   <Text key={item.cartKey} variant="caption" color="textSecondary">
@@ -299,7 +314,7 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
                   </Text>
                 ))}
                 <Text variant="micro" color="textMuted">
-                  Please remove these items or select a different delivery address to continue.
+                  {t('unavailable.hint')}
                 </Text>
               </View>
             </View>
@@ -308,10 +323,10 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
           {/* Delivery address */}
           <Card style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text variant="h3">Delivery address</Text>
+              <Text variant="h3">{t('address.title')}</Text>
               <Pressable onPress={addNewAddress} accessibilityRole="button" hitSlop={8} style={styles.headerLink}>
                 <Icon name="add" size={18} color="primary" />
-                <Text variant="label" color="primary" weight="semibold">Add new</Text>
+                <Text variant="label" color="primary" weight="semibold">{t('address.addNewShort')}</Text>
               </Pressable>
             </View>
 
@@ -328,27 +343,27 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
               <Pressable
                 onPress={() => setShowAddressSheet(true)}
                 accessibilityRole="button"
-                accessibilityLabel="Change delivery address"
+                accessibilityLabel={t('address.changeA11y')}
                 style={styles.selectedAddress}
               >
                 <AddressIcon type={selectedAddress.addressType} />
                 <AddressDetails address={selectedAddress} />
                 <Text variant="label" color="primary" weight="bold">
-                  Change
+                  {t('address.change')}
                 </Text>
               </Pressable>
             ) : (
               <Pressable onPress={addNewAddress} accessibilityRole="button" style={styles.emptyAddress}>
                 <Icon name="location-outline" size={32} color="textMuted" />
-                <Text variant="body" color="textSecondary" weight="medium">No saved addresses found</Text>
-                <Text variant="label" color="primary" weight="semibold">+ Add your first address</Text>
+                <Text variant="body" color="textSecondary" weight="medium">{t('address.empty')}</Text>
+                <Text variant="label" color="primary" weight="semibold">{t('address.addFirst')}</Text>
               </Pressable>
             )}
           </Card>
 
           {/* Order summary */}
           <Card style={styles.section}>
-            <Text variant="h3">Order summary</Text>
+            <Text variant="h3">{t('summary.title')}</Text>
             {visibleItems.map((item) => (
               <View key={item.cartKey} style={styles.item}>
                 <Image uri={item.images?.[0]} style={styles.itemImage} recyclingKey={item.cartKey} fallbackIcon="cube-outline" />
@@ -362,7 +377,7 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
                     </Text>
                   )}
                   <Text variant="caption" color="textSecondary">
-                    {item.quantity} × {formatPrice(item.price)} per {item.unit}
+                    {t('summary.itemLine', { quantity: item.quantity, price: formatPrice(item.price), unit: item.unit })}
                   </Text>
                 </View>
                 <Text variant="title" color="primary">
@@ -373,7 +388,7 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
             {cart.length > COLLAPSED_ITEMS && (
               <Pressable onPress={() => setShowAllItems((v) => !v)} accessibilityRole="button" style={styles.toggleItems}>
                 <Text variant="label" color="primary" weight="semibold">
-                  {showAllItems ? 'Show less' : `Show all ${cart.length} items`}
+                  {showAllItems ? t('summary.showLess') : t('summary.showAll', { count: cart.length })}
                 </Text>
                 <Icon name={showAllItems ? 'chevron-up' : 'chevron-down'} size={16} color="primary" />
               </Pressable>
@@ -382,7 +397,7 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
 
           {/* Bill */}
           <Card style={styles.section}>
-            <Text variant="h3">Bill details</Text>
+            <Text variant="h3">{t('bill.title')}</Text>
             <BillSummary
               totals={totals}
               updating={pricingFetching}
@@ -393,9 +408,9 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
             <View style={styles.gstRow}>
               <Icon name="document-text-outline" size={20} color="textSecondary" />
               <View style={styles.flex}>
-                <Text variant="label" weight="semibold">I need a GST invoice</Text>
+                <Text variant="label" weight="semibold">{t('bill.gstToggle')}</Text>
                 <Text variant="caption" color="textSecondary">
-                  See a detailed GST breakdown and a sample invoice.
+                  {t('bill.gstToggleHint')}
                 </Text>
               </View>
               <Switch
@@ -403,12 +418,12 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
                 onValueChange={setRequireGSTBill}
                 trackColor={{ true: colors.secondary, false: colors.borderStrong }}
                 thumbColor={colors.surface}
-                accessibilityLabel="I need a GST invoice"
+                accessibilityLabel={t('bill.gstToggle')}
               />
             </View>
             {requireGSTBill && (
               <Button
-                title="Preview sample invoice"
+                title={t('bill.previewInvoice')}
                 variant="outline"
                 size="sm"
                 leftIcon="document-text-outline"
@@ -420,10 +435,10 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
           {/* Instructions */}
           <Card style={styles.section}>
             <Input
-              label="Delivery instructions (optional)"
+              label={t('instructions.label')}
               value={deliveryInstructions}
               onChangeText={setDeliveryInstructions}
-              placeholder="Any special instructions for delivery..."
+              placeholder={t('instructions.placeholder')}
               multiline
               textAreaHeight={88}
             />
@@ -431,20 +446,20 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
 
           {/* Payment */}
           <Card style={styles.section}>
-            <Text variant="h3">Payment method</Text>
+            <Text variant="h3">{t('payment.title')}</Text>
             <View style={[styles.payment, styles.paymentSelected]}>
               <Icon name="cash-outline" size={22} color="successDark" />
               <View style={styles.flex}>
-                <Text variant="label" weight="semibold">Cash on delivery</Text>
-                <Text variant="caption" color="textSecondary">Pay on delivery with cash or UPI</Text>
+                <Text variant="label" weight="semibold">{t('payment.cod')}</Text>
+                <Text variant="caption" color="textSecondary">{t('payment.codHint')}</Text>
               </View>
               <Icon name="radio-button-on" size={20} color="secondary" />
             </View>
             <View style={[styles.payment, styles.paymentDisabled]}>
               <Icon name="card-outline" size={22} color="textMuted" />
               <View style={styles.flex}>
-                <Text variant="label" color="textMuted">Online payment</Text>
-                <Text variant="caption" color="textMuted">Coming soon</Text>
+                <Text variant="label" color="textMuted">{t('payment.online')}</Text>
+                <Text variant="caption" color="textMuted">{t('payment.comingSoon')}</Text>
               </View>
               <Icon name="radio-button-off" size={20} color="textMuted" />
             </View>
@@ -453,7 +468,7 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
 
         <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.md }]}>
           <View>
-            <Text variant="caption" color="textSecondary">Total</Text>
+            <Text variant="caption" color="textSecondary">{t('total')}</Text>
             {totals ? (
               <Text variant="h2">{formatPrice(totals.totalAmount)}</Text>
             ) : (

@@ -10,9 +10,12 @@ import {
   MapPinIcon,
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
+import LanguageToggle from '../../i18n/LanguageToggle';
+import { useTranslation } from 'react-i18next';
 
 const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
   const { logout } = useAuth();
+  const { t } = useTranslation('layout');
   const navigate = useNavigate();
   const { selectedAddress, addresses, setSelectedAddress, selectedCity, fetchMerchantsByCity, requestLocationPermission } = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -78,12 +81,12 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
   // Label shown on the location button
   const locationLabel = (() => {
     if (isAuthenticated && selectedAddress) {
-      return { top: 'Delivering to', bottom: `${selectedAddress.area}, ${selectedAddress.city}` };
+      return { top: t('location.deliveringTo'), bottom: `${selectedAddress.area}, ${selectedAddress.city}` };
     }
     if (selectedCity) {
-      return { top: 'Shopping in', bottom: selectedCity.city };
+      return { top: t('location.shoppingIn'), bottom: selectedCity.city };
     }
-    return { top: 'Select', bottom: 'Location' };
+    return { top: t('location.select'), bottom: t('location.location') };
   })();
 
   // Show city-picker UI (guest or auth with no addresses)
@@ -102,7 +105,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
             <Link to="/" className="flex items-center space-x-2 min-w-0">
               <img
                 src="/logo.webp"
-                alt="Logo"
+                alt={t('logoAlt')}
                 fetchpriority="high"
                 width="40"
                 height="40"
@@ -134,7 +137,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
                   {isAuthenticated && addresses.length > 0 ? (
                     <>
                       <div className="p-3 border-b border-gray-100 bg-gray-50">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Your Addresses</p>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('location.yourAddresses')}</p>
                       </div>
                       <div className="max-h-64 overflow-y-auto">
                         {addresses.map((address) => (
@@ -153,7 +156,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-sm font-medium text-gray-900">{address.title}</span>
                                   {address.isDefault && (
-                                    <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-xs font-medium">Default</span>
+                                    <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-xs font-medium">{t('location.default')}</span>
                                   )}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-0.5 truncate">
@@ -173,7 +176,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
                           className="block px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors"
                           onClick={() => setLocationMenuOpen(false)}
                         >
-                          + Manage Addresses
+                          + {t('location.manageAddresses')}
                         </Link>
                       </div>
                     </>
@@ -190,12 +193,12 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
                           {detectingLocation ? (
                             <>
                               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                              Detecting location...
+                              {t('location.detecting')}
                             </>
                           ) : (
                             <>
                               <MapPinIcon className="h-4 w-4 flex-shrink-0" />
-                              Use my current location
+                              {t('location.useCurrent')}
                             </>
                           )}
                         </button>
@@ -203,12 +206,12 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
 
                       {/* City search */}
                       <div className="p-3 border-b border-gray-100 bg-gray-50 sticky top-0">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Or select your city</p>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('location.orSelectCity')}</p>
                         <div className="relative">
                           <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <input
                             type="text"
-                            placeholder="Search city..."
+                            placeholder={t('location.searchCity')}
                             value={citySearchQuery}
                             onChange={(e) => setCitySearchQuery(e.target.value)}
                             className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -219,12 +222,12 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
 
                       <div className="max-h-52 overflow-y-auto">
                         {loadingCities ? (
-                          <div className="px-4 py-4 text-center text-sm text-gray-500">Loading cities...</div>
+                          <div className="px-4 py-4 text-center text-sm text-gray-500">{t('location.loadingCities')}</div>
                         ) : filteredCities.length === 0 ? (
                           <div className="px-4 py-6 text-center">
                             <MapPinIcon className="h-10 w-10 text-gray-300 mx-auto mb-2" />
                             <p className="text-sm text-gray-500">
-                              {citySearchQuery ? `No cities match "${citySearchQuery}"` : 'No cities available yet'}
+                              {citySearchQuery ? t('location.noCitiesMatch', { query: citySearchQuery }) : t('location.noCities')}
                             </p>
                           </div>
                         ) : (
@@ -247,7 +250,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-xs text-green-600 font-medium">
-                                    {city.merchantCount} {city.merchantCount === 1 ? 'store' : 'stores'}
+                                    {t('location.storeCount', { count: city.merchantCount })}
                                   </span>
                                   {selectedCity?.city === city.city && (
                                     <span className="text-blue-600 text-sm">✓</span>
@@ -265,7 +268,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
                             onClick={() => { setLocationMenuOpen(false); navigate('/register'); }}
                             className="w-full bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
                           >
-                            Register to Start Shopping
+                            {t('location.registerToShop')}
                           </button>
                         </div>
                       )}
@@ -280,7 +283,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
           <nav className="hidden md:flex space-x-8">
             {navigation.map((item) => (
               <Link
-                key={item.name}
+                key={item.id}
                 to={item.href}
                 className="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
               >
@@ -292,6 +295,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
 
           {/* Right side - Cart and User */}
           <div className="flex items-center space-x-1 sm:space-x-4">
+            <LanguageToggle />
             {/* Cart - Hidden on mobile */}
             <Link
               to="/cart"
@@ -327,34 +331,34 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        Profile
+                        {t('nav.profile')}
                       </Link>
                       <Link
                         to="/profile/addresses"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        My Addresses
+                        {t('nav.myAddresses')}
                       </Link>
                       <Link
                         to="/profile/orders"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        Orders
+                        {t('nav.orders')}
                       </Link>
                       <Link
                         to="/contact"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        Contact Us
+                        {t('nav.contactUs')}
                       </Link>
                       <button
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 border-t border-gray-200"
                       >
-                        Logout
+                        {t('auth.logout')}
                       </button>
                     </div>
                   </div>
@@ -366,7 +370,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
                 <Link
                   to="/login"
                   className="md:hidden p-2 text-gray-700 hover:text-primary-600 transition-colors duration-200"
-                  title="Login"
+                  title={t('auth.login')}
                 >
                   <UserIcon className="h-6 w-6" />
                 </Link>
@@ -377,13 +381,13 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
                     to="/login"
                     className="text-gray-700 hover:text-primary-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
                   >
-                    Login
+                    {t('auth.login')}
                   </Link>
                   <Link
                     to="/register"
                     className="bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700 transition-colors duration-200"
                   >
-                    Register
+                    {t('auth.register')}
                   </Link>
                 </div>
               </>
@@ -394,7 +398,7 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
 
       {serviceAreasNote && (
         <div className="bg-primary-600 text-white text-center text-xs sm:text-sm px-4 py-1.5">
-          🚚 Currently delivering in: <span className="font-semibold">{serviceAreasNote}</span>
+          🚚 {t('serviceAreas')} <span className="font-semibold">{serviceAreasNote}</span>
         </div>
       )}
 

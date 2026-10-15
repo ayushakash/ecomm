@@ -4,8 +4,10 @@ import { toast } from 'react-hot-toast';
 import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const Register = () => {
+  const { t } = useTranslation('auth');
   const [step, setStep] = useState(1); // 1: Enter details, 2: Verify OTP
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
@@ -20,15 +22,15 @@ const Register = () => {
     const newErrors = {};
 
     if (!name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = t('validation.nameRequired');
     } else if (name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
+      newErrors.name = t('validation.nameMin');
     }
 
     if (!mobile.trim()) {
-      newErrors.mobile = 'Mobile number is required';
+      newErrors.mobile = t('validation.mobileRequired');
     } else if (!/^[6-9]\d{9}$/.test(mobile.trim())) {
-      newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+      newErrors.mobile = t('validation.mobileInvalid');
     }
 
     setErrors(newErrors);
@@ -39,9 +41,9 @@ const Register = () => {
     const newErrors = {};
 
     if (!otp.trim()) {
-      newErrors.otp = 'OTP is required';
+      newErrors.otp = t('validation.otpRequired');
     } else if (!/^\d{4,6}$/.test(otp.trim())) {
-      newErrors.otp = 'Please enter a valid OTP';
+      newErrors.otp = t('validation.otpInvalid');
     }
 
     setErrors(newErrors);
@@ -59,12 +61,12 @@ const Register = () => {
       });
 
       if (response.data.userExists) {
-        toast.error('Account already exists with this number. Please login instead.');
+        toast.error(t('toast.accountExists'));
         return;
       }
 
       setOtpSent(true);
-      toast.success('OTP sent to your WhatsApp!');
+      toast.success(t('toast.otpSent'));
       setStep(2);
 
       // Show OTP in development mode (if returned by backend)
@@ -73,7 +75,7 @@ const Register = () => {
       }
     } catch (error) {
       console.error('Send OTP error:', error);
-      toast.error(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+      toast.error(error.response?.data?.message || t('toast.sendOtpRetry'));
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +89,7 @@ const Register = () => {
         purpose: 'registration'
       });
 
-      toast.success('OTP resent to your WhatsApp!');
+      toast.success(t('toast.otpResent'));
 
       // Show OTP in development mode (if returned by backend)
       if (response.data.otp) {
@@ -95,7 +97,7 @@ const Register = () => {
       }
     } catch (error) {
       console.error('Resend OTP error:', error);
-      toast.error(error.response?.data?.message || 'Failed to resend OTP. Please try again.');
+      toast.error(error.response?.data?.message || t('toast.resendOtpRetry'));
     } finally {
       setIsLoading(false);
     }
@@ -120,17 +122,17 @@ const Register = () => {
           accessToken: response.data.accessToken,
           refreshToken: response.data.refreshToken
         });
-        toast.success('Registration successful!');
+        toast.success(t('toast.registrationSuccess'));
         navigate('/');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+      const errorMessage = error.response?.data?.message || t('toast.registrationRetry');
       toast.error(errorMessage);
 
       // Show remaining attempts if available
       if (error.response?.data?.attemptsRemaining !== undefined) {
-        setErrors({ otp: `${errorMessage} (${error.response.data.attemptsRemaining} attempts remaining)` });
+        setErrors({ otp: `${errorMessage} (${t('attemptsRemaining', { count: error.response.data.attemptsRemaining })})` });
       } else {
         setErrors({ otp: errorMessage });
       }
@@ -149,10 +151,10 @@ const Register = () => {
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create Account
+            {t('register.title')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Quick registration with WhatsApp verification
+            {t('register.subtitle')}
           </p>
         </div>
 
@@ -174,13 +176,13 @@ const Register = () => {
         {step === 1 ? (
           // Step 1: Enter Details
           <div className="bg-white p-8 rounded-lg shadow-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Enter Your Details</h3>
-            <p className="text-sm text-gray-600 mb-6">We'll send you an OTP on WhatsApp to verify your mobile number</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-6">{t('register.enterDetails')}</h3>
+            <p className="text-sm text-gray-600 mb-6">{t('register.otpInfo')}</p>
 
             <div className="space-y-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
+                  {t('fields.fullName')}
                 </label>
                 <input
                   id="name"
@@ -190,7 +192,7 @@ const Register = () => {
                   className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                     errors.name ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="Enter your full name"
+                  placeholder={t('fields.namePlaceholder')}
                 />
                 {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
               </div>
@@ -198,7 +200,7 @@ const Register = () => {
               <div>
                 <label htmlFor="mobile" className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1">
                   <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                  WhatsApp Number
+                  {t('fields.whatsappNumber')}
                 </label>
                 <div className="flex">
                   <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm select-none">+91</span>
@@ -211,12 +213,12 @@ const Register = () => {
                     className={`flex-1 px-3 py-2 border rounded-r-md focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                       errors.mobile ? 'border-red-300' : 'border-gray-300'
                     }`}
-                    placeholder="10-digit WhatsApp number"
+                    placeholder={t('fields.whatsappPlaceholder')}
                   />
                 </div>
                 {errors.mobile
                   ? <p className="text-red-600 text-xs mt-1">{errors.mobile}</p>
-                  : <p className="text-xs text-gray-400 mt-1">OTP will be sent to this WhatsApp number</p>
+                  : <p className="text-xs text-gray-400 mt-1">{t('fields.whatsappHint')}</p>
                 }
               </div>
 
@@ -228,7 +230,7 @@ const Register = () => {
                 {isLoading ? <div className="loading-spinner"></div> : (
                   <>
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                    Send OTP via WhatsApp
+                    {t('sendOtp')}
                   </>
                 )}
               </button>
@@ -237,15 +239,15 @@ const Register = () => {
         ) : (
           // Step 2: Verify OTP
           <div className="bg-white p-8 rounded-lg shadow-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Verify Mobile Number</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-6">{t('verifyMobileNumber')}</h3>
             <p className="text-sm text-gray-600 mb-6">
-              Enter the OTP sent to your WhatsApp on +91{mobile}
+              {t('otpSentHint', { mobile })}
             </p>
 
             <div className="space-y-4">
               <div>
                 <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
-                  Enter OTP
+                  {t('fields.otp')}
                 </label>
                 <input
                   id="otp"
@@ -256,7 +258,7 @@ const Register = () => {
                   className={`w-full px-3 py-2 border rounded-md text-center text-lg font-mono tracking-widest focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                     errors.otp ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="Enter OTP"
+                  placeholder={t('fields.otp')}
                 />
                 {errors.otp && <p className="text-red-600 text-sm mt-1">{errors.otp}</p>}
               </div>
@@ -270,14 +272,14 @@ const Register = () => {
                   }}
                   className="text-sm text-primary-600 hover:text-primary-500"
                 >
-                  Change Number
+                  {t('changeNumber')}
                 </button>
                 <button
                   onClick={handleResendOTP}
                   disabled={isLoading}
                   className="text-sm text-primary-600 hover:text-primary-500 underline disabled:opacity-50"
                 >
-                  Resend OTP
+                  {t('resendOtp')}
                 </button>
               </div>
 
@@ -289,7 +291,7 @@ const Register = () => {
                 {isLoading ? (
                   <div className="loading-spinner"></div>
                 ) : (
-                  'Verify & Register'
+                  t('register.verifyAndRegister')
                 )}
               </button>
             </div>
@@ -303,7 +305,7 @@ const Register = () => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Or sign up with</span>
+                <span className="px-2 bg-gray-50 text-gray-500">{t('register.orSignUpWith')}</span>
               </div>
             </div>
             <div className="mt-4 flex justify-center">
@@ -312,7 +314,7 @@ const Register = () => {
                   loginWithGoogle(credentialResponse.credential);
                 }}
                 onError={() => {
-                  toast.error('Google sign-up failed. Please try again.');
+                  toast.error(t('toast.googleSignUpFailed'));
                 }}
                 width="360"
                 text="signup_with"
@@ -324,21 +326,21 @@ const Register = () => {
 
         <div className="text-center space-y-2">
           <p className="text-sm text-gray-600">
-            Already have an account?{' '}
+            {t('register.haveAccount')}{' '}
             <Link
               to="/login"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              Sign in here
+              {t('register.signInHere')}
             </Link>
           </p>
           <p className="text-sm text-gray-600">
-            Want to sell on our platform?{' '}
+            {t('sellPrompt')}{' '}
             <Link
               to="/merchant-register"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              Merchant Sign Up
+              {t('merchantSignUp')}
             </Link>
           </p>
         </div>

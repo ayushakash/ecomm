@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const ResponsiveTable = ({
   data = [],
@@ -6,9 +7,10 @@ const ResponsiveTable = ({
   renderTableRow,
   tableHeaders,
   loading = false,
-  emptyMessage = "No data available",
+  emptyMessage,
   className = ""
 }) => {
+  const { t } = useTranslation('common');
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -32,7 +34,7 @@ const ResponsiveTable = ({
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-gray-500 text-lg">{emptyMessage}</div>
+        <div className="text-gray-500 text-lg">{emptyMessage ?? t('status.noData')}</div>
       </div>
     );
   }

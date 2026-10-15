@@ -1,0 +1,125 @@
+{
+  "language": {
+    "label": "भाषा",
+    "title": "अपनी भाषा चुनें",
+    "subtitle": "आप इसे कभी भी अकाउंट में बदल सकते हैं।"
+  },
+  "tabs": {
+    "home": "होम",
+    "categories": "कैटेगरी",
+    "cart": "कार्ट",
+    "orders": "ऑर्डर",
+    "account": "अकाउंट",
+    "myOrders": "मेरे ऑर्डर"
+  },
+  "actions": {
+    "close": "बंद करें",
+    "goBack": "वापस जाएं",
+    "seeAll": "सब देखें",
+    "retry": "फिर से कोशिश करें",
+    "cancel": "रद्द करें",
+    "login": "लॉग इन",
+    "change": "बदलें",
+    "add": "डालें",
+    "options": "विकल्प",
+    "remove": "हटाएं"
+  },
+  "auth": {
+    "loginTitle": "आगे बढ़ने के लिए लॉग इन करें",
+    "loginMessage": "अपने ऑर्डर और पते देखने के लिए मोबाइल नंबर से लॉग इन करें।",
+    "customerRequired": "ग्राहक अकाउंट ज़रूरी है",
+    "customerOnly": "यह ऐप ग्राहकों के लिए है। विक्रेता और एडमिन chardeevari.in इस्तेमाल करें।",
+    "sendOtpFailed": "OTP नहीं भेज पाए",
+    "accountCreated": "अकाउंट बन गया!",
+    "nowLoggedIn": "आप लॉग इन हो गए हैं।",
+    "loginSuccess": "लॉग इन हो गया!",
+    "otpFailed": "OTP सही नहीं निकला",
+    "googleSuccess": "Google से लॉग इन हो गया!",
+    "googleFailed": "Google से लॉग इन नहीं हो पाया",
+    "phoneLinked": "फ़ोन नंबर वेरिफ़ाई होकर जुड़ गया!",
+    "phoneFailed": "फ़ोन वेरिफ़िकेशन नहीं हो पाया",
+    "sendCodeFailed": "वेरिफ़िकेशन कोड नहीं भेज पाए",
+    "emailUpdated": "ईमेल अपडेट हो गया!",
+    "emailFailed": "ईमेल वेरिफ़िकेशन नहीं हो पाया",
+    "profileUpdated": "प्रोफ़ाइल अपडेट हो गई!",
+    "profileFailed": "प्रोफ़ाइल अपडेट नहीं हो पाई",
+    "deleteFailed": "अकाउंट डिलीट नहीं हो पाया। फिर से कोशिश करें।"
+  },
+  "location": {
+    "deliveringTo": "डिलीवरी यहाँ",
+    "chipA11y": "डिलीवरी लोकेशन: {{label}}। बदलें",
+    "selectLocation": "लोकेशन चुनें",
+    "exactUnavailable": "सही लोकेशन नहीं मिली",
+    "exactUnavailableBody": "शहर के सभी विक्रेता दिखा रहे हैं। डिलीवरी विक्रेता कन्फर्म करेगा।",
+    "noMerchantsArea": "आपके इलाके में अभी कोई विक्रेता नहीं है",
+    "loadAreaFailed": "आपके इलाके के विक्रेता लोड नहीं हो पाए",
+    "foundInCity": "{{city}} में {{count}} विक्रेता मिले!",
+    "noneInCity": "{{city}} में अभी कोई विक्रेता नहीं है",
+    "expandingCities": "हम जल्द ही नए शहरों में आ रहे हैं!",
+    "loadFailed": "विक्रेता लोड नहीं हो पाए",
+    "foundNear": "आपके पास {{count}} विक्रेता मिले!",
+    "noneNear": "आपकी लोकेशन पर अभी कोई विक्रेता डिलीवरी नहीं करता",
+    "expanding": "हम जल्द ही बढ़ रहे हैं!",
+    "loadNearFailed": "आपके पास के विक्रेता लोड नहीं हो पाए",
+    "permissionDenied": "लोकेशन की अनुमति नहीं मिली",
+    "enableInSettings": "आप इसे सेटिंग्स में चालू कर सकते हैं।",
+    "getting": "आपकी लोकेशन ढूंढ रहे हैं…",
+    "cityUnknown": "आपका शहर पता नहीं चला",
+    "selectManually": "कृपया खुद चुनें।",
+    "unavailable": "लोकेशन नहीं मिल पाई",
+    "servicesOn": "देख लें कि लोकेशन सर्विस चालू है।"
+  },
+  "cart": {
+    "replaceTitle": "कार्ट बदलें?",
+    "replaceMessage": "आपके कार्ट में {{cartCity}} का सामान है। {{city}} का सामान डालने पर पुराना कार्ट खाली हो जाएगा।",
+    "clearAndAdd": "खाली करके डालें",
+    "items_one": "{{count}} सामान",
+    "items_other": "{{count}} सामान",
+    "payOnDelivery": "{{total}} · डिलीवरी पर भुगतान",
+    "viewCart": "कार्ट देखें",
+    "viewCartA11y": "कार्ट देखें, {{count}} सामान, {{total}}"
+  },
+  "external": {
+    "openFailed": "लिंक नहीं खुल पाया",
+    "callFailed": "कॉल नहीं लग पाया",
+    "whatsappUnavailable": "अभी WhatsApp से ऑर्डर उपलब्ध नहीं है",
+    "callUnavailable": "अभी कॉल से ऑर्डर उपलब्ध नहीं है"
+  },
+  "orderStatus": {
+    "pending": "ऑर्डर हो गया",
+    "confirmed": "कन्फर्म",
+    "processing": "पैक हो रहा है",
+    "shipped": "डिलीवरी के लिए निकला",
+    "delivered": "डिलीवर हो गया",
+    "cancelled": "रद्द"
+  },
+  "product": {
+    "off": "{{discount}}% छूट",
+    "onlyLeft": "सिर्फ़ {{count}} बचे",
+    "outOfStockBadge": "स्टॉक खत्म",
+    "outOfStock": "स्टॉक खत्म",
+    "sizes_one": "{{count}} साइज़ उपलब्ध",
+    "sizes_other": "{{count}} साइज़ उपलब्ध",
+    "perUnit": "प्रति {{unit}}",
+    "from": "शुरू",
+    "bulk": "थोक? {{qty}}+ {{unit}}"
+  },
+  "quantity": {
+    "label": "मात्रा",
+    "decrease": "मात्रा कम करें",
+    "increase": "मात्रा बढ़ाएं"
+  },
+  "search": {
+    "searchFor": "खोजें ",
+    "a11y": "प्रोडक्ट्स खोजें",
+    "clear": "खोज साफ़ करें",
+    "hints": {
+      "cement": "सीमेंट",
+      "tmt": "सरिया (TMT)",
+      "bricks": "लाल ईंट",
+      "sand": "नदी का बालू",
+      "chips": "गिट्टी",
+      "tiles": "टाइल्स"
+    }
+  }
+}

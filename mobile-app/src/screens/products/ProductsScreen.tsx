@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import {
   Button,
   Chip,
@@ -30,7 +31,7 @@ import {
   filterQuery,
   hasPriceFilter,
   priceRangeLabel,
-  SORT_LABELS,
+  sortLabel,
   type PriceRange,
   type SortOption,
 } from './components/productFilters';
@@ -54,6 +55,7 @@ function Gate({ children }: { children: React.ReactNode }) {
  * (price-high sorted client-side like web) and an infinite 2-column grid.
  */
 export default function ProductsScreen({ navigation, route }: MainTabScreenProps<'ProductsTab'>) {
+  const { t } = useTranslation('products');
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const {
@@ -119,14 +121,14 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
 
   const header = (
     <ScreenHeader
-      title="Categories"
-      subtitle="Cement, steel, sand & more"
+      title={t('list.title')}
+      subtitle={t('list.subtitle')}
       back={false}
       icon="grid-outline"
       actions={[
         {
           icon: 'search',
-          accessibilityLabel: 'Search products',
+          accessibilityLabel: t('list.searchA11y'),
           onPress: () => navigation.navigate('Search', { categoryId: selectedCategory || undefined }),
         },
       ]}
@@ -141,7 +143,7 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
         <View style={styles.finding}>
           <ActivityIndicator size="small" color={colors.primary} />
           <Text variant="bodySm" color="textSecondary">
-            Finding merchants near you...
+            {t('list.findingMerchants')}
           </Text>
         </View>
         <ProductGridSkeleton />
@@ -159,16 +161,16 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
             <Icon name="location" size={36} color="primary" />
           </View>
           <Text variant="h1" align="center">
-            Where should we deliver?
+            {t('gate.city.title')}
           </Text>
           <Text variant="body" color="textSecondary" align="center" style={styles.gateText}>
-            Select your city to see products and merchants available in your area.
+            {t('gate.city.message')}
           </Text>
-          <Button title="Use my current location" leftIcon="locate" loading={detecting} onPress={detect} fullWidth />
+          <Button title={t('gate.useMyLocation')} leftIcon="locate" loading={detecting} onPress={detect} fullWidth />
           <View style={styles.orRow}>
             <View style={styles.orLine} />
             <Text variant="caption" color="textMuted">
-              or pick a city
+              {t('gate.city.orPick')}
             </Text>
             <View style={styles.orLine} />
           </View>
@@ -178,9 +180,9 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
           <Pressable onPress={() => navigation.navigate('Login')} accessibilityRole="link" style={styles.loginLink}>
             <Text variant="bodySm" color="textSecondary" align="center">
               <Text variant="bodySm" color="primary" weight="bold">
-                Login
+                {t('gate.city.loginAction')}
               </Text>{' '}
-              for a fully personalised experience
+              {t('gate.city.loginRest')}
             </Text>
           </Pressable>
         </Gate>
@@ -198,14 +200,14 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
             <Icon name="location" size={36} color="primary" />
           </View>
           <Text variant="h1" align="center">
-            Set your delivery location
+            {t('gate.address.title')}
           </Text>
           <Text variant="body" color="textSecondary" align="center" style={styles.gateText}>
-            Add an address for precise delivery, or use your current location to browse products near you.
+            {t('gate.address.message')}
           </Text>
-          <Button title="Add delivery address" leftIcon="add" onPress={() => navigation.navigate('AddEditAddress')} fullWidth />
+          <Button title={t('gate.address.add')} leftIcon="add" onPress={() => navigation.navigate('AddEditAddress')} fullWidth />
           <Button
-            title={detecting ? 'Detecting location...' : 'Use current location to browse'}
+            title={detecting ? t('gate.detecting') : t('gate.address.useLocation')}
             variant="outline"
             leftIcon="locate"
             loading={detecting}
@@ -224,9 +226,9 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
         {header}
         <EmptyState
           icon="storefront-outline"
-          title="No merchants in your area yet"
-          message={`We don't have merchants serving ${[selectedAddress.area, selectedAddress.city].filter(Boolean).join(', ')} yet. We're expanding to new areas soon — try a different address.`}
-          actionLabel="Change address"
+          title={t('noMerchants.areaTitle')}
+          message={t('noMerchants.areaMessage', { place: [selectedAddress.area, selectedAddress.city].filter(Boolean).join(', ') })}
+          actionLabel={t('noMerchants.changeAddress')}
           onAction={openLocation}
         />
       </Screen>
@@ -240,9 +242,9 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
         {header}
         <EmptyState
           icon="storefront-outline"
-          title={`No merchants in ${selectedCity.city} yet`}
-          message="We're expanding to new areas soon. Try a different location or check back later."
-          actionLabel="Change location"
+          title={t('noMerchants.cityTitle', { city: selectedCity.city })}
+          message={t('noMerchants.cityMessage')}
+          actionLabel={t('noMerchants.changeLocation')}
           onAction={openLocation}
         />
       </Screen>
@@ -256,19 +258,19 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
         <Pressable
           onPress={() => navigation.navigate('AddEditAddress')}
           accessibilityRole="button"
-          accessibilityLabel="Add address"
+          accessibilityLabel={t('banner.addAddressA11y')}
           style={[styles.banner, styles.nudge]}
         >
           <Icon name="information-circle" size={18} color="secondaryDark" />
           <Text variant="bodySm" style={styles.bannerText}>
-            Browsing in{' '}
+            {t('banner.browsingPrefix')}
             <Text variant="bodySm" weight="bold">
               {selectedCity.city}
             </Text>
-            . Add an address for accurate delivery options.
+            {t('banner.browsingSuffix')}
           </Text>
           <Text variant="label" color="secondaryDark" weight="bold">
-            Add
+            {t('banner.add')}
           </Text>
         </Pressable>
       )}
@@ -276,34 +278,34 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
         <Pressable
           onPress={openLocation}
           accessibilityRole="button"
-          accessibilityLabel="Change delivery location"
+          accessibilityLabel={t('banner.changeLocationA11y')}
           style={[styles.banner, styles.info]}
         >
           <Icon name="location" size={18} color="successDark" />
           <View style={styles.bannerText}>
             <Text variant="label" color="successDark" numberOfLines={1}>
               {user && selectedAddress
-                ? `Delivering to ${[selectedAddress.area, selectedAddress.city].filter(Boolean).join(', ')}`
-                : `Showing products in ${selectedCity?.city ?? ''}`}
+                ? t('banner.deliveringTo', { place: [selectedAddress.area, selectedAddress.city].filter(Boolean).join(', ') })
+                : t('banner.showingIn', { city: selectedCity?.city ?? '' })}
             </Text>
             <Text variant="caption" color="successDark">
               {user && selectedAddress
-                ? `${locationInfo.merchantCount} ${locationInfo.merchantCount === 1 ? 'merchant' : 'merchants'} · ${typeof locationInfo.searchRadius === 'number' ? `within ${locationInfo.searchRadius}km` : locationInfo.searchRadius}${locationInfo.fallbackApplied ? ' (expanded search)' : ''}`
-                : `${locationInfo.merchantCount} ${locationInfo.merchantCount === 1 ? 'merchant' : 'merchants'} available${user ? '' : ' · Login for precise delivery'}`}
+                ? `${t('banner.merchants', { count: locationInfo.merchantCount })} · ${typeof locationInfo.searchRadius === 'number' ? t('banner.withinKm', { km: locationInfo.searchRadius }) : locationInfo.searchRadius}${locationInfo.fallbackApplied ? ` ${t('banner.expanded')}` : ''}`
+                : `${t('banner.merchantsAvailable', { count: locationInfo.merchantCount })}${user ? '' : ` · ${t('banner.loginHint')}`}`}
             </Text>
           </View>
           <Text variant="label" color="successDark" weight="bold">
-            {user ? 'Change' : 'Change city'}
+            {user ? t('banner.change') : t('banner.changeCity')}
           </Text>
         </Pressable>
       )}
       <View style={styles.resultsRow}>
         <Text variant="h2" numberOfLines={1} style={styles.flex}>
-          {categoryName ?? 'Construction Materials'}
+          {categoryName ?? t('list.allMaterials')}
         </Text>
         {!feed.isLoading && (
           <Text variant="caption" color="textSecondary">
-            {feed.totalProducts} {feed.totalProducts === 1 ? 'product' : 'products'}
+            {t('list.productCount', { count: feed.totalProducts })}
           </Text>
         )}
       </View>
@@ -321,7 +323,7 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
           onSelect={setSelectedCategory}
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          <Chip label={SORT_LABELS[sortBy]} icon="swap-vertical" dropdown onPress={() => setFilterOpen(true)} />
+          <Chip label={sortLabel(sortBy)} icon="swap-vertical" dropdown onPress={() => setFilterOpen(true)} />
           <Chip
             label={priceRangeLabel(priceRange)}
             icon="pricetag-outline"
@@ -329,7 +331,7 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
             selected={priceActive}
             onPress={() => setFilterOpen(true)}
           />
-          {filtersActive && <Chip label="Clear" icon="close" onPress={clearFilters} />}
+          {filtersActive && <Chip label={t('filter.clear')} icon="close" onPress={clearFilters} />}
         </ScrollView>
       </View>
 
@@ -352,18 +354,18 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
               feed.isError ? (
                 <EmptyState
                   icon="cloud-offline-outline"
-                  title="Couldn't load products"
-                  message="Check your connection and try again."
-                  actionLabel="Retry"
+                  title={t('empty.loadErrorTitle')}
+                  message={t('empty.loadErrorMessage')}
+                  actionLabel={t('empty.retry')}
                   onAction={() => feed.retry()}
                   fill={false}
                 />
               ) : (
                 <EmptyState
                   icon="funnel-outline"
-                  title="No products found"
-                  message="Try adjusting your search or filter criteria."
-                  actionLabel={filtersActive || selectedCategory ? 'Clear filters' : undefined}
+                  title={t('empty.noProductsTitle')}
+                  message={t('empty.noProductsMessage')}
+                  actionLabel={filtersActive || selectedCategory ? t('empty.clearFilters') : undefined}
                   onAction={() => {
                     clearFilters();
                     setSelectedCategory('');

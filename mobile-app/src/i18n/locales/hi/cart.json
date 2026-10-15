@@ -1,0 +1,58 @@
+{
+  "title": "कार्ट",
+  "itemCount_one": "{{count}} आइटम",
+  "itemCount_other": "{{count}} आइटम",
+  "clear": {
+    "title": "कार्ट खाली करें?",
+    "message": "आपके कार्ट से सारे आइटम हट जाएंगे।",
+    "cancel": "रहने दें",
+    "confirm": "खाली करें",
+    "button": "कार्ट खाली करें"
+  },
+  "empty": {
+    "title": "आपका कार्ट खाली है",
+    "message": "अच्छी क्वालिटी का बिल्डिंग मटीरियल देखें और काम शुरू करें!",
+    "action": "खरीदारी शुरू करें"
+  },
+  "cta": {
+    "minimum": "कम से कम ऑर्डर: {{amount}}",
+    "login": "चेकआउट के लिए लॉग इन करें",
+    "proceed": "चेकआउट करें"
+  },
+  "addMore": "और आइटम जोड़ें",
+  "swipeTip": "टिप: आइटम हटाने के लिए उसे बाईं ओर स्वाइप करें",
+  "billDetails": "बिल की जानकारी",
+  "loginNotice": {
+    "title": "लॉग इन ज़रूरी है",
+    "message": "चेकआउट के लिए कृपया लॉग इन करें"
+  },
+  "minimumNotice": {
+    "title": "कम से कम ऑर्डर ज़रूरी",
+    "message": "{{minimum}} का कम से कम ऑर्डर पूरा करने के लिए {{remaining}} के और आइटम जोड़ें"
+  },
+  "whatsappOrder": "WhatsApp पर ऑर्डर करें — लॉग इन की ज़रूरत नहीं",
+  "callToOrder": "कॉल करके ऑर्डर करें",
+  "callToOrderBulk": "कॉल करके ऑर्डर करें — थोक में सबसे अच्छा रेट",
+  "toPay": "देना है",
+  "subtotal": "सब-टोटल",
+  "lineItem": {
+    "remove": "हटाएं",
+    "openA11y": "{{name}} खोलें",
+    "removeA11y": "{{name}} हटाएं"
+  },
+  "bill": {
+    "freeDeliveryUnlocked": "वाह! इस ऑर्डर पर डिलीवरी फ्री है",
+    "freeDeliveryRemaining": "फ्री डिलीवरी के लिए {{amount}} का और सामान जोड़ें",
+    "subtotalItems_one": "सब-टोटल ({{count}} आइटम)",
+    "subtotalItems_other": "सब-टोटल ({{count}} आइटम)",
+    "total": "कुल",
+    "updating": "कीमत अपडेट हो रही है…",
+    "baseAmount": "बेस रकम",
+    "gst": "GST",
+    "gstIncluded": "GST (शामिल)",
+    "delivery": "डिलीवरी",
+    "free": "फ्री",
+    "platformFee": "प्लेटफ़ॉर्म फीस",
+    "gstIncludedHint": "दिखाई गई कीमत फाइनल है (GST शामिल)।"
+  }
+}

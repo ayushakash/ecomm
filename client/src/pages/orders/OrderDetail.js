@@ -3,8 +3,10 @@ import { PageSpinner } from '../../components/ui/Spinner';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { orderAPI } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const OrderDetail = () => {
+  const { t } = useTranslation('orders');
   const { id } = useParams();
 
   const { data: order, isLoading, error } = useQuery({
@@ -38,7 +40,7 @@ const OrderDetail = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600">Error loading order: {error.message}</p>
+        <p className="text-red-600">{t('detail.loadError', { message: error.message })}</p>
       </div>
     );
   }
@@ -46,7 +48,7 @@ const OrderDetail = () => {
   if (!order) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Order not found</p>
+        <p className="text-gray-600">{t('detail.notFound')}</p>
       </div>
     );
   }
@@ -58,10 +60,10 @@ const OrderDetail = () => {
         <div className="flex justify-between items-start mb-6">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900">
-              Order #{order.orderNumber}
+              {t('orderNumber', { number: order.orderNumber })}
             </h1>
             <p className="text-gray-600">
-              Placed on {new Date(order.createdAt).toLocaleDateString()}
+              {t('detail.placedOn', { date: new Date(order.createdAt).toLocaleDateString() })}
             </p>
 
             {/* Expected Delivery Time */}
@@ -80,9 +82,9 @@ const OrderDetail = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div>
-                          <p className="text-xs font-medium text-green-600">Expected Delivery</p>
+                          <p className="text-xs font-medium text-green-600">{t('eta.expectedDelivery')}</p>
                           <p className="text-base font-bold text-green-700">
-                            Arriving in {diffMins} minutes
+                            {t('eta.arrivingInMins', { count: diffMins })}
                           </p>
                         </div>
                       </div>
@@ -94,7 +96,7 @@ const OrderDetail = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div>
-                          <p className="text-xs font-medium text-orange-600">Expected Delivery</p>
+                          <p className="text-xs font-medium text-orange-600">{t('eta.expectedDelivery')}</p>
                           <p className="text-base font-bold text-blue-700">
                             {expectedDate.toLocaleString('en-IN', {
                               month: 'short',
@@ -112,20 +114,20 @@ const OrderDetail = () => {
             )}
           </div>
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+            {t(`status.${order.status}`, { defaultValue: order.status })}
           </span>
         </div>
 
         {/* Order Items */}
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Items</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('items.title')}</h2>
           <div className="space-y-4">
             {order.items?.map((item, index) => (
               <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                 <div>
                   <h3 className="font-medium text-gray-900">{item.name}</h3>
                   <p className="text-sm text-gray-600">
-                    {item.quantity} x ₹{item.price} per {item.unit}
+                    {t('detail.itemLine', { quantity: item.quantity, price: item.price, unit: item.unit })}
                   </p>
                 </div>
                 <span className="font-medium text-gray-900">
@@ -138,22 +140,22 @@ const OrderDetail = () => {
 
         {/* Order Summary */}
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('detail.summary')}</h2>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-600">Subtotal:</span>
+              <span className="text-gray-600">{t('price.subtotal')}:</span>
               <span className="font-medium">₹{order.subtotal}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Tax:</span>
+              <span className="text-gray-600">{t('price.tax')}:</span>
               <span className="font-medium">₹{order.tax}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Delivery Charge{order.deliveryCharge === 0 ? ' (Free)' : ''}:</span>
+              <span className="text-gray-600">{t('price.deliveryCharge')}{order.deliveryCharge === 0 ? ` (${t('price.free')})` : ''}:</span>
               <span className="font-medium">{order.deliveryCharge === 0 ? '₹0' : `₹${order.deliveryCharge}`}</span>
             </div>
             <div className="flex justify-between text-lg font-bold border-t border-gray-200 pt-2">
-              <span className="text-gray-900">Total:</span>
+              <span className="text-gray-900">{t('price.total')}:</span>
               <span className="text-gray-900">₹{order.totalAmount}</span>
             </div>
           </div>
@@ -161,23 +163,23 @@ const OrderDetail = () => {
 
         {/* Shipping Information */}
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Shipping Information</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('detail.shipping')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Name</p>
+              <p className="text-sm text-gray-600">{t('detail.name')}</p>
               <p className="font-medium text-gray-900">{order.customerName}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Phone</p>
+              <p className="text-sm text-gray-600">{t('detail.phone')}</p>
               <p className="font-medium text-gray-900">{order.customerPhone}</p>
             </div>
             <div className="md:col-span-2">
-              <p className="text-sm text-gray-600">Deliver To</p>
+              <p className="text-sm text-gray-600">{t('detail.deliverTo')}</p>
               {order.deliveryAddressId ? (
                 <p className="font-medium text-gray-900">
                   {order.deliveryAddressId.addressLine1}
                   {order.deliveryAddressId.addressLine2 && `, ${order.deliveryAddressId.addressLine2}`}
-                  {order.deliveryAddressId.landmark && ` (Near ${order.deliveryAddressId.landmark})`}
+                  {order.deliveryAddressId.landmark && ` (${t('address.near', { landmark: order.deliveryAddressId.landmark })})`}
                   {`, ${order.deliveryAddressId.area}, ${order.deliveryAddressId.city}, ${order.deliveryAddressId.state} - ${order.deliveryAddressId.pincode}`}
                 </p>
               ) : (
@@ -187,22 +189,22 @@ const OrderDetail = () => {
               )}
             </div>
             <div>
-              <p className="text-sm text-gray-600">Payment Method</p>
+              <p className="text-sm text-gray-600">{t('payment.method')}</p>
               <p className="font-medium text-gray-900">
-                {order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment'}
+                {order.paymentMethod === 'cod' ? t('payment.cod') : t('payment.online')}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Payment Status</p>
+              <p className="text-sm text-gray-600">{t('payment.statusTitle')}</p>
               <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
                 order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
                 order.paymentStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
                 order.paymentStatus === 'refunded' ? 'bg-blue-100 text-blue-700' :
                 'bg-blue-100 text-blue-700'
               }`}>
-                {order.paymentStatus === 'paid' ? 'Paid' :
-                 order.paymentStatus === 'cancelled' ? 'Cancelled' :
-                 order.paymentStatus === 'refunded' ? 'Refunded' : 'Pay on Delivery'}
+                {order.paymentStatus === 'paid' ? t('payment.status.paid') :
+                 order.paymentStatus === 'cancelled' ? t('payment.status.cancelled') :
+                 order.paymentStatus === 'refunded' ? t('payment.status.refunded') : t('payment.payOnDelivery')}
               </span>
             </div>
           </div>
@@ -211,13 +213,13 @@ const OrderDetail = () => {
         {/* Status History */}
         {order.statusHistory && order.statusHistory.length > 0 && (
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Status History</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('detail.statusHistory')}</h2>
             <div className="space-y-3">
               {order.statusHistory.map((status, index) => (
                 <div key={index} className="flex items-center">
                   <div className="w-3 h-3 bg-blue-600 rounded-full mr-3"></div>
                   <div>
-                    <p className="font-medium text-gray-900">{status.status}</p>
+                    <p className="font-medium text-gray-900">{t(`status.${status.status}`, { defaultValue: status.status })}</p>
                     <p className="text-sm text-gray-600">
                       {new Date(status.timestamp).toLocaleString()}
                     </p>

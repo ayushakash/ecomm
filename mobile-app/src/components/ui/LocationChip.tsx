@@ -6,6 +6,8 @@ import type { RootNavigation } from '../../navigation/types';
 import { colors, spacing } from '../../theme';
 import { Icon } from './Icon';
 import { Text } from './Text';
+import { useTranslation } from 'react-i18next';
+
 
 export interface LocationChipProps {
   /** 'onDark' for the slate home header, 'onLight' for white bars. */
@@ -19,19 +21,20 @@ export interface LocationChipProps {
 export function LocationChip({ tone = 'onDark', onPress, style }: LocationChipProps) {
   const navigation = useNavigation<RootNavigation>();
   const { locationLabel, locationSubtitle, isLoadingMerchants } = useLocation();
+  const { t } = useTranslation('common');
   const fg = tone === 'onDark' ? colors.textInverse : colors.text;
   const sub = tone === 'onDark' ? 'rgba(255,255,255,0.75)' : colors.textSecondary;
   return (
     <Pressable
       onPress={onPress ?? (() => navigation.navigate('LocationPicker'))}
       accessibilityRole="button"
-      accessibilityLabel={`Delivery location: ${locationLabel}. Change`}
+      accessibilityLabel={t('location.chipA11y', { label: locationLabel })}
       style={({ pressed }) => [styles.wrap, pressed && { opacity: 0.75 }, style]}
     >
       <View style={styles.topRow}>
         <Icon name="location" size={16} color={tone === 'onDark' ? colors.secondary : colors.primary} />
         <Text variant="caption" weight="bold" style={{ color: sub }}>
-          Delivering to
+          {t('location.deliveringTo')}
         </Text>
         {isLoadingMerchants && <ActivityIndicator size="small" color={sub} style={styles.spinner} />}
       </View>

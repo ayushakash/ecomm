@@ -1,0 +1,140 @@
+{
+  "retry": "फिर से कोशिश करें",
+  "orderNumber": "ऑर्डर #{{number}}",
+  "itemCount_one": "{{count}} आइटम",
+  "itemCount_other": "{{count}} आइटम",
+  "status": {
+    "pending": "ऑर्डर हो गया",
+    "approved": "कन्फर्म",
+    "assigned": "कन्फर्म",
+    "processing": "पैक हो रहा है",
+    "shipped": "डिलीवरी के लिए निकला",
+    "delivered": "डिलीवर हो गया",
+    "cancelled": "रद्द"
+  },
+  "filters": {
+    "all": "सभी",
+    "pending": "ऑर्डर हो गया",
+    "assigned": "कन्फर्म",
+    "processing": "पैक हो रहा है",
+    "shipped": "डिलीवरी के लिए निकला",
+    "delivered": "डिलीवर हो गया",
+    "cancelled": "रद्द"
+  },
+  "payment": {
+    "cod": "डिलीवरी पर भुगतान",
+    "online": "ऑनलाइन भुगतान",
+    "bank": "बैंक ट्रांसफर"
+  },
+  "paymentStatus": {
+    "paid": "भुगतान हो गया",
+    "refunded": "पैसा वापस",
+    "failed": "फेल",
+    "pending": "डिलीवरी पर भुगतान"
+  },
+  "eta": {
+    "arrivingMins_one": "{{count}} मिनट में पहुंच रहा है",
+    "arrivingMins_other": "{{count}} मिनट में पहुंच रहा है",
+    "arrivingMinutes_one": "{{count}} मिनट में पहुंच रहा है",
+    "arrivingMinutes_other": "{{count}} मिनट में पहुंच रहा है",
+    "expected": "अनुमानित: {{time}}",
+    "hoursMins": "{{hours}} घंटे {{mins}} मिनट",
+    "mins_one": "{{count}} मिनट",
+    "mins_other": "{{count}} मिनट",
+    "delayed": "देर हो रही है",
+    "expectedDelivery": "अनुमानित डिलीवरी"
+  },
+  "bill": {
+    "itemTotal": "आइटम कुल",
+    "taxable": "टैक्स योग्य रकम",
+    "subtotalInclGst": "सब-टोटल (GST सहित)",
+    "delivery": "डिलीवरी चार्ज",
+    "platformFee": "प्लेटफ़ॉर्म फ़ीस",
+    "free": "फ्री"
+  },
+  "lifecycle": {
+    "order_created": "ऑर्डर हो गया",
+    "order_assigned": "विक्रेता तय हुआ",
+    "order_accepted": "ऑर्डर मंज़ूर",
+    "order_rejected": "विक्रेता ने मना किया",
+    "order_shipped": "डिलीवरी के लिए निकला",
+    "order_delivered": "डिलीवर हो गया",
+    "order_cancelled": "ऑर्डर रद्द",
+    "payment_confirmed": "भुगतान कन्फर्म",
+    "payment_failed": "भुगतान फेल",
+    "stock_updated": "स्टॉक अपडेट हुआ",
+    "refund_initiated": "रिफंड शुरू हुआ",
+    "refund_completed": "रिफंड पूरा हुआ"
+  },
+  "list": {
+    "title": "मेरे ऑर्डर",
+    "subtitle": "अपने सारे ऑर्डर एक जगह देखें",
+    "errorTitle": "आपके ऑर्डर लोड नहीं हो पाए",
+    "errorMessage": "इंटरनेट कनेक्शन देखें और फिर से कोशिश करें।",
+    "emptyFiltered": "कोई ऑर्डर नहीं: {{status}}",
+    "emptyFilteredMessage": "बाकी ऑर्डर देखने के लिए दूसरा फ़िल्टर चुनें।",
+    "showAll": "सारे ऑर्डर दिखाएं",
+    "emptyTitle": "अभी तक कोई ऑर्डर नहीं",
+    "emptyMessage": "खरीदारी शुरू करें, आपके ऑर्डर यहां दिखेंगे!",
+    "browse": "प्रोडक्ट्स देखें"
+  },
+  "card": {
+    "a11y": "ऑर्डर {{number}}, {{status}}, {{amount}}",
+    "viewDetails": "पूरी जानकारी देखें"
+  },
+  "progress": {
+    "cancelled": "ऑर्डर रद्द",
+    "cancelledOn": "{{date}} को रद्द हुआ",
+    "cancelledNoDate": "यह ऑर्डर रद्द हो गया था।"
+  },
+  "timeline": {
+    "error": "ऑर्डर की जानकारी नहीं मिल पाई।",
+    "empty": "इस ऑर्डर पर अभी कोई गतिविधि नहीं है।",
+    "byLabel": "{{name}} द्वारा",
+    "by": {
+      "customer": "आप",
+      "merchant": "विक्रेता",
+      "admin": "Chardeevari",
+      "system": "सिस्टम"
+    }
+  },
+  "invoice": {
+    "title": "GST टैक्स बिल",
+    "printError": "प्रिंट नहीं खुल पाया",
+    "shareUnavailable": "इस फ़ोन पर शेयर नहीं हो सकता",
+    "dialogTitle": "बिल #{{number}}",
+    "pdfError": "बिल की PDF नहीं बन पाई",
+    "webNotice": "बिल का प्रीव्यू ऐप में दिखता है। यहां देखने के लिए प्रिंट दबाएं।",
+    "print": "प्रिंट",
+    "share": "PDF शेयर करें"
+  },
+  "detail": {
+    "title": "ऑर्डर की जानकारी",
+    "cancelSuccess": "ऑर्डर रद्द हो गया",
+    "errorTitle": "यह ऑर्डर लोड नहीं हो पाया",
+    "notFound": "ऑर्डर नहीं मिला",
+    "backToOrders": "ऑर्डर पर वापस जाएं",
+    "cancelTitle": "ऑर्डर रद्द करें",
+    "cancelConfirm": "क्या आप सच में ऑर्डर #{{number}} रद्द करना चाहते हैं? रद्द होने के बाद इसे वापस नहीं ला सकते।",
+    "cancelKeep": "नहीं, ऑर्डर रखें",
+    "cancelYes": "हां, रद्द करें",
+    "placedOn": "{{date}} को ऑर्डर किया",
+    "viewInvoice": "GST बिल देखें",
+    "status": "ऑर्डर की स्थिति",
+    "itemsInOrder_one": "इस ऑर्डर में {{count}} आइटम",
+    "itemsInOrder_other": "इस ऑर्डर में {{count}} आइटम",
+    "unknownProduct": "अनजान प्रोडक्ट",
+    "bill": "बिल की जानकारी",
+    "totalAmount": "कुल रकम",
+    "viewShareInvoice": "GST बिल देखें / शेयर करें",
+    "address": "डिलीवरी का पता",
+    "payment": "भुगतान",
+    "activity": "ऑर्डर की गतिविधि",
+    "help": "इस ऑर्डर में मदद चाहिए?",
+    "whatsappUnavailable": "अभी WhatsApp सपोर्ट उपलब्ध नहीं है",
+    "callUs": "कॉल करें",
+    "callUnavailable": "अभी कॉल सपोर्ट उपलब्ध नहीं है",
+    "cancelling": "रद्द हो रहा है...",
+    "cancelNote": "ध्यान दें: डिलीवर हो चुके ऑर्डर रद्द नहीं हो सकते"
+  }
+}

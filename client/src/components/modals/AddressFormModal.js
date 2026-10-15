@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { MapPinIcon, XMarkIcon, MapIcon } from '@heroicons/react/24/outline';
 import MapPickerModal from '../map/MapPickerModal';
+import { useTranslation } from 'react-i18next';
 
 const INDIAN_STATES = [
   'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam',
@@ -39,6 +40,7 @@ const emptyForm = {
  *   editingAddress - address object to pre-populate for editing (null = add new)
  */
 const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null }) => {
+  const { t } = useTranslation('checkout');
   const { user } = useAuth();
   const [form, setForm] = useState(emptyForm);
   const [capturingCoordinates, setCapturingCoordinates] = useState(false);
@@ -70,7 +72,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
   const createMutation = useMutation({
     mutationFn: (data) => addressAPI.createAddress(data),
     onSuccess: () => {
-      toast.success('Address added successfully!');
+      toast.success(t('address.toast.added'));
       onClose();
       setForm(emptyForm);
       onSuccess?.();
@@ -83,7 +85,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
           : Object.values(errors).join('\n');
         toast.error(messages, { duration: 5000 });
       } else {
-        toast.error(err.response?.data?.message || 'Failed to add address');
+        toast.error(err.response?.data?.message || t('address.toast.addFailed'));
       }
     }
   });
@@ -91,7 +93,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
   const updateMutation = useMutation({
     mutationFn: (data) => addressAPI.updateAddress(editingAddress._id, data),
     onSuccess: () => {
-      toast.success('Address updated successfully!');
+      toast.success(t('address.toast.updated'));
       onClose();
       onSuccess?.();
     },
@@ -103,7 +105,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
           : Object.values(errors).join('\n');
         toast.error(messages, { duration: 5000 });
       } else {
-        toast.error(err.response?.data?.message || 'Failed to update address');
+        toast.error(err.response?.data?.message || t('address.toast.updateFailed'));
       }
     }
   });
@@ -114,7 +116,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
 
   const captureCoordinates = () => {
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by this browser');
+      toast.error(t('location:errors.notSupported'));
       return;
     }
     setCapturingCoordinates(true);
@@ -142,11 +144,11 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
       },
       (error) => {
         const msgs = {
-          1: 'Location access denied. Please enable location permissions.',
-          2: 'Location information unavailable.',
-          3: 'Location request timed out.'
+          1: t('location:errors.denied'),
+          2: t('location:errors.unavailable'),
+          3: t('location:errors.timeout')
         };
-        toast.error(msgs[error.code] || 'Unable to get your location');
+        toast.error(msgs[error.code] || t('location:errors.unableToGet'));
         setCapturingCoordinates(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
@@ -164,7 +166,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
       if (address.pincode) update.pincode = address.pincode;
     }
     setForm(prev => ({ ...prev, ...update }));
-    toast.success('Location selected! Please verify the prefilled fields.');
+    toast.success(t('address.toast.locationSelected'));
   };
 
   const handleSubmit = (e) => {
@@ -204,11 +206,12 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                 <MapPinIcon className="w-6 h-6 text-orange-600" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {editingAddress ? 'Edit Address' : 'Add New Address'}
+                {editingAddress ? t('address.editTitle') : t('address.addTitle')}
               </h2>
             </div>
             <button
               onClick={onClose}
+              aria-label={t('address.close')}
               className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
             >
               <XMarkIcon className="w-6 h-6" />
@@ -225,9 +228,9 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                 className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50"
               >
                 {capturingCoordinates ? (
-                  <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>Detecting...</>
+                  <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>{t('address.detecting')}</>
                 ) : (
-                  <><MapPinIcon className="w-4 h-4" />Use GPS</>
+                  <><MapPinIcon className="w-4 h-4" />{t('address.useGps')}</>
                 )}
               </button>
               <button
@@ -236,19 +239,19 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                 className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-green-300 text-green-700 bg-green-50 hover:bg-green-100 rounded-xl text-sm font-semibold transition-all duration-200"
               >
                 <MapIcon className="w-4 h-4" />
-                Select on Map
+                {t('address.selectOnMap')}
               </button>
             </div>
             {form.coordinates?.latitude && (
               <p className="text-xs text-green-600 font-medium -mt-1">
-                Location set: {form.coordinates.latitude.toFixed(5)}, {form.coordinates.longitude.toFixed(5)}
+                {t('address.locationSet')}: {form.coordinates.latitude.toFixed(5)}, {form.coordinates.longitude.toFixed(5)}
               </p>
             )}
 
             {/* Address Type */}
             <div>
               <label className="block text-sm font-bold text-gray-800 mb-2">
-                Address Type <span className="text-red-500">*</span>
+                {t('address.fields.type')} <span className="text-red-500">*</span>
               </label>
               <select
                 name="addressType"
@@ -256,23 +259,23 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
               >
-                <option value="home">🏠 Home</option>
-                <option value="office">🏢 Office</option>
-                <option value="other">📍 Other</option>
+                <option value="home">🏠 {t('address.types.home')}</option>
+                <option value="office">🏢 {t('address.types.office')}</option>
+                <option value="other">📍 {t('address.types.other')}</option>
               </select>
             </div>
 
             {/* Phone Number */}
             <div>
               <label className="block text-sm font-bold text-gray-800 mb-2">
-                Phone Number <span className="text-red-500">*</span>
+                {t('address.fields.phone')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
                 name="phoneNumber"
                 value={form.phoneNumber}
                 onChange={handleInputChange}
-                placeholder="10-digit mobile number"
+                placeholder={t('address.placeholders.phone')}
                 required
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
               />
@@ -281,14 +284,14 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
             {/* Address Line 1 */}
             <div>
               <label className="block text-sm font-bold text-gray-800 mb-2">
-                Full Address <span className="text-red-500">*</span>
+                {t('address.fields.line1')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="addressLine1"
                 value={form.addressLine1}
                 onChange={handleInputChange}
-                placeholder="House/Flat number, Street name"
+                placeholder={t('address.placeholders.line1')}
                 required
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
               />
@@ -297,14 +300,14 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
             {/* Address Line 2 */}
             <div>
               <label className="block text-sm font-bold text-gray-800 mb-2">
-                Address Line 2 (Optional)
+                {t('address.fields.line2')}
               </label>
               <input
                 type="text"
                 name="addressLine2"
                 value={form.addressLine2}
                 onChange={handleInputChange}
-                placeholder="Apartment, suite, etc."
+                placeholder={t('address.placeholders.line2')}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
               />
             </div>
@@ -313,7 +316,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">
-                  Area/Locality <span className="text-red-500">*</span>
+                  {t('address.fields.area')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -321,13 +324,13 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                   value={form.area}
                   onChange={handleInputChange}
                   required
-                  placeholder="e.g. Koramangala"
+                  placeholder={t('address.placeholders.area')}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                 />
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">
-                  City <span className="text-red-500">*</span>
+                  {t('address.fields.city')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -335,13 +338,13 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                   value={form.city}
                   onChange={handleInputChange}
                   required
-                  placeholder="e.g. Bangalore"
+                  placeholder={t('address.placeholders.city')}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                 />
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">
-                  Pincode <span className="text-red-500">*</span>
+                  {t('address.fields.pincode')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -349,7 +352,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                   value={form.pincode}
                   onChange={handleInputChange}
                   required
-                  placeholder="6-digit pincode"
+                  placeholder={t('address.placeholders.pincode')}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                 />
               </div>
@@ -359,7 +362,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">
-                  State <span className="text-red-500">*</span>
+                  {t('address.fields.state')} <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="state"
@@ -368,7 +371,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                   required
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                 >
-                  <option value="">Select State</option>
+                  <option value="">{t('address.placeholders.state')}</option>
                   {INDIAN_STATES.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -376,14 +379,14 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">
-                  Landmark (Optional)
+                  {t('address.fields.landmark')}
                 </label>
                 <input
                   type="text"
                   name="landmark"
                   value={form.landmark}
                   onChange={handleInputChange}
-                  placeholder="Near a landmark"
+                  placeholder={t('address.placeholders.landmark')}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                 />
               </div>
@@ -396,7 +399,7 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                 onClick={onClose}
                 className="w-full sm:w-auto px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold transition-all duration-200"
               >
-                Cancel
+                {t('address.cancel')}
               </button>
               <button
                 type="submit"
@@ -406,10 +409,10 @@ const AddressFormModal = ({ isOpen, onClose, onSuccess, editingAddress = null })
                 {isSaving ? (
                   <span className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Saving...
+                    {t('address.saving')}
                   </span>
                 ) : (
-                  editingAddress ? '✓ Update Address' : '✓ Save Address'
+                  editingAddress ? `✓ ${t('address.update')}` : `✓ ${t('address.save')}`
                 )}
               </button>
             </div>

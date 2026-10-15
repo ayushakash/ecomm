@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
+  const { t } = useTranslation('location');
   const [loading, setLoading] = useState(false);
   const [manualLocation, setManualLocation] = useState(customerAddress || '');
   const [locationMethod, setLocationMethod] = useState('manual'); // 'current' or 'manual'
@@ -9,7 +11,7 @@ const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
     setLoading(true);
     
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by this browser');
+      alert(t('errors.notSupported'));
       setLoading(false);
       return;
     }
@@ -29,20 +31,20 @@ const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
       },
       (error) => {
         console.error('Error getting location:', error);
-        let errorMessage = 'Unable to get your location. ';
+        let errorMessage = t('errors.unableToGet') + ' ';
         
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage += 'Location access was denied. Please enable location services and try again.';
+            errorMessage += t('errors.denied');
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage += 'Location information is unavailable.';
+            errorMessage += t('errors.unavailable');
             break;
           case error.TIMEOUT:
-            errorMessage += 'Location request timed out.';
+            errorMessage += t('errors.timeout');
             break;
           default:
-            errorMessage += 'An unknown error occurred.';
+            errorMessage += t('errors.unknown');
             break;
         }
         
@@ -59,7 +61,7 @@ const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
 
   const useManualLocation = () => {
     if (!manualLocation.trim()) {
-      alert('Please enter a delivery address');
+      alert(t('confirmation.enterAddressAlert'));
       return;
     }
 
@@ -75,9 +77,9 @@ const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-      <h3 className="text-lg font-semibold text-blue-900 mb-2">📍 Delivery Location</h3>
+      <h3 className="text-lg font-semibold text-blue-900 mb-2">📍 {t('confirmation.title')}</h3>
       <p className="text-sm text-blue-700 mb-4">
-        Using your current location helps us find the nearest merchants for faster delivery!
+        {t('confirmation.subtitle')}
       </p>
 
       <div className="space-y-4">
@@ -91,7 +93,7 @@ const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
               onChange={(e) => setLocationMethod(e.target.value)}
               className="mr-2"
             />
-            <span className="text-sm font-medium">Use Current Location</span>
+            <span className="text-sm font-medium">{t('confirmation.useCurrent')}</span>
           </label>
           <label className="flex items-center">
             <input
@@ -101,19 +103,19 @@ const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
               onChange={(e) => setLocationMethod(e.target.value)}
               className="mr-2"
             />
-            <span className="text-sm font-medium">Enter Address Manually</span>
+            <span className="text-sm font-medium">{t('enterManually')}</span>
           </label>
         </div>
 
         {/* Address Input */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Delivery Address
+            {t('confirmation.addressLabel')}
           </label>
           <textarea
             value={manualLocation}
             onChange={(e) => setManualLocation(e.target.value)}
-            placeholder="Enter your complete delivery address..."
+            placeholder={t('confirmation.addressPlaceholder')}
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows="3"
           />
@@ -130,11 +132,11 @@ const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                  Getting Location...
+                  {t('gettingLocation')}
                 </>
               ) : (
                 <>
-                  📍 Use Current Location (Recommended)
+                  📍 {t('confirmation.useCurrentRecommended')}
                 </>
               )}
             </button>
@@ -143,7 +145,7 @@ const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
               onClick={useManualLocation}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
             >
-              ✅ Confirm Address
+              ✅ {t('confirmation.confirmAddress')}
             </button>
           )}
         </div>
@@ -151,12 +153,12 @@ const LocationConfirmation = ({ onLocationConfirm, customerAddress }) => {
         {/* Benefits */}
         <div className="bg-green-50 border border-green-200 rounded-md p-3">
           <p className="text-sm text-green-800">
-            <span className="font-medium">Benefits of accurate location:</span>
+            <span className="font-medium">{t('confirmation.benefitsTitle')}</span>
             <ul className="mt-1 ml-4 list-disc text-xs">
-              <li>Faster merchant assignment</li>
-              <li>More accurate delivery estimates</li>
-              <li>Better order completion rates</li>
-              <li>Reduced delivery charges</li>
+              <li>{t('confirmation.benefits.fasterAssignment')}</li>
+              <li>{t('confirmation.benefits.accurateEstimates')}</li>
+              <li>{t('confirmation.benefits.betterCompletion')}</li>
+              <li>{t('confirmation.benefits.lowerCharges')}</li>
             </ul>
           </p>
         </div>

@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import React, { memo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
@@ -14,11 +15,12 @@ function DeleteAction({ drag }: { drag: SharedValue<number> }) {
   const iconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(-drag.value, [0, ACTION_WIDTH], [0.6, 1], 'clamp') }],
   }));
+  const { t } = useTranslation('cart');
   return (
     <View style={styles.deleteAction}>
       <Animated.View style={[styles.deleteInner, iconStyle]}>
         <Icon name="trash-outline" size={22} color="textInverse" />
-        <Text variant="micro" color="textInverse" weight="bold">Remove</Text>
+        <Text variant="micro" color="textInverse" weight="bold">{t('lineItem.remove')}</Text>
       </Animated.View>
     </View>
   );
@@ -33,6 +35,7 @@ export interface CartLineItemProps {
 
 /** One cart row (web Cart.js line item): image, name, variant chip, unit price, stepper, line total; swipe left to remove. */
 export const CartLineItem = memo(function CartLineItem({ item, onQuantityChange, onRemove, onOpen }: CartLineItemProps) {
+  const { t } = useTranslation('cart');
   const remove = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onRemove(item.cartKey);
@@ -61,7 +64,7 @@ export const CartLineItem = memo(function CartLineItem({ item, onQuantityChange,
         <Pressable
           onPress={() => onOpen(item)}
           accessibilityRole="button"
-          accessibilityLabel={`Open ${item.name}`}
+          accessibilityLabel={t('lineItem.openA11y', { name: item.name })}
           style={styles.imageWrap}
         >
           <Image uri={item.images?.[0]} style={styles.image} recyclingKey={item.cartKey} fallbackIcon="cube-outline" />
@@ -88,7 +91,7 @@ export const CartLineItem = memo(function CartLineItem({ item, onQuantityChange,
               onPress={remove}
               hitSlop={layout.hitSlop}
               accessibilityRole="button"
-              accessibilityLabel={`Remove ${item.name}`}
+              accessibilityLabel={t('lineItem.removeA11y', { name: item.name })}
               style={({ pressed }) => [styles.trash, pressed && styles.trashPressed]}
             >
               <Icon name="trash-outline" size={18} color="danger" />

@@ -13,6 +13,7 @@ import {
   BellAlertIcon
 } from '@heroicons/react/24/outline';
 import ResponsiveDashboardLayout from './ResponsiveDashboardLayout';
+import EnglishOnly from '../../i18n/EnglishOnly';
 
 const AdminLayout = () => {
   const navigation = [
@@ -30,17 +31,19 @@ const AdminLayout = () => {
   ];
 
   return (
-    <ResponsiveDashboardLayout
-      navigation={navigation}
-      title="Admin Control"
-      subtitle="System Dashboard"
-      brandIcon="🔥"
-      gradientFrom="from-red-900"
-      gradientVia="via-pink-900"
-      gradientTo="to-purple-900"
-      textColor="text-pink-200"
-      type="admin"
-    />
+    <EnglishOnly>
+      <ResponsiveDashboardLayout
+        navigation={navigation}
+        title="Admin Control"
+        subtitle="System Dashboard"
+        brandIcon="🔥"
+        gradientFrom="from-red-900"
+        gradientVia="via-pink-900"
+        gradientTo="to-purple-900"
+        textColor="text-pink-200"
+        type="admin"
+      />
+    </EnglishOnly>
   );
 };
 

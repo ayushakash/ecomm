@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -20,13 +21,13 @@ import type { MainTabScreenProps } from '../../navigation/types';
 import { colors, radii, shadows, spacing, SCREEN_PADDING } from '../../theme';
 import { callPhone, openExternal } from '../../utils/whatsapp';
 import { isNotificationsAvailable, sendTestNotification, type TestNotificationKind } from '../../services/notifications';
+import { currentLanguage, LANGUAGES, setLanguage } from '../../i18n';
 import { DeleteAccountSheet } from './components/DeleteAccountSheet';
 import { VerifyChangeSheet } from './components/VerifyChangeSheet';
 
 /** Contact details from web pages/Contact.js. */
 const CONTACT_PHONE = '916201176610';
 const CONTACT_PHONE_LABEL = '+91 6201176610';
-const CONTACT_HOURS = 'Mon-Sat, 9AM - 6PM IST';
 const OFFICE_ADDRESS = 'Kadru, AG Colony, Jharkhand 834002, India';
 const OFFICE_MAP_URL = 'https://www.google.com/maps?q=23.35708709274134,85.31314123434679';
 
@@ -91,6 +92,9 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
   const [contactSheet, setContactSheet] = useState(false);
   const [deleteSheet, setDeleteSheet] = useState(false);
   const [notifSheet, setNotifSheet] = useState(false);
+  const [languageSheet, setLanguageSheet] = useState(false);
+  const { t } = useTranslation('account');
+  const language = currentLanguage();
 
   const testNotification = async (kind: TestNotificationKind) => {
     try {
@@ -122,9 +126,9 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
   };
 
   const confirmLogout = () =>
-    Alert.alert('Log out?', 'You will need to sign in again to place orders.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: () => void logout() },
+    Alert.alert(t('logout.title'), t('logout.message'), [
+      { text: t('logout.cancel'), style: 'cancel' },
+      { text: t('logout.confirm'), style: 'destructive', onPress: () => void logout() },
     ]);
 
   const initials = user?.name
@@ -142,30 +146,36 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
       ? [
           {
             icon: 'receipt-outline' as IconName,
-            label: 'My orders',
-            subtitle: 'Track, cancel and download invoices',
+            label: t('menu.orders'),
+            subtitle: t('menu.ordersSub'),
             onPress: () => navigation.navigate('MainTabs', { screen: 'OrdersTab' }),
           },
           {
             icon: 'location-outline' as IconName,
-            label: 'Saved addresses',
-            subtitle: 'Manage delivery addresses',
+            label: t('menu.addresses'),
+            subtitle: t('menu.addressesSub'),
             onPress: () => navigation.navigate('Addresses', {}),
           },
         ]
       : []),
     {
       icon: 'calculator-outline',
-      label: 'Material calculator',
-      subtitle: 'Estimate cement, bricks, sand & steel',
+      label: t('menu.calculator'),
+      subtitle: t('menu.calculatorSub'),
       onPress: () => navigation.navigate('Calculator'),
     },
   ];
 
   const helpItems: MenuItem[] = [
-    { icon: 'headset-outline', label: 'Contact us', subtitle: CONTACT_PHONE_LABEL, onPress: () => setContactSheet(true) },
-    { icon: 'information-circle-outline', label: 'About Chardeevari', subtitle: 'chardeevari.in', onPress: () => openExternal(WEBSITE_URL) },
-    { icon: 'newspaper-outline', label: 'Blog', onPress: () => openExternal(`${WEBSITE_URL}/blog`) },
+    {
+      icon: 'language-outline',
+      label: t('common:language.label'),
+      subtitle: LANGUAGES.find((l) => l.code === language)?.label,
+      onPress: () => setLanguageSheet(true),
+    },
+    { icon: 'headset-outline', label: t('menu.contact'), subtitle: CONTACT_PHONE_LABEL, onPress: () => setContactSheet(true) },
+    { icon: 'information-circle-outline', label: t('menu.about'), subtitle: 'chardeevari.in', onPress: () => openExternal(WEBSITE_URL) },
+    { icon: 'newspaper-outline', label: t('menu.blog'), onPress: () => openExternal(`${WEBSITE_URL}/blog`) },
   ];
   // Dev-only: preview push notification styles before server push is built.
   if (__DEV__) {
@@ -179,7 +189,7 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
 
   return (
     <Screen>
-      <ScreenHeader title="Account" subtitle="Orders, addresses & support" back={false} icon="person-outline" />
+      <ScreenHeader title={t('title')} subtitle={t('subtitle')} back={false} icon="person-outline" />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xxl }]}>
         {isAuthenticated && user ? (
           <Card style={styles.profile} elevated>
@@ -204,35 +214,35 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
                   </Text>
                 ) : null}
               </View>
-              <Button title="Edit" variant="outline" size="sm" leftIcon="pencil" onPress={openNameSheet} />
+              <Button title={t('profile.edit')} variant="outline" size="sm" leftIcon="pencil" onPress={openNameSheet} />
             </View>
             <Divider style={styles.profileDivider} />
             <Pressable
               style={styles.detailRow}
               onPress={() => setVerifyKind('phone')}
               accessibilityRole="button"
-              accessibilityLabel={user.phone ? 'Change phone number' : 'Link phone number'}
+              accessibilityLabel={user.phone ? t('profile.changePhone') : t('profile.linkPhoneA11y')}
             >
               <Icon name="call-outline" size={18} color="textSecondary" />
               <Text variant="body" color={user.phone ? 'text' : 'textMuted'} style={styles.flex}>
-                {user.phone ? `+91 ${user.phone}` : 'No phone linked'}
+                {user.phone ? `+91 ${user.phone}` : t('profile.noPhone')}
               </Text>
               <Text variant="label" weight="semibold" color="secondaryDark">
-                {user.phone ? 'Change' : 'Link phone'}
+                {user.phone ? t('profile.change') : t('profile.linkPhone')}
               </Text>
             </Pressable>
             <Pressable
               style={styles.detailRow}
               onPress={() => setVerifyKind('email')}
               accessibilityRole="button"
-              accessibilityLabel={user.email ? 'Change email' : 'Add email'}
+              accessibilityLabel={user.email ? t('profile.changeEmail') : t('profile.addEmail')}
             >
               <Icon name="mail-outline" size={18} color="textSecondary" />
               <Text variant="body" color={user.email ? 'text' : 'textMuted'} style={styles.flex} numberOfLines={1}>
-                {user.email || 'No email added'}
+                {user.email || t('profile.noEmail')}
               </Text>
               <Text variant="label" weight="semibold" color="secondaryDark">
-                {user.email ? 'Change' : 'Add'}
+                {user.email ? t('profile.change') : t('profile.add')}
               </Text>
             </Pressable>
           </Card>
@@ -242,13 +252,13 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
               <Icon name="person" size={28} color="primary" />
             </View>
             <Text variant="h2" weight="bold" align="center">
-              Welcome to Chardeevari
+              {t('guest.title')}
             </Text>
             <Text variant="bodySm" color="textSecondary" align="center">
-              Log in to place orders, track deliveries and save your addresses.
+              {t('guest.message')}
             </Text>
             <Button
-              title="Log in / Sign up"
+              title={t('guest.login')}
               variant="secondary"
               fullWidth
               onPress={() => navigation.navigate('Login', { redirect: { name: 'MainTabs', params: { screen: 'AccountTab' } } })}
@@ -261,24 +271,24 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
         {isAuthenticated && (
           <MenuGroup
             items={[
-              { icon: 'log-out-outline', label: 'Log out', onPress: confirmLogout, danger: true },
-              { icon: 'trash-outline', label: 'Delete account', onPress: () => setDeleteSheet(true), danger: true },
+              { icon: 'log-out-outline', label: t('logout.confirm'), onPress: confirmLogout, danger: true },
+              { icon: 'trash-outline', label: t('menu.deleteAccount'), onPress: () => setDeleteSheet(true), danger: true },
             ]}
           />
         )}
 
         <Text variant="caption" color="textMuted" align="center">
-          Chardeevari v{version}
+          {t('version', { version })}
         </Text>
       </ScrollView>
 
       <BottomSheet
         visible={nameSheet}
         onClose={() => setNameSheet(false)}
-        title="Edit name"
-        footer={<Button title="Save" fullWidth loading={savingName} disabled={name.trim().length < 2} onPress={saveName} />}
+        title={t('profile.editName')}
+        footer={<Button title={t('profile.save')} fullWidth loading={savingName} disabled={name.trim().length < 2} onPress={saveName} />}
       >
-        <Input label="Full name" value={name} onChangeText={setName} autoFocus autoCapitalize="words" />
+        <Input label={t('profile.fullName')} value={name} onChangeText={setName} autoFocus autoCapitalize="words" />
       </BottomSheet>
 
       <VerifyChangeSheet
@@ -290,6 +300,24 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
 
       <DeleteAccountSheet visible={deleteSheet} onClose={() => setDeleteSheet(false)} />
 
+      <BottomSheet visible={languageSheet} onClose={() => setLanguageSheet(false)} title={t('common:language.title')}>
+        <View style={styles.contactList}>
+          {LANGUAGES.map((l) => (
+            <Button
+              key={l.code}
+              title={l.label}
+              variant={l.code === language ? 'primary' : 'outline'}
+              rightIcon={l.code === language ? 'checkmark' : undefined}
+              fullWidth
+              onPress={() => {
+                void setLanguage(l.code);
+                setLanguageSheet(false);
+              }}
+            />
+          ))}
+        </View>
+      </BottomSheet>
+
       <BottomSheet visible={notifSheet} onClose={() => setNotifSheet(false)} title="Test notifications" subtitle="Arrives 3 seconds after tapping">
         <View style={styles.contactList}>
           <Button title="Offer / deal" leftIcon="pricetag-outline" fullWidth onPress={() => void testNotification('offer')} />
@@ -298,35 +326,35 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
         </View>
       </BottomSheet>
 
-      <BottomSheet visible={contactSheet} onClose={() => setContactSheet(false)} title="Contact us" subtitle="We're here to help!">
+      <BottomSheet visible={contactSheet} onClose={() => setContactSheet(false)} title={t('menu.contact')} subtitle={t('contact.subtitle')}>
         <View style={styles.contactList}>
-          <Button title={`Call ${CONTACT_PHONE_LABEL}`} variant="primary" leftIcon="call" fullWidth onPress={() => callPhone(CONTACT_PHONE)} />
+          <Button title={t('contact.call', { phone: CONTACT_PHONE_LABEL })} variant="primary" leftIcon="call" fullWidth onPress={() => callPhone(CONTACT_PHONE)} />
           <Button
-            title="Chat on WhatsApp"
+            title={t('contact.whatsapp')}
             variant="whatsapp"
             leftIcon="logo-whatsapp"
             fullWidth
-            onPress={() => openExternal(`https://wa.me/${CONTACT_PHONE}`, 'Could not open WhatsApp')}
+            onPress={() => openExternal(`https://wa.me/${CONTACT_PHONE}`, t('contact.whatsappError'))}
           />
           <Text variant="caption" color="textMuted" align="center">
-            {CONTACT_HOURS}
+            {t('contact.hours')}
           </Text>
           <Divider />
-          <Pressable style={styles.detailRow} onPress={() => openExternal(OFFICE_MAP_URL)} accessibilityRole="link" accessibilityLabel="Get directions to head office">
+          <Pressable style={styles.detailRow} onPress={() => openExternal(OFFICE_MAP_URL)} accessibilityRole="link" accessibilityLabel={t('contact.directionsA11y')}>
             <Icon name="business-outline" size={20} color="textSecondary" />
             <View style={styles.flex}>
               <Text variant="title" weight="semibold">
-                Head office
+                {t('contact.headOffice')}
               </Text>
               <Text variant="bodySm" color="textSecondary">
                 {OFFICE_ADDRESS}
               </Text>
             </View>
             <Text variant="label" weight="semibold" color="secondaryDark">
-              Directions
+              {t('contact.directions')}
             </Text>
           </Pressable>
-          <Button title="Open contact page" variant="ghost" rightIcon="open-outline" fullWidth onPress={() => openExternal(`${WEBSITE_URL}/contact`)} />
+          <Button title={t('contact.openPage')} variant="ghost" rightIcon="open-outline" fullWidth onPress={() => openExternal(`${WEBSITE_URL}/contact`)} />
         </View>
       </BottomSheet>
     </Screen>

@@ -16,6 +16,8 @@ import { PriceText } from './PriceText';
 import { QuantityStepper } from './QuantityStepper';
 import { Skeleton } from './Skeleton';
 import { Text } from './Text';
+import { useTranslation } from 'react-i18next';
+
 
 export interface ProductCardProps {
   product: Product;
@@ -39,6 +41,7 @@ function ProductCardBase({ product, width, onPress, priority = false, style }: P
   const navigation = useNavigation<RootNavigation>();
   const { getCartItem, updateQuantity } = useCart();
   const addToCart = useAddToCart();
+  const { t } = useTranslation('common');
   const { number: bulkNumber, openBulkWhatsApp } = useBulkWhatsApp();
 
   const variantCount = product.variants?.length ?? 0;
@@ -66,13 +69,13 @@ function ProductCardBase({ product, width, onPress, priority = false, style }: P
           recyclingKey={product._id}
           accessibilityLabel={product.name}
         />
-        {discount > 0 && <Badge label={`${discount}% OFF`} tone="success" solid style={styles.topLeft} />}
+        {discount > 0 && <Badge label={t('product.off', { discount })} tone="success" solid style={styles.topLeft} />}
         {!outOfStock && stock <= 10 && (
-          <Badge label={`Only ${stock} left`} tone="brand" solid style={discount > 0 ? styles.bottomLeft : styles.topLeft} />
+          <Badge label={t('product.onlyLeft', { count: stock })} tone="brand" solid style={discount > 0 ? styles.bottomLeft : styles.topLeft} />
         )}
         {outOfStock && (
           <View style={styles.oosOverlay}>
-            <Badge label="OUT OF STOCK" tone="danger" solid size="md" />
+            <Badge label={t('product.outOfStockBadge')} tone="danger" solid size="md" />
           </View>
         )}
       </View>
@@ -83,17 +86,17 @@ function ProductCardBase({ product, width, onPress, priority = false, style }: P
         </Text>
         {hasVariants ? (
           <Text variant="caption" color="secondaryDark" weight="semibold">
-            {variantCount} size{variantCount > 1 ? 's' : ''} available
+            {t('product.sizes', { count: variantCount })}
           </Text>
         ) : (
           <Text variant="caption" color="textMuted" numberOfLines={1}>
-            {product.unit ? `Per ${product.unit}` : ' '}
+            {product.unit ? t('product.perUnit', { unit: product.unit }) : ' '}
           </Text>
         )}
         <PriceText
           amount={price}
           mrp={hasVariants ? undefined : product.mrp}
-          prefix={hasVariants ? 'From' : undefined}
+          prefix={hasVariants ? t('product.from') : undefined}
           unit={product.unit}
           size="md"
           hideDiscount
@@ -104,16 +107,16 @@ function ProductCardBase({ product, width, onPress, priority = false, style }: P
           <Pressable onPress={() => openBulkWhatsApp(product)} hitSlop={6} style={styles.bulk} accessibilityRole="link">
             <Icon name="logo-whatsapp" size={13} color="whatsapp" />
             <Text variant="micro" color="successDark" weight="bold">
-              Bulk? {product.bulkMinQty}+ {product.unit}
+              {t('product.bulk', { qty: product.bulkMinQty, unit: product.unit ?? '' })}
             </Text>
           </Pressable>
         )}
 
         <View style={styles.cta}>
           {outOfStock ? (
-            <Button title="Out of stock" variant="outline" size="sm" fullWidth disabled />
+            <Button title={t('product.outOfStock')} variant="outline" size="sm" fullWidth disabled />
           ) : hasVariants ? (
-            <Button title="Options" variant="outline" size="sm" rightIcon="chevron-forward" fullWidth onPress={open} />
+            <Button title={t('actions.options')} variant="outline" size="sm" rightIcon="chevron-forward" fullWidth onPress={open} />
           ) : cartItem ? (
             <QuantityStepper
               size="sm"
@@ -122,7 +125,7 @@ function ProductCardBase({ product, width, onPress, priority = false, style }: P
               onChange={(next) => updateQuantity(cartItem.cartKey, next)}
             />
           ) : (
-            <Button title="ADD" variant="secondary" size="sm" fullWidth onPress={() => addToCart(product)} />
+            <Button title={t('actions.add')} variant="secondary" size="sm" fullWidth onPress={() => addToCart(product)} />
           )}
         </View>
       </View>

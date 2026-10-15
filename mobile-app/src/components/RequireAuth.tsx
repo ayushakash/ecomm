@@ -6,6 +6,8 @@ import type { LoginRedirect, RootNavigation } from '../navigation/types';
 import { colors } from '../theme';
 import { EmptyState } from './ui/EmptyState';
 import { ScreenHeader } from './ui/ScreenHeader';
+import { useTranslation } from 'react-i18next';
+
 
 export interface RequireAuthProps {
   children: React.ReactNode;
@@ -20,6 +22,7 @@ export interface RequireAuthProps {
 export function RequireAuth({ children, redirect, title, message }: RequireAuthProps) {
   const { isAuthenticated, loading } = useAuth();
   const navigation = useNavigation<RootNavigation>();
+  const { t } = useTranslation('common');
   if (isAuthenticated) return <>{children}</>;
   return (
     <View style={styles.root}>
@@ -29,9 +32,9 @@ export function RequireAuth({ children, redirect, title, message }: RequireAuthP
       ) : (
         <EmptyState
           icon="person-circle-outline"
-          title="Login to continue"
-          message={message ?? 'Log in with your mobile number to view your orders and addresses.'}
-          actionLabel="Login"
+          title={t('auth.loginTitle')}
+          message={message ?? t('auth.loginMessage')}
+          actionLabel={t('actions.login')}
           onAction={() => navigation.navigate('Login', { redirect })}
         />
       )}

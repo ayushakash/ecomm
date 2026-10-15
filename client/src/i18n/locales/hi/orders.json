@@ -1,0 +1,167 @@
+{
+  "orderNumber": "ऑर्डर #{{number}}",
+  "close": "बंद करें",
+  "status": {
+    "pending": "पेंडिंग",
+    "approved": "मंज़ूर",
+    "assigned": "विक्रेता तय",
+    "processing": "तैयार हो रहा है",
+    "shipped": "रास्ते में",
+    "delivered": "डिलीवर हो गया",
+    "cancelled": "रद्द",
+    "confirmed": "कन्फर्म",
+    "accepted": "स्वीकार",
+    "rejected": "अस्वीकार"
+  },
+  "history": {
+    "title": "ऑर्डर हिस्ट्री",
+    "subtitle": "अपने सारे ऑर्डर एक जगह देखें",
+    "refreshing": "ऑर्डर रिफ्रेश हो रहे हैं...",
+    "loadError": "ऑर्डर लोड नहीं हुए: {{message}}",
+    "empty": {
+      "title": "अभी कोई ऑर्डर नहीं",
+      "subtitle": "खरीदारी शुरू करें, आपके ऑर्डर यहाँ दिखेंगे!",
+      "browse": "प्रोडक्ट्स देखें"
+    },
+    "showDetails": "पूरी जानकारी देखें",
+    "hideDetails": "जानकारी छुपाएं",
+    "toast": {
+      "cancelled": "ऑर्डर रद्द हो गया",
+      "cancelFailed": "ऑर्डर रद्द नहीं हो पाया"
+    }
+  },
+  "eta": {
+    "arrivingInMins_one": "{{count}} मिनट में पहुँच रहा है",
+    "arrivingInMins_other": "{{count}} मिनट में पहुँच रहा है",
+    "expected": "अनुमानित: {{time}}",
+    "hoursMins": "{{hours}} घंटे {{mins}} मिनट",
+    "mins_one": "{{count}} मिनट",
+    "mins_other": "{{count}} मिनट",
+    "delayed": "देर हो रही है",
+    "expectedDelivery": "अनुमानित डिलीवरी"
+  },
+  "items": {
+    "title": "ऑर्डर के सामान",
+    "product": "प्रोडक्ट",
+    "unknownProduct": "अज्ञात प्रोडक्ट",
+    "quantity": "मात्रा",
+    "unitPrice": "प्रति यूनिट कीमत",
+    "status": "स्थिति",
+    "merchant": "विक्रेता",
+    "unit": "यूनिट",
+    "unassigned": "विक्रेता तय नहीं"
+  },
+  "price": {
+    "title": "कीमत का ब्योरा",
+    "taxable": "टैक्स योग्य रकम (बेस)",
+    "gst": "GST (18%)",
+    "subtotalIncGst": "सब-टोटल (GST सहित)",
+    "subtotal": "सब-टोटल",
+    "tax": "टैक्स",
+    "deliveryCharge": "डिलीवरी चार्ज",
+    "free": "फ्री",
+    "platformFee": "प्लेटफ़ॉर्म फीस",
+    "totalAmount": "कुल रकम",
+    "total": "कुल"
+  },
+  "address": {
+    "title": "डिलीवरी का पता",
+    "near": "{{landmark}} के पास",
+    "landmark": "लैंडमार्क: {{landmark}}"
+  },
+  "payment": {
+    "methodLabel": "भुगतान का तरीका:",
+    "method": "भुगतान का तरीका",
+    "statusLabel": "स्थिति:",
+    "statusTitle": "भुगतान की स्थिति",
+    "cod": "डिलीवरी पर भुगतान",
+    "online": "ऑनलाइन भुगतान",
+    "payOnDelivery": "डिलीवरी पर भुगतान",
+    "status": {
+      "paid": "भुगतान हो गया",
+      "pending": "बाकी",
+      "failed": "फेल",
+      "cancelled": "रद्द",
+      "refunded": "पैसे वापस"
+    }
+  },
+  "cancel": {
+    "button": "ऑर्डर रद्द करें",
+    "cancelling": "रद्द हो रहा है...",
+    "note": "ध्यान दें: डिलीवर हो चुके ऑर्डर रद्द नहीं हो सकते",
+    "title": "ऑर्डर रद्द करें",
+    "message": "क्या आप सच में ऑर्डर #{{number}} रद्द करना चाहते हैं? इसे वापस नहीं बदला जा सकता, ऑर्डर हमेशा के लिए रद्द हो जाएगा।",
+    "confirm": "हाँ, ऑर्डर रद्द करें",
+    "keep": "नहीं, ऑर्डर रखें"
+  },
+  "detail": {
+    "loadError": "ऑर्डर लोड नहीं हुआ: {{message}}",
+    "notFound": "ऑर्डर नहीं मिला",
+    "placedOn": "{{date}} को ऑर्डर किया",
+    "itemLine": "{{quantity}} x ₹{{price}} प्रति {{unit}}",
+    "summary": "ऑर्डर का सारांश",
+    "shipping": "डिलीवरी की जानकारी",
+    "name": "नाम",
+    "phone": "फ़ोन",
+    "deliverTo": "यहाँ डिलीवर करें",
+    "statusHistory": "स्टेटस हिस्ट्री"
+  },
+  "modal": {
+    "title": "ऑर्डर की जानकारी",
+    "orderStatus": "ऑर्डर की स्थिति",
+    "orderDate": "ऑर्डर की तारीख",
+    "customerInfo": "ग्राहक की जानकारी",
+    "email": "ईमेल",
+    "na": "उपलब्ध नहीं",
+    "instructions": "निर्देश:",
+    "itemsCount": "ऑर्डर के सामान ({{count}})",
+    "gst": {
+      "enterEmail": "कृपया ईमेल डालें",
+      "enterWhatsapp": "कृपया WhatsApp नंबर डालें",
+      "sentEmail": "GST बिल {{email}} पर भेज दिया",
+      "sentWhatsapp": "GST बिल WhatsApp पर भेज दिया: {{number}}",
+      "sendFailed": "GST बिल नहीं भेजा जा सका",
+      "requested": "ग्राहक ने GST बिल माँगा है",
+      "actions": "GST बिल",
+      "preview": "GST बिल देखें",
+      "sendManually": "GST बिल खुद भेजें",
+      "viaEmail": "ईमेल से भेजें",
+      "viaWhatsapp": "WhatsApp से भेजें",
+      "sending": "भेज रहे हैं...",
+      "send": "भेजें",
+      "default": "डिफ़ॉल्ट: {{value}}",
+      "noEmail": "ईमेल नहीं है",
+      "noPhone": "फ़ोन नहीं है",
+      "noteLabel": "ध्यान दें:",
+      "note": "GST बिल बनाकर दिए गए ईमेल या WhatsApp नंबर पर भेजा जाएगा। भेजने से पहले जानकारी ठीक से जाँच लें।"
+    }
+  },
+  "lifecycle": {
+    "title": "ऑर्डर की पूरी कहानी - {{number}}",
+    "fetchFailed": "ऑर्डर की जानकारी नहीं मिल पाई",
+    "loading": "ऑर्डर की जानकारी लोड हो रही है...",
+    "empty": "इस ऑर्डर की कोई गतिविधि नहीं मिली।",
+    "triggeredBy": "किसने किया:",
+    "notification": "n8n नोटिफ़िकेशन:",
+    "sent": "भेजा गया",
+    "failed": "फेल",
+    "at": "समय",
+    "viewDetails": "पूरी जानकारी देखें",
+    "refresh": "रिफ्रेश करें",
+    "refreshing": "रिफ्रेश हो रहा है...",
+    "events": {
+      "order_created": "ऑर्डर बना",
+      "order_assigned": "विक्रेता तय हुआ",
+      "order_accepted": "ऑर्डर स्वीकार हुआ",
+      "order_rejected": "ऑर्डर अस्वीकार हुआ",
+      "order_shipped": "ऑर्डर भेजा गया",
+      "order_delivered": "ऑर्डर डिलीवर हुआ",
+      "order_cancelled": "ऑर्डर रद्द हुआ",
+      "payment_confirmed": "भुगतान कन्फर्म हुआ",
+      "payment_failed": "भुगतान फेल हुआ",
+      "stock_updated": "स्टॉक अपडेट हुआ",
+      "refund_initiated": "रिफंड शुरू हुआ",
+      "refund_completed": "रिफंड पूरा हुआ"
+    }
+  }
+}

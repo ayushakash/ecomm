@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import type { Product, ProductQuery } from '../../../types/models';
 import { getStartingPrice } from '../../../utils/pricing';
 
@@ -16,19 +17,22 @@ export interface PriceRange {
 
 export const EMPTY_PRICE_RANGE: PriceRange = { min: '', max: '' };
 
-export const SORT_LABELS: Record<SortOption, string> = {
-  name: 'Name (A–Z)',
-  latest: 'Latest',
-  'price-low': 'Price: Low to High',
-  'price-high': 'Price: High to Low',
+const SORT_LABEL_KEYS: Record<SortOption, string> = {
+  name: 'products:sort.name',
+  latest: 'products:sort.latest',
+  'price-low': 'products:sort.priceLow',
+  'price-high': 'products:sort.priceHigh',
 };
 
-/** Web Home price presets. */
-export const PRICE_PRESETS: ReadonlyArray<{ label: string } & PriceRange> = [
-  { label: 'Under ₹500', min: '', max: '500' },
-  { label: '₹500 – ₹1000', min: '500', max: '1000' },
-  { label: '₹1000 – ₹5000', min: '1000', max: '5000' },
-  { label: 'Above ₹5000', min: '5000', max: '' },
+/** Translated sort label; resolved at call time so language switches apply. */
+export const sortLabel = (option: SortOption): string => i18n.t(SORT_LABEL_KEYS[option]);
+
+/** Web Home price presets; label via priceRangeLabel(preset). */
+export const PRICE_PRESETS: ReadonlyArray<PriceRange> = [
+  { min: '', max: '500' },
+  { min: '500', max: '1000' },
+  { min: '1000', max: '5000' },
+  { min: '5000', max: '' },
 ];
 
 const SERVER_SORT: Record<SortOption, NonNullable<ProductQuery['sortBy']>> = {
@@ -66,7 +70,7 @@ export const priceRangeLabel = (range: PriceRange): string => {
   const min = range.min.trim();
   const max = range.max.trim();
   if (min && max) return `₹${min} – ₹${max}`;
-  if (max) return `Under ₹${max}`;
-  if (min) return `Above ₹${min}`;
-  return 'Price';
+  if (max) return i18n.t('products:price.under', { amount: max });
+  if (min) return i18n.t('products:price.above', { amount: min });
+  return i18n.t('products:price.label');
 };

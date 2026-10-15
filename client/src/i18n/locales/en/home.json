@@ -1,0 +1,85 @@
+{
+  "hero": {
+    "badge": "★ Trusted since 2000 · Ranchi ka bharosa",
+    "titlePrefix": "Order Building Materials Online in ",
+    "titleCity": "Ranchi",
+    "titleSuffix": "",
+    "subtitle": "Cement, TMT steel (sariya), sand, bricks & aggregates — apne hi fleet se same-day delivery, ghar tak.",
+    "fastDelivery": "⚡ 60-min delivery · Own fleet"
+  },
+  "trust": {
+    "years": {
+      "value": "25+",
+      "line1": "Years in",
+      "line2": "business"
+    },
+    "onTime": {
+      "value": "On-time",
+      "line1": "Own-fleet",
+      "line2": "delivery"
+    },
+    "genuine": {
+      "value": "100%",
+      "line1": "Genuine",
+      "line2": "brands"
+    }
+  },
+  "search": {
+    "placeholder": "Search materials..."
+  },
+  "filter": {
+    "button": "Filter",
+    "priceRange": "Price Range",
+    "presets": {
+      "under500": "Under ₹500",
+      "r500to1000": "₹500 - ₹1000",
+      "r1000to5000": "₹1000 - ₹5000",
+      "above5000": "Above ₹5000"
+    },
+    "min": "Min",
+    "max": "Max",
+    "clear": "Clear",
+    "apply": "Apply"
+  },
+  "location": {
+    "selectTitle": "Select Your Delivery Location",
+    "selectSubtitle": "Add an address to see products available in your area",
+    "detecting": "Detecting...",
+    "useCurrent": "Use Current Location",
+    "addAddress": "Add Address",
+    "noMerchantsIn": "No Merchants Available in {{area}}, {{city}}",
+    "noMerchantsHint": "Try selecting a different delivery address or check back later",
+    "changeAddress": "Change Address",
+    "addNewAddress": "Add New Address"
+  },
+  "categories": {
+    "title": "Categories",
+    "all": "All Products"
+  },
+  "results": {
+    "allMaterials": "All Building Materials",
+    "products": "Products",
+    "found_one": "{{count}} product found",
+    "found_other": "{{count}} products found"
+  },
+  "empty": {
+    "noMerchantsTitle": "No merchants in {{city}} yet",
+    "noMerchantsText": "We're expanding to new areas soon. Try a different location or check back later.",
+    "tryAddress": "Try a Different Address",
+    "selectCity": "Select a Different City",
+    "noProductsTitle": "No products found",
+    "noProductsText": "No products available in this category"
+  },
+  "addressModal": {
+    "title": "Select Delivery Address",
+    "subtitle": "Choose an address to see available merchants and products",
+    "default": "Default",
+    "noOther": "You don't have any other saved addresses",
+    "manage": "Manage Addresses",
+    "cancel": "Cancel"
+  },
+  "bulk": {
+    "button": "Bulk Order",
+    "whatsappMessage": "Hi, I want to place a bulk order for construction materials.\nPlease share the pricing and availability."
+  }
+}

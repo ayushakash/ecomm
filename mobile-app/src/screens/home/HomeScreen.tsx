@@ -49,6 +49,8 @@ import {
 import { useProductFeed } from '../products/components/useProductFeed';
 import { HeroCarousel, type HeroSlide } from './components/HeroCarousel';
 import { NoMerchantsBanner, PromoRow, SelectLocationBanner, TrustStrip } from './components/HomeSections';
+import { useTranslation } from 'react-i18next';
+
 
 const LOGO = require('../../../assets/logo.png');
 const SORT_OPTIONS: SortOption[] = ['name', 'latest', 'price-low', 'price-high'];
@@ -62,13 +64,14 @@ const CTA_ICONS: Record<Exclude<BannerCtaType, 'none'>, IconName> = {
   whatsapp: 'logo-whatsapp',
   calculator: 'calculator-outline',
 };
-const DEFAULT_CTA_LABEL: Record<Exclude<BannerCtaType, 'none'>, string> = {
-  products: 'Shop now',
-  category: 'Shop now',
-  product: 'View product',
-  url: 'Learn more',
-  whatsapp: 'Chat on WhatsApp',
-  calculator: 'Open calculator',
+/** home:cta.* keys for banners without an admin-typed label. */
+const DEFAULT_CTA_KEY: Record<Exclude<BannerCtaType, 'none'>, string> = {
+  products: 'cta.shopNow',
+  category: 'cta.shopNow',
+  product: 'cta.viewProduct',
+  url: 'cta.learnMore',
+  whatsapp: 'cta.chatWhatsApp',
+  calculator: 'cta.openCalculator',
 };
 
 /**
@@ -78,6 +81,7 @@ const DEFAULT_CTA_LABEL: Record<Exclude<BannerCtaType, 'none'>, string> = {
  * with category chips, sort and price range (bottom sheet), pull-to-refresh and skeletons.
  */
 export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>) {
+  const { t } = useTranslation('home');
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const queryClient = useQueryClient();
@@ -138,9 +142,9 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
     () =>
       openExternal(
         bulkNumber ? `https://wa.me/${bulkNumber}?text=${encodeURIComponent(BULK_MESSAGE)}` : null,
-        'WhatsApp ordering is not available right now',
+        t('common:external.whatsappUnavailable'),
       ),
-    [bulkNumber],
+    [bulkNumber, t],
   );
 
   const openProductsTab = useCallback(
@@ -159,7 +163,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
         case 'product':
           return b.ctaValue ? () => navigation.navigate('ProductDetail', { productId: b.ctaValue! }) : undefined;
         case 'url':
-          return b.ctaValue ? () => openExternal(b.ctaValue!, 'Could not open the link') : undefined;
+          return b.ctaValue ? () => openExternal(b.ctaValue!, t('common:external.openFailed')) : undefined;
         case 'whatsapp':
           return openBulkChat;
         case 'calculator':
@@ -168,7 +172,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
           return undefined;
       }
     },
-    [navigation, openBulkChat, openProductsTab],
+    [navigation, openBulkChat, openProductsTab, t],
   );
 
   // Admin offers (routes/banners.js) lead; the built-in brand slides follow.
@@ -186,39 +190,39 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
           body: b.body,
           cta:
             onPress && b.ctaType !== 'none'
-              ? { label: b.ctaLabel || DEFAULT_CTA_LABEL[b.ctaType], icon: CTA_ICONS[b.ctaType], onPress }
+              ? { label: b.ctaLabel || t(DEFAULT_CTA_KEY[b.ctaType]), icon: CTA_ICONS[b.ctaType], onPress }
               : undefined,
         };
       }),
       {
         key: 'hero',
         gradient: ['#2C3E54', '#1E2A3A'],
-        badge: '★ Trusted since 2000 · Ranchi ka bharosa',
-        title: 'Order Building Materials Online in',
+        badge: t('hero.badge'),
+        title: t('hero.title'),
         highlight: currentCity ?? 'Ranchi',
-        body: 'Cement, TMT steel (sariya), sand, bricks & aggregates — apne hi fleet se same-day delivery, ghar tak.',
-        pill: { icon: 'bus-outline', label: 'Same-day delivery · Own fleet' },
+        body: t('hero.body'),
+        pill: { icon: 'bus-outline', label: t('hero.pill') },
       },
       {
         key: 'bulk',
         gradient: [palette.slate700, palette.slate900],
-        badge: 'BUILDERS & CONTRACTORS',
-        title: 'Bulk orders at',
-        highlight: 'best rates',
-        body: 'Share your site requirement on WhatsApp and get bulk pricing and delivery slots fast.',
-        cta: { label: 'Chat on WhatsApp', icon: 'logo-whatsapp', onPress: openBulkChat },
+        badge: t('bulkSlide.badge'),
+        title: t('bulkSlide.title'),
+        highlight: t('bulkSlide.highlight'),
+        body: t('bulkSlide.body'),
+        cta: { label: t('cta.chatWhatsApp'), icon: 'logo-whatsapp', onPress: openBulkChat },
       },
       {
         key: 'calculator',
         gradient: ['#3B2A1A', '#1E2A3A'],
-        badge: 'FREE TOOL',
-        title: 'How much material do you',
-        highlight: 'need?',
-        body: 'Estimate cement, sand, aggregate, bricks and steel for your slab, wall or plaster in seconds.',
-        cta: { label: 'Open calculator', icon: 'calculator-outline', onPress: () => navigation.navigate('Calculator') },
+        badge: t('calcSlide.badge'),
+        title: t('calcSlide.title'),
+        highlight: t('calcSlide.highlight'),
+        body: t('calcSlide.body'),
+        cta: { label: t('cta.openCalculator'), icon: 'calculator-outline', onPress: () => navigation.navigate('Calculator') },
       },
     ],
-    [banners, bannerAction, currentCity, openBulkChat, navigation],
+    [banners, bannerAction, currentCity, openBulkChat, navigation, t],
   );
 
   const onRefresh = () =>
@@ -250,7 +254,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
       onPress={() => setFilterOpen(true)}
       hitSlop={layout.hitSlop}
       accessibilityRole="button"
-      accessibilityLabel="Sort and filter products"
+      accessibilityLabel={t('filterA11y')}
       style={[styles.filterBtn, filtersActive && styles.filterBtnActive]}
     >
       <Icon name="options-outline" size={18} color={filtersActive ? 'onPrimary' : 'primary'} />
@@ -263,7 +267,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
         <View style={styles.serviceStrip}>
           <Icon name="bus-outline" size={14} color="primary" />
           <Text variant="caption" color="textSecondary" style={styles.flex} numberOfLines={2}>
-            Currently delivering in:{' '}
+            {t('deliveringIn')}{' '}
             <Text variant="caption" weight="bold">
               {settings.serviceAreasNote}
             </Text>
@@ -291,7 +295,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
 
       <View>
         <SectionHeader
-          title="Shop by category"
+          title={t('shopByCategory')}
           onAction={categories && categories.length > MAX_CATEGORY_TILES ? () => openProductsTab() : undefined}
         />
         <View style={styles.tileGrid}>
@@ -314,23 +318,27 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
         <View style={styles.titleRow}>
           <View style={styles.flex}>
             <Text variant="h1" numberOfLines={1}>
-              {categoryName ?? 'All Building Materials'}
+              {categoryName ?? t('allMaterials')}
             </Text>
             <Text variant="caption" color="textSecondary">
-              {unserviceable ? 'No stores here yet' : feed.isLoading || waitingForMerchants ? 'Loading products…' : `${feed.totalProducts} products found`}
+              {unserviceable
+                ? t('noStores')
+                : feed.isLoading || waitingForMerchants
+                  ? t('loadingProducts')
+                  : t('productsFound', { count: feed.totalProducts })}
             </Text>
           </View>
           {isLoadingMerchants && <ActivityIndicator size="small" color={colors.textMuted} />}
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           <Chip
-            label={filtersActive ? (priceActive ? priceRangeLabel(priceRange) : 'Sorted') : 'Sort & filter'}
+            label={filtersActive ? (priceActive ? priceRangeLabel(priceRange) : t('sorted')) : t('sortFilter')}
             icon="options-outline"
             dropdown
             selected={filtersActive}
             onPress={() => setFilterOpen(true)}
           />
-          <Chip label="All Products" selected={selectedCategory === ''} onPress={() => setSelectedCategory('')} />
+          <Chip label={t('allProducts')} selected={selectedCategory === ''} onPress={() => setSelectedCategory('')} />
           {categories?.map((c) => (
             <Chip
               key={c._id}
@@ -347,9 +355,9 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
   const listEmpty = unserviceable ? (
     <EmptyState
       icon="storefront-outline"
-      title={`No merchants in ${selectedAddress?.city || selectedCity?.city || 'your area'} yet`}
-      message="We're expanding to new areas soon. Try a different location or check back later."
-      actionLabel={user ? 'Try a different address' : 'Select a different city'}
+      title={t('empty.noMerchantsTitle', { place: selectedAddress?.city || selectedCity?.city || t('empty.yourArea') })}
+      message={t('empty.noMerchantsMessage')}
+      actionLabel={user ? t('empty.tryAddress') : t('empty.selectCity')}
       onAction={() => navigation.navigate('LocationPicker')}
       fill={false}
     />
@@ -358,18 +366,18 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
   ) : feed.isError ? (
     <EmptyState
       icon="cloud-offline-outline"
-      title="Couldn't load products"
-      message="Check your connection and try again."
-      actionLabel="Retry"
+      title={t('empty.loadFailedTitle')}
+      message={t('empty.loadFailedMessage')}
+      actionLabel={t('common:actions.retry')}
       onAction={() => feed.retry()}
       fill={false}
     />
   ) : (
     <EmptyState
       icon="search-outline"
-      title="No products found"
-      message={selectedCategory ? 'No products available in this category' : 'Try adjusting your filters.'}
-      actionLabel={filtersActive || selectedCategory ? 'Clear filters' : undefined}
+      title={t('empty.noProducts')}
+      message={selectedCategory ? t('empty.noProductsCategory') : t('empty.adjustFilters')}
+      actionLabel={filtersActive || selectedCategory ? t('empty.clearFilters') : undefined}
       onAction={clearFilters}
       fill={false}
     />

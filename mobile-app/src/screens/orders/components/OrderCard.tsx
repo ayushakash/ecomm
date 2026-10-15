@@ -1,9 +1,10 @@
 import React, { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Badge, Icon, Image, ORDER_STATUS_BADGE, Skeleton, Text } from '../../../components/ui';
 import { colors, radii, shadows, spacing } from '../../../theme';
 import type { Order } from '../../../types/models';
-import { formatAmount, formatOrderDate, getItemProduct, getListEta } from './orderUtils';
+import { formatAmount, formatOrderDate, getItemProduct, getListEta, orderStatusLabel } from './orderUtils';
 
 const MAX_THUMBS = 4;
 
@@ -14,7 +15,8 @@ export interface OrderCardProps {
 
 /** Order history row: number, date, status, item thumbnails, total and the web ETA chip. */
 export const OrderCard = memo(function OrderCard({ order, onPress }: OrderCardProps) {
-  const status = ORDER_STATUS_BADGE[order.orderStatus] ?? { label: order.orderStatus, tone: 'neutral' as const };
+  const { t } = useTranslation('orders');
+  const status = { label: orderStatusLabel(order.orderStatus), tone: ORDER_STATUS_BADGE[order.orderStatus]?.tone ?? ('neutral' as const) };
   const eta = getListEta(order);
   const items = order.items ?? [];
   const extra = items.length - MAX_THUMBS;
@@ -24,14 +26,14 @@ export const OrderCard = memo(function OrderCard({ order, onPress }: OrderCardPr
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Order ${order.orderNumber}, ${status.label}, ${formatAmount(order.totalAmount)}`}
+      accessibilityLabel={t('card.a11y', { number: order.orderNumber, status: status.label, amount: formatAmount(order.totalAmount) })}
       onPress={() => onPress(order)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.header}>
         <View style={styles.flex}>
           <Text variant="title" weight="bold" numberOfLines={1}>
-            Order #{order.orderNumber}
+            {t('orderNumber', { number: order.orderNumber })}
           </Text>
           <Text variant="caption" color="textSecondary">
             {formatOrderDate(order.createdAt)}
@@ -74,14 +76,14 @@ export const OrderCard = memo(function OrderCard({ order, onPress }: OrderCardPr
 
       <View style={styles.footer}>
         <Text variant="bodySm" color="textSecondary">
-          {itemCount} {itemCount === 1 ? 'item' : 'items'} ·{' '}
+          {t('itemCount', { count: itemCount })} ·{' '}
           <Text variant="bodySm" weight="bold">
             {formatAmount(order.totalAmount)}
           </Text>
         </Text>
         <View style={styles.link}>
           <Text variant="label" weight="semibold" color="primary">
-            View details
+            {t('card.viewDetails')}
           </Text>
           <Icon name="chevron-forward" size={16} color="primary" />
         </View>

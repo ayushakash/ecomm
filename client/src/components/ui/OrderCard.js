@@ -8,6 +8,7 @@ import {
   BuildingStorefrontIcon,
   EyeIcon
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const OrderCard = ({
   order,
@@ -19,6 +20,7 @@ const OrderCard = ({
   toggleExpand,
   children // For expanded content
 }) => {
+  const { t } = useTranslation('common');
   const merchantInfo = getOrderMerchantInfo ? getOrderMerchantInfo(order) : null;
   const isExpanded = expandedOrders && expandedOrders[order._id];
 
@@ -34,7 +36,7 @@ const OrderCard = ({
               </span>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">Order #{order.orderNumber}</h3>
+              <h3 className="font-semibold text-gray-900">{t('orderCard.title', { number: order.orderNumber })}</h3>
               <p className="text-sm text-gray-500">
                 {new Date(order.createdAt).toLocaleDateString()}
               </p>
@@ -47,8 +49,10 @@ const OrderCard = ({
               order.orderStatus || 'pending'
             )}`}
           >
-            {(order.orderStatus || 'pending').charAt(0).toUpperCase() +
-             (order.orderStatus || 'pending').slice(1)}
+            {t(`orderStatus.${order.orderStatus || 'pending'}`, {
+              defaultValue: (order.orderStatus || 'pending').charAt(0).toUpperCase() +
+                (order.orderStatus || 'pending').slice(1)
+            })}
           </span>
         </div>
       </div>
@@ -69,7 +73,7 @@ const OrderCard = ({
           <CurrencyRupeeIcon className="w-5 h-5 text-gray-400" />
           <div>
             <p className="font-medium text-gray-900">₹{order.totalAmount?.toLocaleString()}</p>
-            <p className="text-sm text-gray-500">Total Amount</p>
+            <p className="text-sm text-gray-500">{t('orderCard.totalAmount')}</p>
           </div>
         </div>
 
@@ -87,10 +91,10 @@ const OrderCard = ({
                 </>
               ) : merchantInfo.type === 'unassigned' ? (
                 <p className="text-sm text-red-600">
-                  {merchantInfo.count} items unassigned
+                  {t('orderCard.itemsUnassigned', { count: merchantInfo.count })}
                 </p>
               ) : (
-                <p className="text-sm text-blue-600">Multiple merchants</p>
+                <p className="text-sm text-blue-600">{t('orderCard.multipleMerchants')}</p>
               )}
             </div>
           </div>
@@ -109,7 +113,7 @@ const OrderCard = ({
                 minute: '2-digit'
               })}
             </p>
-            <p className="text-sm text-gray-500">Order Date</p>
+            <p className="text-sm text-gray-500">{t('orderCard.orderDate')}</p>
           </div>
         </div>
       </div>
@@ -123,7 +127,7 @@ const OrderCard = ({
                 onClick={() => onShowDetails(order)}
                 className="inline-flex items-center px-3 py-1.5 border border-purple-300 text-xs font-medium rounded-lg text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
               >
-                📄 Details
+                📄 {t('orderCard.details')}
               </button>
             )}
             {onShowLifecycle && (
@@ -131,7 +135,7 @@ const OrderCard = ({
                 onClick={() => onShowLifecycle(order)}
                 className="inline-flex items-center px-3 py-1.5 border border-green-300 text-xs font-medium rounded-lg text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
               >
-                📋 Lifecycle
+                📋 {t('orderCard.lifecycle')}
               </button>
             )}
           </div>

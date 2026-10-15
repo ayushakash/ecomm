@@ -15,6 +15,9 @@ import type { Address, Coordinates, GeocodedPlace, Merchant } from '../types/mod
 import { normalizeCityName } from '../utils/cityName';
 import { toast } from '../utils/toast';
 import { useAuth } from './AuthContext';
+import i18n from '../i18n';
+import { useTranslation } from 'react-i18next';
+
 
 export const DEFAULT_GUEST_CITY = { city: 'Ranchi', state: 'Jharkhand' } as const;
 
@@ -99,6 +102,7 @@ const persistCity = (city: SelectedCity) => {
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation('common');
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddressState] = useState<Address | null>(null);
   const [nearbyMerchants, setNearbyMerchants] = useState<Merchant[]>([]);
@@ -117,8 +121,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       const withCoords = hasCoords(address.coordinates);
       if (!withCoords) {
         toast.info(
-          'Exact location not available',
-          'Showing all city merchants. Delivery availability will be confirmed by merchant.',
+          i18n.t('common:location.exactUnavailable'),
+          i18n.t('common:location.exactUnavailableBody'),
           5000,
         );
       }
@@ -140,10 +144,10 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         });
       } else {
         setLocationInfo(null);
-        toast.error('No merchants available in your area yet');
+        toast.error(i18n.t('common:location.noMerchantsArea'));
       }
     } catch {
-      toast.error('Failed to load merchants in your area');
+      toast.error(i18n.t('common:location.loadAreaFailed'));
       setNearbyMerchants([]);
       setMerchantIds([]);
     } finally {
@@ -201,14 +205,14 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         persistCity(city);
         if (merchants.length > 0) {
           setLocationInfo({ searchRadius: 'City-wide', fallbackApplied: false, merchantCount: merchants.length });
-          if (!silent) toast.success(`Found ${merchants.length} merchants in ${cityName}!`);
+          if (!silent) toast.success(i18n.t('common:location.foundInCity', { count: merchants.length, city: cityName }));
         } else {
           setLocationInfo(null);
-          if (!silent) toast.error(`No merchants currently serving ${cityName}`, "We're expanding to new cities soon!");
+          if (!silent) toast.error(i18n.t('common:location.noneInCity', { city: cityName }), i18n.t('common:location.expandingCities'));
         }
         return merchants.length;
       } catch {
-        if (!silent) toast.error('Failed to load merchants');
+        if (!silent) toast.error(i18n.t('common:location.loadFailed'));
         setCityMerchantIds([]);
         return 0;
       } finally {
@@ -241,14 +245,14 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
             fallbackApplied: response.fallbackApplied,
             merchantCount: merchants.length,
           });
-          if (!silent) toast.success(`Found ${merchants.length} merchants near you!`);
+          if (!silent) toast.success(i18n.t('common:location.foundNear', { count: merchants.length }));
         } else {
           setLocationInfo(null);
-          if (!silent) toast.error('No merchants deliver to your location yet', "We're expanding soon!");
+          if (!silent) toast.error(i18n.t('common:location.noneNear'), i18n.t('common:location.expanding'));
         }
         return merchants.length;
       } catch {
-        if (!silent) toast.error('Failed to load merchants near you');
+        if (!silent) toast.error(i18n.t('common:location.loadNearFailed'));
         setCityMerchantIds([]);
         return 0;
       } finally {
@@ -268,16 +272,16 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const requestLocationPermission = useCallback(async (): Promise<GeocodedPlace | null> => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      toast.error('Location permission denied', 'You can enable it in Settings.');
+      toast.error(i18n.t('common:location.permissionDenied'), i18n.t('common:location.enableInSettings'));
       return null;
     }
     try {
-      toast.info('Getting your location…');
+      toast.info(i18n.t('common:location.getting'));
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const coordinates = { latitude: position.coords.latitude, longitude: position.coords.longitude };
       const place = await reverseGeocode(coordinates);
       if (!place?.city) {
-        toast.error('Could not determine your city', 'Please select manually.');
+        toast.error(i18n.t('common:location.cityUnknown'), i18n.t('common:location.selectManually'));
         return null;
       }
       await fetchMerchantsByCoordinates({
@@ -290,7 +294,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       });
       return place;
     } catch {
-      toast.error('Unable to get location', 'Make sure location services are on.');
+      toast.error(i18n.t('common:location.unavailable'), i18n.t('common:location.servicesOn'));
       return null;
     }
   }, [fetchMerchantsByCoordinates]);
@@ -364,7 +368,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     const activeMerchantIds =
       merchantIds.length > 0 ? merchantIds : cityMerchantIds.length > 0 ? cityMerchantIds : undefined;
     const currentCity = user && selectedAddress ? selectedAddress.city : selectedCity?.city ?? null;
-    let locationLabel = 'Select location';
+    let locationLabel = t('location.selectLocation');
     let locationSubtitle = '';
     if (user && selectedAddress) {
       locationLabel = [selectedAddress.title, selectedAddress.area].filter(Boolean).join(' · ');
@@ -413,6 +417,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     requestLocationPermission,
     isLoadingMerchants,
     locationInfo,
+    t,
   ]);
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;

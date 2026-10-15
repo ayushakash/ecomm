@@ -1,5 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BackHandler, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   FadeInDown,
@@ -62,6 +63,7 @@ function InfoRow({ icon, title, subtitle }: { icon: IconName; title: string; sub
 
 /** Port of client/src/pages/orders/OrderSuccess.js. Reached via navigation.replace from Checkout. */
 export default function OrderSuccessScreen({ navigation, route }: RootStackScreenProps<'OrderSuccess'>) {
+  const { t } = useTranslation('checkout');
   const { order } = route.params;
 
   const goHome = useCallback(() => {
@@ -88,29 +90,29 @@ export default function OrderSuccessScreen({ navigation, route }: RootStackScree
 
         <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.heading}>
           <Text variant="display" align="center">
-            Order placed!
+            {t('success.title')}
           </Text>
           <Text variant="body" color="textSecondary" align="center">
-            Thank you for your order. We'll prepare your items and deliver them soon.
+            {t('success.message')}
           </Text>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.block}>
           <Card style={styles.summary}>
             <View style={styles.summaryRow}>
-              <Text variant="bodySm" color="textSecondary">Order number</Text>
+              <Text variant="bodySm" color="textSecondary">{t('success.orderNumber')}</Text>
               <Text variant="title" selectable>
-                {order.orderNumber || 'Generating…'}
+                {order.orderNumber || t('success.generating')}
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text variant="bodySm" color="textSecondary">Total amount</Text>
+              <Text variant="bodySm" color="textSecondary">{t('success.totalAmount')}</Text>
               <Text variant="title" color="successDark">{formatPrice(order.totalAmount || 0)}</Text>
             </View>
             <View style={[styles.summaryRow, styles.alignTop]}>
-              <Text variant="bodySm" color="textSecondary">Delivery to</Text>
+              <Text variant="bodySm" color="textSecondary">{t('success.deliveryTo')}</Text>
               <Text variant="bodySm" align="right" style={styles.address}>
-                {order.customerAddress || 'Your selected address'}
+                {order.customerAddress || t('success.selectedAddress')}
                 {order.customerArea ? `, ${order.customerArea}` : ''}
               </Text>
             </View>
@@ -120,32 +122,36 @@ export default function OrderSuccessScreen({ navigation, route }: RootStackScree
         <Animated.View entering={FadeInDown.delay(550).duration(400)} style={[styles.block, styles.infoList]}>
           <InfoRow
             icon="time-outline"
-            title={withinHours ? 'Same-day delivery' : 'Scheduled delivery'}
-            subtitle={withinHours ? `Delivery hours: ${DELIVERY_WINDOW_LABEL}` : getDeliveryWindowMessage()}
+            title={withinHours ? t('success.sameDay') : t('success.scheduled')}
+            subtitle={withinHours ? t('success.deliveryHours', { window: DELIVERY_WINDOW_LABEL }) : getDeliveryWindowMessage()}
           />
-          <InfoRow icon="cash-outline" title="Pay on delivery" subtitle={`Keep ${formatPrice(order.totalAmount || 0)} ready at delivery`} />
+          <InfoRow
+            icon="cash-outline"
+            title={t('success.payOnDelivery')}
+            subtitle={t('success.keepReady', { amount: formatPrice(order.totalAmount || 0) })}
+          />
           <InfoRow
             icon="bicycle-outline"
-            title={order.deliveryCharge > 0 ? `Delivery charge ${formatPrice(order.deliveryCharge)}` : 'Free delivery'}
-            subtitle={order.deliveryCharge > 0 ? 'Included in your total' : 'No additional charges'}
+            title={order.deliveryCharge > 0 ? t('success.deliveryCharge', { amount: formatPrice(order.deliveryCharge) }) : t('success.freeDelivery')}
+            subtitle={order.deliveryCharge > 0 ? t('success.includedInTotal') : t('success.noExtraCharges')}
           />
         </Animated.View>
 
         <Text variant="caption" color="textMuted" align="center" style={styles.footnote}>
-          You will receive order updates via SMS and email. For any queries, contact our support team.
+          {t('success.footnote')}
         </Text>
       </ScrollView>
 
       <Animated.View entering={FadeInDown.delay(700).duration(400)} style={styles.actions}>
         <Button
-          title="View order"
+          title={t('success.viewOrder')}
           variant="secondary"
           size="lg"
           leftIcon="receipt-outline"
           fullWidth
           onPress={() => navigation.replace('OrderDetail', { orderId: order._id })}
         />
-        <Button title="Continue shopping" variant="outline" size="lg" leftIcon="home-outline" fullWidth onPress={goHome} />
+        <Button title={t('success.continueShopping')} variant="outline" size="lg" leftIcon="home-outline" fullWidth onPress={goHome} />
       </Animated.View>
     </Screen>
   );

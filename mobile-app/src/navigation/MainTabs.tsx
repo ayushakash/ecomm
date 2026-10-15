@@ -11,6 +11,8 @@ import OrdersScreen from '../screens/orders/OrdersScreen';
 import ProductsScreen from '../screens/products/ProductsScreen';
 import { colors, fonts } from '../theme';
 import type { MainTabParamList, MainTabScreenProps } from './types';
+import { useTranslation } from 'react-i18next';
+
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -25,8 +27,9 @@ const ICONS: Record<keyof MainTabParamList, [TabIcon, TabIcon]> = {
 
 /** Orders require login (web ProtectedRoute); guests see a login prompt in the tab. */
 function ProtectedOrders(props: MainTabScreenProps<'OrdersTab'>) {
+  const { t } = useTranslation('common');
   return (
-    <RequireAuth title="My Orders" redirect={{ name: 'MainTabs', params: { screen: 'OrdersTab' } }}>
+    <RequireAuth title={t('tabs.myOrders')} redirect={{ name: 'MainTabs', params: { screen: 'OrdersTab' } }}>
       <OrdersScreen {...props} />
     </RequireAuth>
   );
@@ -34,6 +37,7 @@ function ProtectedOrders(props: MainTabScreenProps<'OrdersTab'>) {
 
 export function MainTabs() {
   const { cartCount } = useCart();
+  const { t } = useTranslation('common');
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -54,15 +58,15 @@ export function MainTabs() {
         ),
       })}
     >
-      <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: 'Home' }} />
-      <Tab.Screen name="ProductsTab" component={ProductsScreen} options={{ title: 'Categories' }} />
+      <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: t('tabs.home') }} />
+      <Tab.Screen name="ProductsTab" component={ProductsScreen} options={{ title: t('tabs.categories') }} />
       <Tab.Screen
         name="CartTab"
         component={CartScreen}
-        options={{ title: 'Cart', tabBarBadge: cartCount > 0 ? cartCount : undefined }}
+        options={{ title: t('tabs.cart'), tabBarBadge: cartCount > 0 ? cartCount : undefined }}
       />
-      <Tab.Screen name="OrdersTab" component={ProtectedOrders} options={{ title: 'Orders' }} />
-      <Tab.Screen name="AccountTab" component={AccountScreen} options={{ title: 'Account' }} />
+      <Tab.Screen name="OrdersTab" component={ProtectedOrders} options={{ title: t('tabs.orders') }} />
+      <Tab.Screen name="AccountTab" component={AccountScreen} options={{ title: t('tabs.account') }} />
     </Tab.Navigator>
   );
 }

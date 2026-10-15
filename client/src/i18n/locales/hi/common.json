@@ -1,0 +1,128 @@
+{
+  "language": {
+    "label": "भाषा",
+    "changeLater": "आप इसे कभी भी ऊपर की पट्टी से बदल सकते हैं।"
+  },
+  "actions": {
+    "save": "सेव करें",
+    "cancel": "रद्द करें",
+    "confirm": "कन्फर्म करें",
+    "close": "बंद करें",
+    "retry": "फिर से कोशिश करें",
+    "view": "देखें",
+    "edit": "बदलें",
+    "delete": "हटाएं",
+    "yesDelete": "हाँ, हटाएं",
+    "back": "वापस"
+  },
+  "status": {
+    "loading": "लोड हो रहा है…",
+    "processing": "हो रहा है...",
+    "deleting": "हटा रहे हैं...",
+    "noData": "कोई जानकारी नहीं है",
+    "enabled": "चालू",
+    "disabled": "बंद",
+    "error": "कुछ गड़बड़ हो गई"
+  },
+  "confirm": {
+    "title": "क्या आप पक्का हैं?",
+    "irreversible": "यह बाद में वापस नहीं होगा।"
+  },
+  "orderStatus": {
+    "pending": "बाकी",
+    "confirmed": "कन्फर्म",
+    "processing": "तैयार हो रहा है",
+    "packed": "पैक हो गया",
+    "shipped": "भेज दिया",
+    "out_for_delivery": "डिलीवरी के लिए निकला",
+    "delivered": "डिलीवर हो गया",
+    "cancelled": "रद्द",
+    "returned": "वापस आया"
+  },
+  "orderCard": {
+    "title": "ऑर्डर #{{number}}",
+    "totalAmount": "कुल रकम",
+    "itemsUnassigned_one": "{{count}} आइटम किसी को नहीं दिया गया",
+    "itemsUnassigned_other": "{{count}} आइटम किसी को नहीं दिए गए",
+    "multipleMerchants": "कई विक्रेता",
+    "orderDate": "ऑर्डर की तारीख",
+    "details": "जानकारी",
+    "lifecycle": "ऑर्डर का सफ़र"
+  },
+  "productCard": {
+    "sku": "SKU: {{sku}}",
+    "perUnit": "प्रति {{unit}}",
+    "units_one": "{{count}} यूनिट",
+    "units_other": "{{count}} यूनिट",
+    "inStock": "स्टॉक में",
+    "cityChangeConfirm": "आपके कार्ट में {{cartCity}} के आइटम हैं। {{currentCity}} के आइटम डालने से आपका कार्ट खाली हो जाएगा। आगे बढ़ें?",
+    "onlyLeft": "सिर्फ़ {{count}} बचे हैं!",
+    "outOfStock": "स्टॉक खत्म",
+    "from": "शुरू",
+    "off": "छूट",
+    "sizesAvailable_one": "{{count}} साइज़ मिलेगा",
+    "sizesAvailable_other": "{{count}} साइज़ मिलेंगे",
+    "deliveryNote": "उसी दिन डिलीवरी · डिलीवरी पर भुगतान",
+    "bulk": "थोक में? {{qty}}+ {{unit}}",
+    "chooseOptions": "विकल्प चुनें",
+    "quantity": "मात्रा",
+    "add": "डालें"
+  },
+  "categoryCard": {
+    "productCount_one": "{{count}} प्रोडक्ट",
+    "productCount_other": "{{count}} प्रोडक्ट्स"
+  },
+  "install": {
+    "title": "Chardeevari ऐप डालें",
+    "subtitle": "पूरे ऐप जैसा मज़ा लें",
+    "iosTitle": "iPhone / iPad में जोड़ें:",
+    "iosStep1Before": "Safari में",
+    "iosStep1After": "शेयर बटन दबाएं",
+    "iosStep2Before": "दबाएं",
+    "iosStep2Strong": "\"Add to Home Screen\"",
+    "iosStep3Before": "दबाएं",
+    "iosStep3Strong": "\"Add\"",
+    "iosStep3After": "— पूरी स्क्रीन में खुलेगा!",
+    "button": "ऐप इंस्टॉल करें"
+  },
+  "toasts": {
+    "auth": {
+      "loginSuccess": "लॉग इन हो गया!",
+      "loginFailed": "लॉग इन नहीं हुआ",
+      "registrationFailed": "रजिस्ट्रेशन नहीं हुआ",
+      "profileUpdated": "प्रोफ़ाइल अपडेट हो गई!",
+      "profileUpdateFailed": "प्रोफ़ाइल अपडेट नहीं हुई",
+      "otpSendFailed": "OTP नहीं भेज पाए",
+      "googleSuccess": "Google से लॉग इन हो गया!",
+      "googleFailed": "Google से लॉग इन नहीं हुआ",
+      "phoneVerified": "फ़ोन नंबर वेरिफ़ाई होकर जुड़ गया!",
+      "phoneVerifyFailed": "फ़ोन नंबर वेरिफ़ाई नहीं हुआ",
+      "codeSendFailed": "वेरिफ़िकेशन कोड नहीं भेज पाए",
+      "emailUpdated": "ईमेल अपडेट हो गया!",
+      "emailVerifyFailed": "ईमेल वेरिफ़ाई नहीं हुआ",
+      "otpVerifyFailed": "OTP वेरिफ़ाई नहीं हुआ"
+    },
+    "location": {
+      "exactUnavailable": "सही लोकेशन नहीं मिली। शहर के सभी विक्रेता दिखा रहे हैं। डिलीवरी होगी या नहीं, विक्रेता बताएंगे।",
+      "noMerchantsArea": "आपके इलाके में अभी कोई विक्रेता नहीं है",
+      "loadAreaFailed": "आपके इलाके के विक्रेता लोड नहीं हो पाए",
+      "foundInCity_one": "{{city}} में {{count}} विक्रेता मिला!",
+      "foundInCity_other": "{{city}} में {{count}} विक्रेता मिले!",
+      "noMerchantsCity": "{{city}} में अभी कोई विक्रेता नहीं है। हम जल्द ही नए शहरों में आ रहे हैं!",
+      "loadFailed": "विक्रेता लोड नहीं हो पाए",
+      "foundNearby_one": "आपके पास {{count}} विक्रेता मिला!",
+      "foundNearby_other": "आपके पास {{count}} विक्रेता मिले!",
+      "noMerchantsNearby": "आपकी लोकेशन पर अभी कोई विक्रेता डिलीवरी नहीं करता। हम जल्द आ रहे हैं!",
+      "loadNearbyFailed": "आपके पास के विक्रेता लोड नहीं हो पाए",
+      "notSupported": "आपका ब्राउज़र लोकेशन सपोर्ट नहीं करता",
+      "gettingLocation": "आपकी लोकेशन ले रहे हैं...",
+      "findingCity": "आपका शहर ढूंढ रहे हैं...",
+      "findingMerchants": "आपके पास के विक्रेता ढूंढ रहे हैं...",
+      "cityUnknown": "आपका शहर पता नहीं चला। कृपया खुद चुनें।",
+      "unableToGet": "लोकेशन नहीं मिल पाई",
+      "permissionDenied": "लोकेशन की इजाज़त नहीं मिली। ब्राउज़र सेटिंग में इसे चालू कर सकते हैं।",
+      "positionUnavailable": "लोकेशन की जानकारी नहीं मिली",
+      "timeout": "लोकेशन लेने में ज़्यादा समय लग गया"
+    }
+  }
+}

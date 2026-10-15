@@ -3,8 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 const Login = () => {
+  const { t } = useTranslation('auth');
   const [step, setStep] = useState(1);
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
@@ -25,9 +27,9 @@ const Login = () => {
   const validateMobile = () => {
     const newErrors = {};
     if (!mobile.trim()) {
-      newErrors.mobile = 'Mobile number is required';
+      newErrors.mobile = t('validation.mobileRequired');
     } else if (!/^[6-9]\d{9}$/.test(mobile.trim())) {
-      newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+      newErrors.mobile = t('validation.mobileInvalid');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -36,9 +38,9 @@ const Login = () => {
   const validateOTP = () => {
     const newErrors = {};
     if (!otp.trim()) {
-      newErrors.otp = 'OTP is required';
+      newErrors.otp = t('validation.otpRequired');
     } else if (!/^\d{4,6}$/.test(otp.trim())) {
-      newErrors.otp = 'Please enter a valid OTP';
+      newErrors.otp = t('validation.otpInvalid');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -47,14 +49,14 @@ const Login = () => {
   const validateEmailPassword = () => {
     const newErrors = {};
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('validation.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = t('validation.emailInvalid');
     }
     if (!password.trim()) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('validation.passwordRequired');
     } else if (password.trim().length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = t('validation.passwordMin');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -74,7 +76,7 @@ const Login = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to send OTP');
+        throw new Error(data.message || t('toast.sendOtpFailed'));
       }
 
       setUserExists(data.userExists);
@@ -86,14 +88,14 @@ const Login = () => {
 
       // In development, show OTP in toast for easy testing
       if (data.otp) {
-        toast.success(`OTP sent to +91${mobile}. For testing: ${data.otp}`);
+        toast.success(t('toast.otpSentTesting', { mobile, otp: data.otp }));
         console.log('📱 OTP for testing:', data.otp);
       } else {
-        toast.success(`OTP sent to +91${mobile}`);
+        toast.success(t('toast.otpSentTo', { mobile }));
       }
     } catch (error) {
       console.error('Send OTP error:', error);
-      toast.error(error.message || 'Failed to send OTP. Please try again.');
+      toast.error(error.message || t('toast.sendOtpRetry'));
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +109,7 @@ const Login = () => {
     // second OTP — the customer just adds their name and is logged straight in.
     if (!userExists) {
       if (!name.trim() || name.trim().length < 2) {
-        setErrors((prev) => ({ ...prev, name: 'Please enter your name (at least 2 characters)' }));
+        setErrors((prev) => ({ ...prev, name: t('validation.nameMinInline') }));
         return;
       }
       setIsLoading(true);
@@ -119,7 +121,7 @@ const Login = () => {
         });
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.message || data.errors?.[0]?.msg || 'Registration failed');
+          throw new Error(data.message || data.errors?.[0]?.msg || t('toast.registrationFailed'));
         }
 
         const { user: userData, accessToken, refreshToken } = data;
@@ -130,11 +132,11 @@ const Login = () => {
         api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
         setUser(userData);
-        toast.success('Account created! You are now logged in.');
+        toast.success(t('toast.accountCreated'));
         navigate(from || '/');
       } catch (error) {
         console.error('Inline registration error:', error);
-        toast.error(error.message || 'Registration failed. Please try again.');
+        toast.error(error.message || t('toast.registrationRetry'));
       } finally {
         setIsLoading(false);
       }
@@ -160,7 +162,7 @@ const Login = () => {
 
         if (userData.role === 'admin') {
           setStep(3);
-          toast.success('Phone verified! Please enter your email and password.');
+          toast.success(t('admin.phoneVerified'));
         } else {
           const { accessToken, refreshToken } = data;
           localStorage.setItem('accessToken', accessToken);
@@ -171,7 +173,7 @@ const Login = () => {
 
           setUser(userData);
 
-          toast.success('Login successful!');
+          toast.success(t('toast.loginSuccess'));
 
           if (userData.role === 'merchant') {
             navigate('/merchant');
@@ -180,7 +182,7 @@ const Login = () => {
           }
         }
       } else {
-        throw new Error(data.message || 'OTP verification failed');
+        throw new Error(data.message || t('toast.otpVerifyFailed'));
       }
     } catch (error) {
       console.error('OTP verification error:', error);
@@ -197,7 +199,7 @@ const Login = () => {
     try {
       const result = await login(email.trim(), password.trim());
       if (result.success) {
-        toast.success('Admin authentication complete!');
+        toast.success(t('admin.complete'));
       }
     } catch (error) {
       console.error('Admin email/password verification error:', error);
@@ -207,15 +209,15 @@ const Login = () => {
   };
 
   const getStepTitle = () => {
-    if (step === 1) return 'Welcome Back';
-    if (step === 2) return 'Verify Mobile';
-    return 'Complete Authentication';
+    if (step === 1) return t('login.steps.welcome');
+    if (step === 2) return t('login.steps.verify');
+    return t('admin.title');
   };
 
   const getStepSubtitle = () => {
-    if (step === 1) return 'Enter your mobile number to login';
-    if (step === 2) return `Enter OTP sent to +91${mobile}`;
-    return 'Enter your email and password to complete login';
+    if (step === 1) return t('login.steps.welcomeSub');
+    if (step === 2) return t('login.steps.verifySub', { mobile });
+    return t('admin.subtitle');
   };
 
   const getStepIndicatorClass = (stepNumber) => {
@@ -264,12 +266,12 @@ const Login = () => {
 
   const renderMobileStep = () => (
     <div className="bg-white p-8 rounded-lg shadow-md">
-      <h3 className="text-lg font-medium text-gray-900 mb-6">Login with WhatsApp</h3>
+      <h3 className="text-lg font-medium text-gray-900 mb-6">{t('login.withWhatsapp')}</h3>
       <div className="space-y-4">
         <div>
           <label htmlFor="mobile" className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1">
             <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            WhatsApp Number
+            {t('fields.whatsappNumber')}
           </label>
           <div className="flex">
             <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm select-none">+91</span>
@@ -280,12 +282,12 @@ const Login = () => {
               onChange={(e) => setMobile(e.target.value)}
               maxLength={10}
               className={`flex-1 px-3 py-2 border rounded-r-md focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.mobile ? 'border-red-300' : 'border-gray-300'}`}
-              placeholder="10-digit WhatsApp number"
+              placeholder={t('fields.whatsappPlaceholder')}
             />
           </div>
           {errors.mobile
             ? <p className="text-red-600 text-xs mt-1">{errors.mobile}</p>
-            : <p className="text-xs text-gray-400 mt-1">OTP will be sent to this WhatsApp number</p>
+            : <p className="text-xs text-gray-400 mt-1">{t('fields.whatsappHint')}</p>
           }
         </div>
         <button
@@ -296,7 +298,7 @@ const Login = () => {
           {isLoading ? <div className="loading-spinner"></div> : (
             <>
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              Send OTP via WhatsApp
+              {t('sendOtp')}
             </>
           )}
         </button>
@@ -307,18 +309,18 @@ const Login = () => {
   const renderOTPStep = () => (
     <div className="bg-white p-8 rounded-lg shadow-md">
       <h3 className="text-lg font-medium text-gray-900 mb-6">
-        {userExists === false ? 'Create Your Account' : 'Verify Mobile Number'}
+        {userExists === false ? t('login.createAccount') : t('verifyMobileNumber')}
       </h3>
       <p className="text-sm text-gray-600 mb-6">
         {userExists === false
-          ? <>Looks like you're new here! Enter your name and the OTP sent to +91{mobile} to get started.</>
-          : <>Enter the OTP sent to your WhatsApp on +91{mobile}</>}
+          ? t('login.newUserHint', { mobile })
+          : t('otpSentHint', { mobile })}
       </p>
       <div className="space-y-4">
         {userExists === false && (
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Your Name
+              {t('fields.yourName')}
             </label>
             <input
               id="name"
@@ -326,14 +328,14 @@ const Login = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className={getInputClass('name')}
-              placeholder="Enter your full name"
+              placeholder={t('fields.namePlaceholder')}
             />
             {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
           </div>
         )}
         <div>
           <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
-            Enter OTP
+            {t('fields.otp')}
           </label>
           <input
             id="otp"
@@ -342,7 +344,7 @@ const Login = () => {
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
             maxLength={6}
             className={`${getInputClass('otp')} text-center text-lg font-mono tracking-widest`}
-            placeholder="Enter OTP"
+            placeholder={t('fields.otp')}
           />
           {errors.otp && <p className="text-red-600 text-sm mt-1">{errors.otp}</p>}
         </div>
@@ -351,13 +353,13 @@ const Login = () => {
             onClick={() => setStep(1)}
             className="text-sm text-primary-600 hover:text-primary-500"
           >
-            ← Change Number
+            ← {t('changeNumber')}
           </button>
           <button
             onClick={handleSendOTP}
             className="text-sm text-primary-600 hover:text-primary-500 underline"
           >
-            Resend OTP
+            {t('resendOtp')}
           </button>
         </div>
         <button
@@ -365,7 +367,7 @@ const Login = () => {
           disabled={isLoading}
           className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? <div className="loading-spinner"></div> : (userExists === false ? 'Create Account & Login' : 'Verify & Login')}
+          {isLoading ? <div className="loading-spinner"></div> : (userExists === false ? t('login.createAndLogin') : t('login.verifyAndLogin'))}
         </button>
       </div>
     </div>
@@ -373,17 +375,17 @@ const Login = () => {
 
   const renderEmailPasswordStep = () => (
     <div className="bg-white p-8 rounded-lg shadow-md">
-      <h3 className="text-lg font-medium text-gray-900 mb-6">Complete Authentication</h3>
+      <h3 className="text-lg font-medium text-gray-900 mb-6">{t('admin.title')}</h3>
       <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
         <div className="flex items-center">
           <span className="text-green-600 mr-2">✅</span>
-          <span className="text-green-800 text-sm">Phone verified! Please enter your email and password.</span>
+          <span className="text-green-800 text-sm">{t('admin.phoneVerified')}</span>
         </div>
       </div>
       <div className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address
+            {t('fields.email')}
           </label>
           <input
             id="email"
@@ -391,13 +393,13 @@ const Login = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={getInputClass('email')}
-            placeholder="Enter your email address"
+            placeholder={t('fields.emailPlaceholder')}
           />
           {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
         </div>
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password
+            {t('fields.password')}
           </label>
           <input
             id="password"
@@ -405,7 +407,7 @@ const Login = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={getInputClass('password')}
-            placeholder="Enter your password"
+            placeholder={t('fields.passwordPlaceholder')}
           />
           {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
         </div>
@@ -414,7 +416,7 @@ const Login = () => {
             onClick={() => setStep(2)}
             className="text-sm text-primary-600 hover:text-primary-500"
           >
-            ← Back to OTP
+            ← {t('admin.backToOtp')}
           </button>
         </div>
         <button
@@ -422,7 +424,7 @@ const Login = () => {
           disabled={isLoading}
           className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? <div className="loading-spinner"></div> : 'Complete Login'}
+          {isLoading ? <div className="loading-spinner"></div> : t('admin.completeLogin')}
         </button>
       </div>
     </div>
@@ -461,7 +463,7 @@ const Login = () => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
+                <span className="px-2 bg-gray-50 text-gray-500">{t('login.orContinueWith')}</span>
               </div>
             </div>
             <div className="mt-4 flex justify-center">
@@ -470,7 +472,7 @@ const Login = () => {
                   loginWithGoogle(credentialResponse.credential);
                 }}
                 onError={() => {
-                  toast.error('Google sign-in failed. Please try again.');
+                  toast.error(t('toast.googleSignInFailed'));
                 }}
                 width="360"
                 text="signin_with"
@@ -482,21 +484,21 @@ const Login = () => {
 
         <div className="text-center space-y-2">
           <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
+            {t('login.noAccount')}{' '}
             <Link
               to="/register"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              Sign up here
+              {t('login.signUpHere')}
             </Link>
           </p>
           <p className="text-sm text-gray-600">
-            Want to sell on our platform?{' '}
+            {t('sellPrompt')}{' '}
             <Link
               to="/merchant-register"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              Merchant Sign Up
+              {t('merchantSignUp')}
             </Link>
           </p>
         </div>

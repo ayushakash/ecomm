@@ -6,8 +6,10 @@ import {
   BuildingOfficeIcon
 } from '@heroicons/react/24/outline';
 import SEO from '../components/SEO/SEO';
+import { useTranslation } from 'react-i18next';
 
 const Contact = () => {
+  const { t } = useTranslation('contact');
   const socialLinks = [
     {
       name: 'Facebook',
@@ -61,9 +63,9 @@ const Contact = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Get in Touch</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">{t('header.title')}</h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            {t('header.subtitle')}
           </p>
         </div>
 
@@ -71,9 +73,9 @@ const Contact = () => {
           {/* Contact Information Card */}
           <div className="bg-white rounded-2xl shadow-xl p-8 space-y-8">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('info.title')}</h2>
               <p className="text-gray-600 mb-8">
-                Reach out to us through any of the following channels. We're here to help!
+                {t('info.subtitle')}
               </p>
             </div>
 
@@ -85,14 +87,14 @@ const Contact = () => {
                 </div>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Phone</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('info.phone')}</h3>
                 <a
                   href="tel:+916201176610"
                   className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
                   +91 6201176610
                 </a>
-                <p className="text-sm text-gray-500 mt-1">Mon-Sat, 9AM - 6PM IST</p>
+                <p className="text-sm text-gray-500 mt-1">{t('info.hours')}</p>
               </div>
             </div>
 
@@ -104,7 +106,7 @@ const Contact = () => {
                 </div>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Head Office</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('info.headOffice')}</h3>
                 <p className="text-gray-600">
                   Kadru, AG Colony<br />
                   Jharkhand 834002<br />
@@ -121,14 +123,14 @@ const Contact = () => {
                 </div>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Get Directions</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('info.directions')}</h3>
                 <a
                   href="https://www.google.com/maps?q=23.35708709274134,85.31314123434679"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
-                  Open in Google Maps
+                  {t('info.openMaps')}
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
@@ -138,7 +140,7 @@ const Contact = () => {
 
             {/* Social Media */}
             <div className="pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Follow Us</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('info.followUs')}</h3>
               <div className="flex space-x-4">
                 {socialLinks.map((social) => (
                   <a
@@ -176,10 +178,9 @@ const Contact = () => {
         {/* Additional Info Section */}
         <div className="mt-12 bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Why Choose Chardeevari?</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('why.title')}</h2>
             <p className="text-gray-600 max-w-3xl mx-auto mb-8">
-              We are your trusted partner for construction materials. With quality products,
-              reliable delivery, and exceptional customer service, we make building easier.
+              {t('why.text')}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
               <div className="text-center">
@@ -188,8 +189,8 @@ const Contact = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Quality Products</h3>
-                <p className="text-gray-600 text-sm">Premium construction materials from trusted brands</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('why.quality.title')}</h3>
+                <p className="text-gray-600 text-sm">{t('why.quality.text')}</p>
               </div>
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -197,8 +198,8 @@ const Contact = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Fast Delivery</h3>
-                <p className="text-gray-600 text-sm">Quick and reliable delivery to your doorstep</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('why.delivery.title')}</h3>
+                <p className="text-gray-600 text-sm">{t('why.delivery.text')}</p>
               </div>
               <div className="text-center">
                 <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -206,8 +207,8 @@ const Contact = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Customer Support</h3>
-                <p className="text-gray-600 text-sm">Dedicated support team ready to help you</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('why.support.title')}</h3>
+                <p className="text-gray-600 text-sm">{t('why.support.text')}</p>
               </div>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
   openExternal,
 } from '../utils/whatsapp';
 import { usePublicSettings } from './queries';
+import i18n from '../i18n';
 
 type LinkProduct = Pick<Product, 'name' | 'sku' | 'unit'>;
 
@@ -44,11 +45,11 @@ export function useBulkWhatsApp(): BulkWhatsApp {
       openBulkWhatsApp: (product, quantity) =>
         openExternal(
           quantity ? buildBulkOrderLink(number, product, quantity) : buildSimpleBulkLink(number, product),
-          'WhatsApp ordering is not available right now',
+          i18n.t('common:external.whatsappUnavailable'),
         ),
       openCartWhatsApp: (cartItems, totalAmount) =>
-        openExternal(buildCartOrderLink(number, cartItems, totalAmount), 'WhatsApp ordering is not available right now'),
-      callToOrder: () => (callNumber ? callPhone(callNumber) : openExternal(null, 'Call ordering is not available right now')),
+        openExternal(buildCartOrderLink(number, cartItems, totalAmount), i18n.t('common:external.whatsappUnavailable')),
+      callToOrder: () => (callNumber ? callPhone(callNumber) : openExternal(null, i18n.t('common:external.callUnavailable'))),
     };
   }, [data?.bulkOrderPhone, data?.callOrderPhone]);
 }

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const CategoryCard = ({ category }) => {
+  const { t } = useTranslation('common');
   return (
     <Link
       to={`/products?category=${category.id}`}
@@ -24,7 +26,7 @@ const CategoryCard = ({ category }) => {
             <p className="text-sm opacity-90 mb-3">{category.description}</p>
             <div className="flex items-center justify-center space-x-2">
               <span className="text-sm bg-white bg-opacity-20 px-2 py-1 rounded">
-                {category.productCount} products
+                {t('categoryCard.productCount', { count: category.productCount })}
               </span>
               <ArrowRightIcon className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
             </div>

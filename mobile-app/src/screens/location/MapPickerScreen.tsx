@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Keyboard, Pressable, StyleSheet, View } from 'react-native';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,9 +33,10 @@ const buildHtml = (start: Coordinates, zoom: number) => `<!DOCTYPE html>
 </script></body></html>`;
 
 const placeLabel = (p: GeocodedPlace) =>
-  [p.area, p.city, p.state, p.pincode].filter(Boolean).join(', ') || p.formattedAddress || 'Location selected';
+  [p.area, p.city, p.state, p.pincode].filter(Boolean).join(', ') || p.formattedAddress;
 
 export default function MapPickerScreen({ navigation, route }: RootStackScreenProps<'MapPicker'>) {
+  const { t } = useTranslation('location');
   const { returnTo, initial } = route.params;
   const insets = useSafeAreaInsets();
   const webRef = useRef<WebView>(null);
@@ -60,13 +62,13 @@ export default function MapPickerScreen({ navigation, route }: RootStackScreenPr
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        if (!silent) toast.error('Location access denied', 'Tap on the map instead.');
+        if (!silent) toast.error(t('map.permissionDenied'), t('map.tapInstead'));
         return;
       }
       const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setPin({ latitude: p.coords.latitude, longitude: p.coords.longitude });
     } catch {
-      if (!silent) toast.error('Could not get your location', 'Tap on the map instead.');
+      if (!silent) toast.error(t('map.locateFailed'), t('map.tapInstead'));
     } finally {
       setLocating(false);
     }
@@ -123,16 +125,16 @@ export default function MapPickerScreen({ navigation, route }: RootStackScreenPr
   };
 
   const preview = !pos
-    ? 'Tap on the map or drag the pin to select your location'
+    ? t('map.hint')
     : geocoding || pos !== debouncedPos
-      ? 'Fetching address…'
+      ? t('map.fetching')
       : place
-        ? placeLabel(place)
+        ? placeLabel(place) || t('map.locationSelected')
         : `${pos.latitude.toFixed(5)}, ${pos.longitude.toFixed(5)}`;
 
   return (
     <Screen>
-      <ScreenHeader title="Pick location on map" backIcon="close" compact />
+      <ScreenHeader title={t('map.title')} backIcon="close" compact />
       <View style={styles.flex}>
         <WebView
           ref={webRef}
@@ -151,7 +153,7 @@ export default function MapPickerScreen({ navigation, route }: RootStackScreenPr
         />
 
         <View style={styles.searchWrap}>
-          <SearchBar value={query} onChangeText={setQuery} placeholder="Search area, landmark or city" />
+          <SearchBar value={query} onChangeText={setQuery} placeholder={t('map.searchPlaceholder')} />
           {results.length > 0 && (
             <View style={styles.results}>
               {results.map((r, i) => (
@@ -187,7 +189,7 @@ export default function MapPickerScreen({ navigation, route }: RootStackScreenPr
           style={styles.locateBtn}
           onPress={() => locate()}
           accessibilityRole="button"
-          accessibilityLabel="Use my current location"
+          accessibilityLabel={t('picker.useCurrent')}
         >
           {locating ? <ActivityIndicator color={colors.primary} /> : <Icon name="locate" size={22} color="primary" />}
         </Pressable>
@@ -198,7 +200,7 @@ export default function MapPickerScreen({ navigation, route }: RootStackScreenPr
           <Icon name="location" size={22} color="secondaryDark" />
           <View style={styles.flex}>
             <Text variant="caption" color="textMuted">
-              Selected location
+              {t('map.selected')}
             </Text>
             <Text variant="body" weight="semibold" numberOfLines={2}>
               {preview}
@@ -206,7 +208,7 @@ export default function MapPickerScreen({ navigation, route }: RootStackScreenPr
           </View>
         </View>
         <Button
-          title="Confirm location"
+          title={t('map.confirm')}
           variant="secondary"
           size="lg"
           fullWidth

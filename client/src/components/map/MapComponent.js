@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import { useTranslation } from 'react-i18next';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -27,6 +28,7 @@ const MapComponent = ({
   markerLabel,
   height = '400px',
 }) => {
+  const { t } = useTranslation('location');
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
@@ -160,7 +162,8 @@ const MapComponent = ({
           type="button"
           onClick={handleLocateMe}
           disabled={locating}
-          title="Go to my current location"
+          title={t('map.goToCurrent')}
+          aria-label={t('map.goToCurrent')}
           style={{
             position: 'absolute',
             bottom: '80px',

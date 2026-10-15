@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import { useCart } from '../contexts/CartContext';
 import { useLocation } from '../contexts/LocationContext';
 import type { Product, ProductVariant } from '../types/models';
+import i18n from '../i18n';
 
 /**
  * Add to cart with the web's city lock (ProductCard.handleAdd): if the cart was
@@ -25,12 +26,12 @@ export function useAddToCart() {
       if (cartCity && currentCity && cartCity.toLowerCase() !== currentCity.toLowerCase()) {
         return new Promise((resolve) => {
           Alert.alert(
-            'Replace cart?',
-            `Your cart contains items from ${cartCity}. Adding items from ${currentCity} will clear your current cart.`,
+            i18n.t('common:cart.replaceTitle'),
+            i18n.t('common:cart.replaceMessage', { cartCity, city: currentCity }),
             [
-              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: i18n.t('common:actions.cancel'), style: 'cancel', onPress: () => resolve(false) },
               {
-                text: 'Clear & add',
+                text: i18n.t('common:cart.clearAndAdd'),
                 style: 'destructive',
                 onPress: () => {
                   clearCart();

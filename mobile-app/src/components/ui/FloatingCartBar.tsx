@@ -11,6 +11,8 @@ import { formatPrice } from '../../utils/pricing';
 import { Icon } from './Icon';
 import { Image } from './Image';
 import { Text } from './Text';
+import { useTranslation } from 'react-i18next';
+
 
 export interface FloatingCartBarProps {
   /** Default: switch to the Cart tab. */
@@ -28,6 +30,7 @@ export function FloatingCartBar({ onPress, style }: FloatingCartBarProps) {
   const navigation = useNavigation<RootNavigation>();
   const { cart, cartCount, cartTotal, isHydrated } = useCart();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('common');
   const inTabs = useContext(BottomTabBarHeightContext) !== undefined;
   if (!isHydrated || cartCount === 0) return null;
   const bottom = (inTabs ? 0 : insets.bottom) + spacing.md;
@@ -43,7 +46,7 @@ export function FloatingCartBar({ onPress, style }: FloatingCartBarProps) {
       <Pressable
         onPress={onPress ?? (() => navigation.navigate('MainTabs', { screen: 'CartTab' }))}
         accessibilityRole="button"
-        accessibilityLabel={`View cart, ${cartCount} items, ${formatPrice(cartTotal)}`}
+        accessibilityLabel={t('cart.viewCartA11y', { count: cartCount, total: formatPrice(cartTotal) })}
         style={({ pressed }) => [styles.bar, pressed && { backgroundColor: colors.primaryDark }]}
       >
         <View style={styles.thumbs}>
@@ -55,15 +58,15 @@ export function FloatingCartBar({ onPress, style }: FloatingCartBarProps) {
         </View>
         <View style={styles.flex}>
           <Text variant="label" weight="bold" style={{ color: colors.textInverse }}>
-            {cartCount} item{cartCount > 1 ? 's' : ''}
+            {t('cart.items', { count: cartCount })}
           </Text>
           <Text variant="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>
-            {formatPrice(cartTotal)} · Pay on delivery
+            {t('cart.payOnDelivery', { total: formatPrice(cartTotal) })}
           </Text>
         </View>
         <View style={styles.cta}>
           <Text variant="label" weight="extrabold" style={{ color: colors.onSecondary }}>
-            View cart
+            {t('cart.viewCart')}
           </Text>
           <Icon name="chevron-forward" size={16} color="onSecondary" />
         </View>

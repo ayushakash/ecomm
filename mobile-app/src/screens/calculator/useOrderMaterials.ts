@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { useCart } from '../../contexts/CartContext';
 import { useLocation } from '../../contexts/LocationContext';
+import i18n from '../../i18n';
 import type { RootNavigation } from '../../navigation/types';
 import { productAPI } from '../../services/api';
 import type { Product } from '../../types/models';
@@ -14,11 +15,11 @@ import { MATERIAL_ORDER_CONFIG, ORDER_MATERIAL_KEYS, type CalculationResult } fr
 function confirmReplaceCart(cartCity: string, currentCity: string): Promise<boolean> {
   return new Promise((resolve) => {
     Alert.alert(
-      'Replace cart?',
-      `Your cart contains items from ${cartCity}. Adding items from ${currentCity} will clear your current cart.`,
+      i18n.t('calculator:order.replaceTitle'),
+      i18n.t('calculator:order.replaceBody', { cartCity, currentCity }),
       [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-        { text: 'Clear & add', style: 'destructive', onPress: () => resolve(true) },
+        { text: i18n.t('calculator:order.cancel'), style: 'cancel', onPress: () => resolve(false) },
+        { text: i18n.t('calculator:order.clearAndAdd'), style: 'destructive', onPress: () => resolve(true) },
       ],
       { cancelable: true, onDismiss: () => resolve(false) },
     );
@@ -51,33 +52,36 @@ export function useOrderMaterials() {
           const mat = results[key];
           if (!mat?.quantity) continue;
           const cfg = MATERIAL_ORDER_CONFIG[key];
+          const label = i18n.t(`calculator:${cfg.labelKey}`);
           try {
             const res = await productAPI.getProducts({ search: cfg.keyword, merchantIds: activeMerchantIds });
             const product = (res.products ?? []).find(
               (p: Product) => p.enabled !== false && (p.totalStock ?? p.stock ?? 0) > 0,
             );
             if (!product) {
-              unmatched.push(cfg.label);
+              unmatched.push(label);
               continue;
             }
             addToCart(product, cfg.toQty(mat.quantity, product.unit), currentCity);
-            matched.push(cfg.label);
+            matched.push(label);
           } catch {
-            unmatched.push(cfg.label);
+            unmatched.push(label);
           }
         }
 
         if (matched.length === 0) {
-          toast.error("Couldn't auto-match products", 'Browse the catalog to add items.');
+          toast.error(i18n.t('calculator:order.noMatchTitle'), i18n.t('calculator:order.noMatchBody'));
           navigation.navigate('MainTabs', { screen: 'ProductsTab', params: {} });
           return;
         }
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        const review = 'Please review quantities before checkout.';
+        const review = i18n.t('calculator:order.review');
         toast.success(
-          `Added ${matched.length} material(s) to cart`,
-          unmatched.length ? `${review} Not available yet: ${unmatched.join(', ')}. Add manually if needed.` : review,
+          i18n.t('calculator:order.added', { count: matched.length }),
+          unmatched.length
+            ? `${review} ${i18n.t('calculator:order.notAvailable', { materials: unmatched.join(', ') })}`
+            : review,
         );
         navigation.navigate('MainTabs', { screen: 'CartTab' });
       } finally {

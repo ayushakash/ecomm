@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { MapPinIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const LocationPermissionModal = ({ isOpen, onClose, onEnableLocation, onSkip }) => {
+  const { t } = useTranslation('location');
   const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -28,6 +30,7 @@ const LocationPermissionModal = ({ isOpen, onClose, onEnableLocation, onSkip }) 
           {/* Close Button */}
           <button
             onClick={onSkip}
+            aria-label={t('close')}
             className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
           >
             <XMarkIcon className="h-6 w-6 text-gray-400 hover:text-gray-600" />
@@ -49,12 +52,12 @@ const LocationPermissionModal = ({ isOpen, onClose, onEnableLocation, onSkip }) 
 
             {/* Title */}
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
-              Enable Location Access
+              {t('permission.title')}
             </h2>
 
             {/* Description */}
             <p className="text-gray-600 mb-2 text-sm sm:text-base leading-relaxed">
-              We need your location to show nearby merchants and provide accurate delivery estimates
+              {t('permission.subtitle')}
             </p>
 
             {/* Benefits */}
@@ -65,8 +68,8 @@ const LocationPermissionModal = ({ isOpen, onClose, onEnableLocation, onSkip }) 
                     <span className="text-white text-xs font-bold">✓</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-800">Find Nearby Merchants</p>
-                    <p className="text-xs text-gray-600">Get construction materials from stores near you</p>
+                    <p className="text-sm font-semibold text-gray-800">{t('permission.nearby.title')}</p>
+                    <p className="text-xs text-gray-600">{t('permission.nearby.text')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -74,8 +77,8 @@ const LocationPermissionModal = ({ isOpen, onClose, onEnableLocation, onSkip }) 
                     <span className="text-white text-xs font-bold">✓</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-800">Faster Delivery</p>
-                    <p className="text-xs text-gray-600">Quick delivery to your exact location</p>
+                    <p className="text-sm font-semibold text-gray-800">{t('permission.faster.title')}</p>
+                    <p className="text-xs text-gray-600">{t('permission.faster.text')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -83,8 +86,8 @@ const LocationPermissionModal = ({ isOpen, onClose, onEnableLocation, onSkip }) 
                     <span className="text-white text-xs font-bold">✓</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-800">Better Experience</p>
-                    <p className="text-xs text-gray-600">Personalized recommendations based on your area</p>
+                    <p className="text-sm font-semibold text-gray-800">{t('permission.better.title')}</p>
+                    <p className="text-xs text-gray-600">{t('permission.better.text')}</p>
                   </div>
                 </div>
               </div>
@@ -103,12 +106,12 @@ const LocationPermissionModal = ({ isOpen, onClose, onEnableLocation, onSkip }) 
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Getting Location...
+                    {t('gettingLocation')}
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <MapPinIcon className="h-5 w-5" />
-                    Enable Location
+                    {t('permission.enable')}
                   </span>
                 )}
               </button>
@@ -117,13 +120,13 @@ const LocationPermissionModal = ({ isOpen, onClose, onEnableLocation, onSkip }) 
                 onClick={onSkip}
                 className="w-full py-3 px-6 bg-white text-gray-700 rounded-xl font-semibold text-sm border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
               >
-                Skip for Now
+                {t('permission.skip')}
               </button>
             </div>
 
             {/* Privacy Note */}
             <p className="text-xs text-gray-500 mt-4">
-              🔒 Your location data is secure and only used to improve your shopping experience
+              🔒 {t('permission.privacy')}
             </p>
           </div>
         </div>

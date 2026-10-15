@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Share, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import {
   Badge,
   Button,
@@ -37,6 +38,7 @@ const LOW_STOCK = 10;
 
 /** Port of client/src/pages/products/ProductDetail.js. */
 export default function ProductDetailScreen({ navigation, route }: RootStackScreenProps<'ProductDetail'>) {
+  const { t } = useTranslation('products');
   const { productId, product: snapshot } = route.params;
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -82,26 +84,26 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
   const handleAdd = async (buyNow: boolean) => {
     if (!product) return;
     if (needsSize) {
-      toast.error('Please select a size first');
+      toast.error(t('detail.toast.selectSize'));
       return;
     }
     if (activeStock <= 0) {
-      toast.error('Product is out of stock');
+      toast.error(t('detail.toast.outOfStock'));
       return;
     }
     const added = await addToCart(product, quantity, selectedVariant);
     if (!added) return;
     if (buyNow) navigation.navigate('MainTabs', { screen: 'CartTab' });
-    else toast.success(`Added ${quantity} ${quantity === 1 ? 'item' : 'items'} to cart`);
+    else toast.success(t('detail.toast.added', { count: quantity }));
   };
 
   const shareProduct = async () => {
     if (!product) return;
     const url = `${WEBSITE_URL}/products/${product._id}`;
     try {
-      await Share.share({ message: `${product.name} on Chardeevari\n${url}`, url, title: product.name });
+      await Share.share({ message: `${t('detail.shareMessage', { name: product.name })}\n${url}`, url, title: product.name });
     } catch {
-      toast.error('Could not share this product');
+      toast.error(t('detail.toast.shareFailed'));
     }
   };
 
@@ -113,18 +115,18 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
     }\nQty: ${quantity}`;
     openExternal(
       waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}` : null,
-      'WhatsApp ordering is not available right now',
+      t('detail.whatsappUnavailable'),
     );
   };
 
   const specRows = useMemo(() => buildSpecRows(product?.specifications), [product?.specifications]);
 
   const headerActions = [
-    { icon: 'share-social-outline' as const, onPress: shareProduct, accessibilityLabel: 'Share product' },
+    { icon: 'share-social-outline' as const, onPress: shareProduct, accessibilityLabel: t('detail.shareA11y') },
     {
       icon: 'cart-outline' as const,
       onPress: () => navigation.navigate('MainTabs', { screen: 'CartTab' }),
-      accessibilityLabel: 'Open cart',
+      accessibilityLabel: t('detail.openCartA11y'),
       badge: cartCount,
     },
   ];
@@ -132,17 +134,17 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
   if (!product) {
     return (
       <Screen background={colors.surface}>
-        <ScreenHeader compact title="Product" actions={isLoading ? undefined : headerActions.slice(1)} />
+        <ScreenHeader compact title={t('detail.headerTitle')} actions={isLoading ? undefined : headerActions.slice(1)} />
         {isLoading ? (
           <DetailSkeleton width={width} />
         ) : (
           <EmptyState
             icon="cube-outline"
-            title="Product not available"
-            message={error ? getErrorMessage(error, 'This product could not be loaded.') : 'Product not found'}
-            actionLabel="Browse products"
+            title={t('detail.notAvailable.title')}
+            message={error ? getErrorMessage(error, t('detail.notAvailable.loadError')) : t('detail.notAvailable.notFound')}
+            actionLabel={t('detail.notAvailable.browse')}
             onAction={() => navigation.navigate('MainTabs', { screen: 'ProductsTab' })}
-            secondaryLabel="Try again"
+            secondaryLabel={t('detail.notAvailable.retry')}
             onSecondary={() => refetch()}
           />
         )}
@@ -160,11 +162,11 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
   const images = product.images ?? [];
 
   let stockBadge: { label: string; tone: BadgeTone; icon: 'checkmark-circle' | 'alert-circle' | 'close-circle' | 'resize' };
-  if (productSoldOut) stockBadge = { label: 'Out of Stock', tone: 'danger', icon: 'close-circle' };
-  else if (needsSize) stockBadge = { label: `${variants.length} size${variants.length > 1 ? 's' : ''} available`, tone: 'info', icon: 'resize' };
-  else if (activeStock <= 0) stockBadge = { label: 'Out of Stock', tone: 'danger', icon: 'close-circle' };
-  else if (activeStock <= LOW_STOCK) stockBadge = { label: `Only ${activeStock} left!`, tone: 'brand', icon: 'alert-circle' };
-  else stockBadge = { label: 'In stock', tone: 'success', icon: 'checkmark-circle' };
+  if (productSoldOut) stockBadge = { label: t('stock.outOfStock'), tone: 'danger', icon: 'close-circle' };
+  else if (needsSize) stockBadge = { label: t('stock.sizesAvailable', { count: variants.length }), tone: 'info', icon: 'resize' };
+  else if (activeStock <= 0) stockBadge = { label: t('stock.outOfStock'), tone: 'danger', icon: 'close-circle' };
+  else if (activeStock <= LOW_STOCK) stockBadge = { label: t('stock.onlyLeft', { count: activeStock }), tone: 'brand', icon: 'alert-circle' };
+  else stockBadge = { label: t('stock.inStock'), tone: 'success', icon: 'checkmark-circle' };
 
   return (
     <Screen>
@@ -190,7 +192,7 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
             <Pressable
               onPress={() => navigation.navigate('MainTabs', { screen: 'ProductsTab', params: { categoryId } })}
               accessibilityRole="link"
-              accessibilityLabel={`Browse ${categoryName}`}
+              accessibilityLabel={t('search.browseA11y', { name: categoryName })}
               hitSlop={6}
               style={styles.categoryTag}
             >
@@ -205,12 +207,12 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
           </Text>
 
           {needsSize ? (
-            <PriceText amount={minVariantPrice} prefix="From" unit={product.unit} size="xl" hideDiscount />
+            <PriceText amount={minVariantPrice} prefix={t('detail.from')} unit={product.unit} size="xl" hideDiscount />
           ) : (
             <PriceText amount={activePrice ?? 0} mrp={product.mrp} unit={product.unit} size="xl" />
           )}
           <Text variant="caption" color="textMuted" style={styles.taxNote}>
-            GST bill available · taxes shown in the bill at checkout
+            {t('detail.taxNote')}
           </Text>
 
           <View style={styles.badgeRow}>
@@ -219,9 +221,9 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
           </View>
 
           <View style={styles.trustRow}>
-            <Badge icon="flash" label={`Delivery in 60 min — ${currentCity || 'Ranchi'}`} tone="success" size="md" />
-            <Badge icon="cash-outline" label="Pay on Delivery" tone="info" size="md" />
-            <Badge icon="shield-checkmark" label="100% genuine · GST billing" tone="secondary" size="md" />
+            <Badge icon="flash" label={t('detail.trust.delivery', { city: currentCity || 'Ranchi' })} tone="success" size="md" />
+            <Badge icon="cash-outline" label={t('detail.trust.payOnDelivery')} tone="info" size="md" />
+            <Badge icon="shield-checkmark" label={t('detail.trust.genuine')} tone="secondary" size="md" />
           </View>
         </View>
 
@@ -235,10 +237,10 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
               <View style={[styles.qtyRow, hasVariants && styles.qtyRowSpaced]}>
                 <View style={styles.flex}>
                   <Text variant="title" weight="bold">
-                    Quantity
+                    {t('detail.quantity')}
                   </Text>
                   <Text variant="caption" color="textSecondary">
-                    {formatPrice((activePrice ?? 0) * quantity)} for {quantity} {product.unit}
+                    {t('detail.qtyTotal', { price: formatPrice((activePrice ?? 0) * quantity), quantity, unit: product.unit ?? '' })}
                   </Text>
                 </View>
                 <DetailStepper value={quantity} max={activeStock} onChange={setQuantity} />
@@ -248,7 +250,7 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
               <View style={styles.hint}>
                 <Icon name="arrow-up" size={14} color="secondaryDark" />
                 <Text variant="caption" weight="semibold" color="secondaryDark">
-                  Select a size above to continue
+                  {t('detail.selectSizeHint')}
                 </Text>
               </View>
             )}
@@ -261,14 +263,14 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
             onPress={() => navigation.navigate('MainTabs', { screen: 'CartTab' })}
             style={({ pressed }) => [styles.inCart, pressed && styles.pressed]}
             accessibilityRole="link"
-            accessibilityLabel={`View cart, ${cartItem.quantity} in cart`}
+            accessibilityLabel={t('detail.inCart.a11y', { count: cartItem.quantity })}
           >
             <Icon name="cart" size={18} color="successDark" />
             <Text variant="bodySm" weight="semibold" color="successDark" style={styles.flex}>
-              {cartItem.quantity} {cartItem.quantity === 1 ? 'unit' : 'units'} in your cart
+              {t('detail.inCart.units', { count: cartItem.quantity })}
             </Text>
             <Text variant="bodySm" weight="bold" color="successDark">
-              View cart
+              {t('detail.inCart.view')}
             </Text>
             <Icon name="chevron-forward" size={16} color="successDark" />
           </Pressable>
@@ -289,30 +291,30 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
                       },
                       Math.max(quantity, bulkMinQty),
                     ),
-                    'WhatsApp ordering is not available right now',
+                    t('detail.whatsappUnavailable'),
                   )
                 }
                 style={({ pressed }) => [styles.bulk, pressed && styles.pressed]}
                 accessibilityRole="link"
-                accessibilityLabel={`Bulk order ${bulkMinQty} plus ${product.unit} on WhatsApp`}
+                accessibilityLabel={t('detail.bulk.a11y', { qty: bulkMinQty, unit: product.unit ?? '' })}
               >
                 <View style={styles.bulkIcon}>
                   <Icon name="cube" size={20} color="secondaryDark" />
                 </View>
                 <View style={styles.flex}>
                   <Text variant="label" weight="bold">
-                    Buying {bulkMinQty}+ {product.unit}?
+                    {t('detail.bulk.title', { qty: bulkMinQty, unit: product.unit ?? '' })}
                   </Text>
                   <Text variant="caption" color="textSecondary">
-                    Get special bulk pricing on WhatsApp
+                    {t('detail.bulk.subtitle')}
                   </Text>
                 </View>
                 <Icon name="chevron-forward" size={18} color="textMuted" />
               </Pressable>
             )}
             <View style={styles.contactRow}>
-              <Button title="Order on WhatsApp" variant="whatsapp" size="sm" leftIcon="logo-whatsapp" onPress={orderOnWhatsApp} style={styles.flex} />
-              <Button title="Call to Order" variant="outline" size="sm" leftIcon="call" onPress={callToOrder} style={styles.flex} />
+              <Button title={t('detail.orderWhatsApp')} variant="whatsapp" size="sm" leftIcon="logo-whatsapp" onPress={orderOnWhatsApp} style={styles.flex} />
+              <Button title={t('detail.callToOrder')} variant="outline" size="sm" leftIcon="call" onPress={callToOrder} style={styles.flex} />
             </View>
           </View>
         )}
@@ -321,7 +323,7 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
         {!!description && (
           <View style={styles.section}>
             <Text variant="caption" weight="bold" color="textSecondary" style={[styles.upper, styles.sectionTitle]}>
-              Description
+              {t('detail.description')}
             </Text>
             <Text variant="body" color="textSecondary" numberOfLines={clampDescription && !descExpanded ? 4 : undefined} style={styles.description}>
               {description}
@@ -329,7 +331,7 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
             {clampDescription && (
               <Pressable onPress={() => setDescExpanded((v) => !v)} hitSlop={8} accessibilityRole="button" style={styles.readMore}>
                 <Text variant="label" weight="bold" color="primary">
-                  {descExpanded ? 'Show less' : 'Read more'}
+                  {descExpanded ? t('detail.showLess') : t('detail.readMore')}
                 </Text>
                 <Icon name={descExpanded ? 'chevron-up' : 'chevron-down'} size={14} color="primary" />
               </Pressable>
@@ -341,7 +343,7 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
         {specRows.length > 0 && (
           <View style={styles.section}>
             <Text variant="caption" weight="bold" color="textSecondary" style={[styles.upper, styles.sectionTitle]}>
-              Specifications
+              {t('detail.specifications')}
             </Text>
             <View style={styles.specTable}>
               {specRows.map((row, i) => (
@@ -365,11 +367,11 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
         onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
       >
         {!needsSize && activeStock <= 0 ? (
-          <Button title="Out of Stock" variant="outline" disabled fullWidth leftIcon="close-circle-outline" />
+          <Button title={t('stock.outOfStock')} variant="outline" disabled fullWidth leftIcon="close-circle-outline" />
         ) : (
           <View style={styles.barRow}>
             <Button
-              title={cartItem ? 'Add More' : 'Add to Cart'}
+              title={cartItem ? t('detail.addMore') : t('detail.addToCart')}
               variant="outline"
               leftIcon="cart-outline"
               onPress={() => handleAdd(false)}
@@ -377,7 +379,7 @@ export default function ProductDetailScreen({ navigation, route }: RootStackScre
               style={styles.flex}
             />
             <Button
-              title="Buy Now"
+              title={t('detail.buyNow')}
               variant="secondary"
               rightIcon="arrow-forward"
               onPress={() => handleAdd(true)}
@@ -419,6 +421,7 @@ function buildSpecRows(specs: Product['specifications']): { label: string; value
 
 /** Detail-page quantity: minimum 1 (web), maximum stock, typed values clamp. */
 function DetailStepper({ value, max, onChange }: { value: number; max: number; onChange(next: number): void }) {
+  const { t } = useTranslation('products');
   const [draft, setDraft] = useState(String(value));
   useEffect(() => setDraft(String(value)), [value]);
 
@@ -440,20 +443,20 @@ function DetailStepper({ value, max, onChange }: { value: number; max: number; o
         disabled={value <= 1}
         style={[styles.stepBtn, value <= 1 && styles.stepDisabled]}
         accessibilityRole="button"
-        accessibilityLabel="Decrease quantity"
+        accessibilityLabel={t('detail.decreaseQty')}
       >
         <Icon name="remove" size={20} />
       </Pressable>
       <TextInput
         value={draft}
-        onChangeText={(t) => setDraft(t.replace(/[^0-9]/g, ''))}
+        onChangeText={(v) => setDraft(v.replace(/[^0-9]/g, ''))}
         onEndEditing={commit}
         onSubmitEditing={commit}
         keyboardType="number-pad"
         returnKeyType="done"
         selectTextOnFocus
         maxLength={5}
-        accessibilityLabel="Quantity"
+        accessibilityLabel={t('detail.quantity')}
         style={styles.stepInput}
       />
       <Pressable
@@ -461,7 +464,7 @@ function DetailStepper({ value, max, onChange }: { value: number; max: number; o
         disabled={value >= max}
         style={[styles.stepBtn, value >= max && styles.stepDisabled]}
         accessibilityRole="button"
-        accessibilityLabel="Increase quantity"
+        accessibilityLabel={t('detail.increaseQty')}
       >
         <Icon name="add" size={20} />
       </Pressable>

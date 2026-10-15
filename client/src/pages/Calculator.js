@@ -7,6 +7,8 @@ import { useCart } from '../contexts/CartContext';
 import { toast } from 'react-hot-toast';
 import { jsPDF } from 'jspdf';
 import { formatPrice } from '../utils/pricingUtils';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 
 // Maps each calculated material to a catalog search keyword + a unit-aware
 // quantity converter. Calculator units (bags / kg / cu.ft / nos) rarely match
@@ -14,20 +16,20 @@ import { formatPrice } from '../utils/pricingUtils';
 // always ask the user to review quantities before checkout.
 const CUFT_TO_M3 = 0.0283168;
 const MATERIAL_ORDER_CONFIG = {
-  cement:    { label: 'Cement',    keyword: 'cement',
+  cement:    { labelKey: 'materials.cement',    keyword: 'cement',
     toQty: (q) => Math.max(1, Math.ceil(q)) }, // calc bags ~= product 'bag'
-  steel:     { label: 'Steel/TMT', keyword: 'tmt steel',
+  steel:     { labelKey: 'materials.steelTmt', keyword: 'tmt steel',
     toQty: (q, unit) => unit === 'ton' ? Math.max(1, Math.ceil(q / 1000)) : Math.max(1, Math.ceil(q)) },
-  bricks:    { label: 'Bricks',    keyword: 'brick',
+  bricks:    { labelKey: 'materials.bricks',    keyword: 'brick',
     toQty: (q) => Math.max(1, Math.ceil(q)) }, // calc nos ~= product 'piece'
-  sand:      { label: 'Sand',      keyword: 'sand',
+  sand:      { labelKey: 'materials.sand',      keyword: 'sand',
     toQty: (q, unit) => {
       const m3 = q * CUFT_TO_M3;
       if (unit === 'cubic-meter') return Math.max(1, Math.ceil(m3));
       if (unit === 'ton') return Math.max(1, Math.ceil(m3 * 1.6)); // ~1.6 t/m³
       return Math.max(1, Math.ceil(q));
     } },
-  aggregate: { label: 'Aggregate', keyword: 'aggregate',
+  aggregate: { labelKey: 'materials.aggregate', keyword: 'aggregate',
     toQty: (q, unit) => {
       const m3 = q * CUFT_TO_M3;
       if (unit === 'cubic-meter') return Math.max(1, Math.ceil(m3));
@@ -37,6 +39,7 @@ const MATERIAL_ORDER_CONFIG = {
 };
 
 const Calculator = () => {
+  const { t } = useTranslation('calculator');
   const canvasRef = useRef(null);
   const navigate = useNavigate();
   const { addToCart } = useCart();
@@ -140,9 +143,9 @@ const Calculator = () => {
             .filter(([, v]) => !v.isLive)
             .map(([k]) => k);
           if (fallbackMaterials.length === Object.keys(p).length) {
-            toast('No live prices found for ' + selectedCity + ' — using standard rates', { icon: 'ℹ️' });
+            toast(t('toasts.noLivePrices', { city: selectedCity }), { icon: 'ℹ️' });
           } else if (fallbackMaterials.length > 0) {
-            toast('Some prices use standard rates (no local data): ' + fallbackMaterials.join(', '), { icon: 'ℹ️' });
+            toast(t('toasts.somePricesStandard', { materials: fallbackMaterials.map(k => t(`materials.${k}`, { defaultValue: k })).join(', ') }), { icon: 'ℹ️' });
           }
         }
       } catch (error) {
@@ -184,7 +187,7 @@ const Calculator = () => {
       length = breadth = Math.sqrt(areaNum);
       assumedSquare = true;
     } else if (!length || !breadth) {
-      alert('Please enter either Length & Breadth OR Area.');
+      alert(t('errors.enterDimensions'));
       setIsCalculating(false);
       return;
     }
@@ -415,17 +418,17 @@ const Calculator = () => {
     // Grid info
     ctx.fillStyle = '#111827';
     ctx.font = `${sm ? 9 : 10}px Arial`;
-    const gridText = `Grid: ${colsX} × ${colsY} (spacing ${q(spacing)} ft)`;
+    const gridText = t('canvas.grid', { colsX, colsY, spacing: q(spacing) });
     ctx.fillText(gridText, originX, originY + drawH + (sm ? 15 : 20));
     if (assumedSquare) {
-      ctx.fillText('(Square footprint assumed)', originX, originY + drawH + (sm ? 25 : 32));
+      ctx.fillText(t('canvas.squareAssumed'), originX, originY + drawH + (sm ? 25 : 32));
     }
   };
 
   // Download PDF with lead capture
   const handleDownloadPDF = () => {
     if (!results) {
-      toast.error('Please calculate materials first');
+      toast.error(t('errors.calculateFirst'));
       return;
     }
     setShowLeadModal(true);
@@ -433,14 +436,17 @@ const Calculator = () => {
 
   const generatePDF = () => {
     if (!leadData.name || !leadData.phone) {
-      toast.error('Please enter your name and phone number');
+      toast.error(t('errors.nameAndPhone'));
       return;
     }
 
     if (leadData.phone.length < 10) {
-      toast.error('Please enter a valid 10-digit phone number');
+      toast.error(t('errors.validPhone'));
       return;
     }
+
+    // PDF uses English: jsPDF's built-in Helvetica font cannot render Devanagari.
+    const tp = i18n.getFixedT('en', 'calculator');
 
     // Create PDF
     const doc = new jsPDF();
@@ -483,7 +489,7 @@ const Calculator = () => {
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text('Construction Material Estimate', 35, 24);
+    doc.text(tp('pdf.subtitle'), 35, 24);
 
     // Contact info section (bottom light gray area - thinner)
     doc.setTextColor(51, 65, 85); // Dark gray text
@@ -495,13 +501,13 @@ const Calculator = () => {
     const emailY = 38;
 
     // Email
-    const emailText = `Email: ${SOCIAL_MEDIA_LINKS.email}`;
+    const emailText = tp('pdf.email', { email: SOCIAL_MEDIA_LINKS.email });
     doc.text(emailText, emailX, emailY);
     const emailWidth = doc.getTextWidth(emailText);
     doc.link(emailX, emailY - 3, emailWidth, 4, { url: `mailto:${SOCIAL_MEDIA_LINKS.email}` });
 
     // Phone (below email)
-    const phoneText = `Phone: +91 6201176610`;
+    const phoneText = tp('pdf.phone', { phone: '+91 6201176610' });
     doc.text(phoneText, emailX, emailY + 5);
     const phoneWidth = doc.getTextWidth(phoneText);
     doc.link(emailX, emailY + 2, phoneWidth, 4, { url: 'tel:+916201176610' });
@@ -548,41 +554,41 @@ const Calculator = () => {
     // Customer Details Section
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Customer Details', 15, yPos);
+    doc.text(tp('pdf.customerDetails'), 15, yPos);
     yPos += 8;
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Name: ${leadData.name}`, 15, yPos);
+    doc.text(tp('pdf.name', { name: leadData.name }), 15, yPos);
     yPos += 6;
-    doc.text(`Phone: ${leadData.phone}`, 15, yPos);
+    doc.text(tp('pdf.phone', { phone: leadData.phone }), 15, yPos);
     yPos += 6;
-    doc.text(`Date: ${new Date().toLocaleDateString('en-IN')}`, 15, yPos);
+    doc.text(tp('pdf.date', { date: new Date().toLocaleDateString('en-IN') }), 15, yPos);
     yPos += 10;
 
     // Project Details Section
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Project Details', 15, yPos);
+    doc.text(tp('pdf.projectDetails'), 15, yPos);
     yPos += 8;
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Location: ${selectedCity}`, 15, yPos);
+    doc.text(tp('pdf.location', { city: selectedCity }), 15, yPos);
     yPos += 6;
-    doc.text(`Dimensions: ${results.length} ft × ${results.breadth} ft`, 15, yPos);
+    doc.text(tp('pdf.dimensions', { length: results.length, breadth: results.breadth }), 15, yPos);
     yPos += 6;
-    doc.text(`Built-up Area: ${results.area} sq.ft`, 15, yPos);
+    doc.text(tp('pdf.builtUpArea', { area: results.area }), 15, yPos);
     yPos += 6;
-    doc.text(`Number of Floors: ${results.floors}`, 15, yPos);
+    doc.text(tp('pdf.floors', { floors: results.floors }), 15, yPos);
     yPos += 6;
-    doc.text(`Columns Required: ${results.columns} (${results.colsX} × ${results.colsY} grid)`, 15, yPos);
+    doc.text(tp('pdf.columns', { columns: results.columns, colsX: results.colsX, colsY: results.colsY }), 15, yPos);
     yPos += 10;
 
     // Material Requirements Section
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Material Requirements & Cost', 15, yPos);
+    doc.text(tp('pdf.materialRequirements'), 15, yPos);
     yPos += 8;
 
     // Helper function to add material with brands and unit price
@@ -610,7 +616,7 @@ const Calculator = () => {
       } else {
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
-        doc.text('(using standard pricing)', 20, yPos);
+        doc.text(tp('pdf.standardPricing'), 20, yPos);
         yPos += 5;
         doc.setTextColor(0, 0, 0);
       }
@@ -620,21 +626,21 @@ const Calculator = () => {
     // Structure Materials Section
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('STRUCTURE MATERIALS', 15, yPos);
+    doc.text(tp('pdf.structureMaterials'), 15, yPos);
     yPos += 8;
 
     // Add structure materials
-    addMaterial('Cement', results.structureMaterials.cement.quantity, 'bags (50kg)', results.structureMaterials.cement.cost, results.structureMaterials.cement.pricePerUnit, 'cement');
-    addMaterial('Steel (TMT Bars)', results.structureMaterials.steel.quantity, 'kg', results.structureMaterials.steel.cost, results.structureMaterials.steel.pricePerUnit, 'steel');
-    addMaterial('Sand (M-Sand)', results.structureMaterials.sand.quantity, 'cu.ft', results.structureMaterials.sand.cost, results.structureMaterials.sand.pricePerUnit, 'sand');
-    addMaterial('Aggregate (20mm)', results.structureMaterials.aggregate.quantity, 'cu.ft', results.structureMaterials.aggregate.cost, results.structureMaterials.aggregate.pricePerUnit, 'aggregate');
-    addMaterial('Bricks', results.structureMaterials.bricks.quantity, 'nos', results.structureMaterials.bricks.cost, results.structureMaterials.bricks.pricePerUnit, 'bricks');
+    addMaterial(tp('materials.cement'), results.structureMaterials.cement.quantity, 'bags (50kg)', results.structureMaterials.cement.cost, results.structureMaterials.cement.pricePerUnit, 'cement');
+    addMaterial(tp('materials.steelTmtBars'), results.structureMaterials.steel.quantity, 'kg', results.structureMaterials.steel.cost, results.structureMaterials.steel.pricePerUnit, 'steel');
+    addMaterial(tp('materials.sandMSand'), results.structureMaterials.sand.quantity, 'cu.ft', results.structureMaterials.sand.cost, results.structureMaterials.sand.pricePerUnit, 'sand');
+    addMaterial(tp('materials.aggregate20mm'), results.structureMaterials.aggregate.quantity, 'cu.ft', results.structureMaterials.aggregate.cost, results.structureMaterials.aggregate.pricePerUnit, 'aggregate');
+    addMaterial(tp('materials.bricks'), results.structureMaterials.bricks.quantity, 'nos', results.structureMaterials.bricks.cost, results.structureMaterials.bricks.pricePerUnit, 'bricks');
 
     // Structure subtotal
     yPos += 5;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('Structure Subtotal:', 125, yPos);
+    doc.text(tp('results.structureSubtotal'), 125, yPos);
     doc.text(`Rs ${results.structureMaterials.totalCost}`, 185, yPos, { align: 'right' });
     yPos += 8;
 
@@ -643,20 +649,20 @@ const Calculator = () => {
       yPos += 3;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('FOUNDATION MATERIALS', 15, yPos);
+      doc.text(tp('pdf.foundationMaterials'), 15, yPos);
       yPos += 8;
 
       // Add foundation materials
-      addMaterial('Cement', results.foundationMaterials.cement.quantity, 'bags (50kg)', results.foundationMaterials.cement.cost, results.foundationMaterials.cement.pricePerUnit, 'cement');
-      addMaterial('Steel', results.foundationMaterials.steel.quantity, 'kg', results.foundationMaterials.steel.cost, results.foundationMaterials.steel.pricePerUnit, 'steel');
-      addMaterial('Sand', results.foundationMaterials.sand.quantity, 'cu.ft', results.foundationMaterials.sand.cost, results.foundationMaterials.sand.pricePerUnit, 'sand');
-      addMaterial('Aggregate', results.foundationMaterials.aggregate.quantity, 'cu.ft', results.foundationMaterials.aggregate.cost, results.foundationMaterials.aggregate.pricePerUnit, 'aggregate');
+      addMaterial(tp('materials.cement'), results.foundationMaterials.cement.quantity, 'bags (50kg)', results.foundationMaterials.cement.cost, results.foundationMaterials.cement.pricePerUnit, 'cement');
+      addMaterial(tp('materials.steel'), results.foundationMaterials.steel.quantity, 'kg', results.foundationMaterials.steel.cost, results.foundationMaterials.steel.pricePerUnit, 'steel');
+      addMaterial(tp('materials.sand'), results.foundationMaterials.sand.quantity, 'cu.ft', results.foundationMaterials.sand.cost, results.foundationMaterials.sand.pricePerUnit, 'sand');
+      addMaterial(tp('materials.aggregate'), results.foundationMaterials.aggregate.quantity, 'cu.ft', results.foundationMaterials.aggregate.cost, results.foundationMaterials.aggregate.pricePerUnit, 'aggregate');
 
       // Foundation subtotal
       yPos += 5;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text('Foundation Subtotal:', 125, yPos);
+      doc.text(tp('results.foundationSubtotal'), 125, yPos);
       doc.text(`Rs ${results.foundationMaterials.totalCost}`, 185, yPos, { align: 'right' });
       yPos += 8;
     }
@@ -669,7 +675,7 @@ const Calculator = () => {
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL ESTIMATED COST', 15, yPos);
+    doc.text(tp('pdf.totalEstimatedCost'), 15, yPos);
     doc.setTextColor(34, 139, 34);
     doc.text(`Rs ${results.totalCost}`, 185, yPos, { align: 'right' });
     doc.setTextColor(0, 0, 0);
@@ -681,14 +687,14 @@ const Calculator = () => {
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100, 116, 139); // Gray text
     if (pricingMode === 'market' && cityPrices) {
-      doc.text(`* Prices based on ${cityPrices.merchantCount} verified merchants in ${selectedCity}`, 15, yPos);
+      doc.text(tp('pdf.pricesBasedOn', { count: cityPrices.merchantCount, city: selectedCity }), 15, yPos);
     } else {
-      doc.text('* Prices are standard estimates and may vary based on market conditions', 15, yPos);
+      doc.text(tp('pdf.standardEstimates'), 15, yPos);
     }
     yPos += 4;
-    doc.text('* Actual requirements may vary based on design, wastage, and site conditions', 15, yPos);
+    doc.text(tp('pdf.actualMayVary'), 15, yPos);
     yPos += 4;
-    doc.text('* This is a preliminary estimate. Final quantities should be verified by a civil engineer.', 15, yPos);
+    doc.text(tp('pdf.preliminary'), 15, yPos);
 
     // Save PDF (always single page)
     doc.save(`Chardeevari_Estimate_${leadData.name.replace(/\s/g, '_')}.pdf`);
@@ -720,7 +726,7 @@ const Calculator = () => {
         analytics.trackLead({ type: 'calculator_lead_unsaved', value: estimatedValue });
       });
 
-    toast.success('PDF Report downloaded successfully!');
+    toast.success(t('toasts.pdfDownloaded'));
     setShowLeadModal(false);
     setLeadData({ name: '', phone: '' });
   };
@@ -742,16 +748,16 @@ const Calculator = () => {
         try {
           const res = await productAPI.getProducts({ search: cfg.keyword });
           const product = (res.products || []).find(p => p.enabled !== false);
-          if (!product) { unmatched.push(cfg.label); continue; }
+          if (!product) { unmatched.push(t(cfg.labelKey)); continue; }
           addToCart(product, cfg.toQty(mat.quantity, product.unit), selectedCity || null);
-          matched.push(cfg.label);
+          matched.push(t(cfg.labelKey));
         } catch {
-          unmatched.push(cfg.label);
+          unmatched.push(t(cfg.labelKey));
         }
       }
 
       if (matched.length === 0) {
-        toast.error('Couldn\'t auto-match products. Browse the catalog to add items.');
+        toast.error(t('toasts.noMatch'));
         navigate('/products');
         return;
       }
@@ -761,9 +767,9 @@ const Calculator = () => {
         unmatched: unmatched.length,
       });
 
-      toast.success(`Added ${matched.length} material(s) to cart — please review quantities before checkout.`, { duration: 6000 });
+      toast.success(t('toasts.addedToCart', { count: matched.length }), { duration: 6000 });
       if (unmatched.length) {
-        toast(`Not available yet: ${unmatched.join(', ')}. Add manually if needed.`, { icon: 'ℹ️', duration: 6000 });
+        toast(t('toasts.notAvailable', { materials: unmatched.join(', ') }), { icon: 'ℹ️', duration: 6000 });
       }
       navigate('/cart');
     } finally {
@@ -784,16 +790,16 @@ const Calculator = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
-              Construction Material Calculator
+              {t('header.title')}
             </h1>
-            <p className="text-xs text-gray-500 mt-0.5">Estimate cement, steel, sand & bricks for your project</p>
+            <p className="text-xs text-gray-500 mt-0.5">{t('header.subtitle')}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* City selector — always accessible */}
             <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5">
               <span className="text-sm">📍</span>
               {availableCities.length === 0 ? (
-                <span className="text-sm text-gray-400">Detecting city...</span>
+                <span className="text-sm text-gray-400">{t('header.detectingCity')}</span>
               ) : (
                 <select
                   value={selectedCity}
@@ -812,7 +818,7 @@ const Calculator = () => {
                     Object.values(cityPrices.prices || {}).some(v => v.isLive)
                       ? 'text-green-600' : 'text-amber-500'
                   }`}>
-                    {Object.values(cityPrices.prices || {}).some(v => v.isLive) ? '● live' : '○ est'}
+                    {Object.values(cityPrices.prices || {}).some(v => v.isLive) ? t('header.live') : t('header.estimated')}
                   </span>
                 )
               }
@@ -825,7 +831,7 @@ const Calculator = () => {
                   pricingMode === 'market' ? 'bg-primary-700 text-white' : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                Market Price
+                {t('header.marketPrice')}
               </button>
               <button
                 onClick={() => setPricingMode('custom')}
@@ -833,7 +839,7 @@ const Calculator = () => {
                   pricingMode === 'custom' ? 'bg-primary-700 text-white' : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                Custom
+                {t('header.custom')}
               </button>
             </div>
           </div>
@@ -845,26 +851,26 @@ const Calculator = () => {
             <div className="space-y-3">
               {/* Length & Breadth */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Length &amp; Breadth</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('form.lengthBreadth')}</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Length (ft)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('form.length')}</label>
                     <input
                       type="number"
                       value={formData.length}
                       onChange={(e) => setFormData({ ...formData, length: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                      placeholder="e.g. 40"
+                      placeholder={t('form.examplePlaceholder', { value: 40 })}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Breadth (ft)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('form.breadth')}</label>
                     <input
                       type="number"
                       value={formData.breadth}
                       onChange={(e) => setFormData({ ...formData, breadth: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                      placeholder="e.g. 30"
+                      placeholder={t('form.examplePlaceholder', { value: 30 })}
                     />
                   </div>
                 </div>
@@ -873,26 +879,26 @@ const Calculator = () => {
               {/* OR Divider */}
               <div className="relative flex items-center">
                 <div className="flex-grow border-t border-gray-200"></div>
-                <span className="flex-shrink mx-3 text-xs font-bold text-gray-400 bg-white px-2 py-0.5 border border-gray-200 rounded-full">OR</span>
+                <span className="flex-shrink mx-3 text-xs font-bold text-gray-400 bg-white px-2 py-0.5 border border-gray-200 rounded-full">{t('form.or')}</span>
                 <div className="flex-grow border-t border-gray-200"></div>
               </div>
 
               {/* Area */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Built-up Area (sq.ft)</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('form.area')}</label>
                 <input
                   type="number"
                   value={formData.area}
                   onChange={(e) => setFormData({ ...formData, area: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                  placeholder="e.g. 1200"
+                  placeholder={t('form.examplePlaceholder', { value: 1200 })}
                 />
               </div>
 
               {/* Floors + footing in one row */}
               <div className="border-t border-gray-100 pt-3 grid grid-cols-2 gap-3 items-end">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Number of Floors</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{t('form.floors')}</label>
                   <input
                     type="number"
                     min="1"
@@ -910,33 +916,33 @@ const Calculator = () => {
                     onChange={(e) => setFormData({ ...formData, includeFooting: e.target.checked })}
                     className="w-4 h-4 text-primary-700 border-gray-300 rounded focus:ring-primary-500"
                   />
-                  <label htmlFor="includeFooting" className="text-xs text-gray-600">Include footing</label>
+                  <label htmlFor="includeFooting" className="text-xs text-gray-600">{t('form.includeFooting')}</label>
                 </div>
               </div>
 
               {/* Custom Price Inputs - Only show in custom mode */}
               {pricingMode === 'custom' && (
                 <div className="border-t pt-3 space-y-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Material Prices</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('form.materialPrices')}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Cement (₹/bag)</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">{t('form.priceCement')}</label>
                       <input type="number" value={formData.priceCement} onChange={(e) => setFormData({ ...formData, priceCement: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="350" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Steel (₹/kg)</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">{t('form.priceSteel')}</label>
                       <input type="number" value={formData.priceSteel} onChange={(e) => setFormData({ ...formData, priceSteel: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="72" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Sand (₹/cu.ft)</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">{t('form.priceSand')}</label>
                       <input type="number" value={formData.priceSand} onChange={(e) => setFormData({ ...formData, priceSand: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="40" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Aggregate (₹/cu.ft)</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">{t('form.priceAgg')}</label>
                       <input type="number" value={formData.priceAgg} onChange={(e) => setFormData({ ...formData, priceAgg: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="70" />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Bricks (₹/1000 nos)</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">{t('form.priceBricks')}</label>
                       <input type="number" value={formData.priceBricks} onChange={(e) => setFormData({ ...formData, priceBricks: e.target.value })} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="10000" />
                     </div>
                   </div>
@@ -958,10 +964,10 @@ const Calculator = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Calculated ✓</span>
+                    <span>{t('form.calculated')}</span>
                   </>
                 ) : (
-                  'Calculate Materials'
+                  t('form.calculate')
                 )}
               </button>
             </div>
@@ -972,7 +978,7 @@ const Calculator = () => {
             {/* Grid Visualization */}
             {results && (
               <div className="bg-white rounded-xl shadow-lg p-4 overflow-hidden">
-                <h3 className="text-base font-bold text-gray-900 mb-3">Layout Visualization</h3>
+                <h3 className="text-base font-bold text-gray-900 mb-3">{t('results.layout')}</h3>
                 <div className="w-full overflow-hidden">
                   <canvas ref={canvasRef} className="block w-full border border-gray-200 rounded-lg"></canvas>
                 </div>
@@ -982,28 +988,28 @@ const Calculator = () => {
             {/* Results */}
             {results && (
               <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Material Estimates</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">{t('results.title')}</h3>
 
                 {/* Project Overview */}
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-2">📐 Project Overview</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">📐 {t('results.overview')}</h4>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="text-gray-600">Dimensions:</span>
+                      <span className="text-gray-600">{t('results.dimensions')}</span>
                       <span className="ml-2 font-semibold text-gray-900">
                         {results.length} ft × {results.breadth} ft
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Area:</span>
+                      <span className="text-gray-600">{t('results.area')}</span>
                       <span className="ml-2 font-semibold text-gray-900">{results.area} sq.ft</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Floors:</span>
+                      <span className="text-gray-600">{t('results.floors')}</span>
                       <span className="ml-2 font-semibold text-gray-900">{results.floors}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Columns:</span>
+                      <span className="text-gray-600">{t('results.columns')}</span>
                       <span className="ml-2 font-semibold text-gray-900">
                         {results.columns} ({results.colsX} × {results.colsY})
                       </span>
@@ -1011,7 +1017,7 @@ const Calculator = () => {
                   </div>
                   {results.assumedSquare && (
                     <p className="mt-2 text-xs text-primary-700">
-                      ℹ️ Square footprint assumed from area
+                      ℹ️ {t('results.squareAssumed')}
                     </p>
                   )}
                 </div>
@@ -1020,12 +1026,12 @@ const Calculator = () => {
                   {/* Structure Materials Section */}
                   <div className="bg-primary-50 rounded-lg p-4">
                     <h4 className="font-semibold text-primary-900 mb-3 flex items-center">
-                      🏗️ Structure Materials
+                      🏗️ {t('results.structureMaterials')}
                     </h4>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">Cement</p>
+                          <p className="font-medium text-gray-900">{t('materials.cement')}</p>
                           <p className="text-sm text-gray-600">{results.structureMaterials.cement.quantity} bags (50kg)</p>
                         </div>
                         <div className="text-right">
@@ -1036,7 +1042,7 @@ const Calculator = () => {
 
                       <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">Steel (TMT Bars)</p>
+                          <p className="font-medium text-gray-900">{t('materials.steelTmtBars')}</p>
                           <p className="text-sm text-gray-600">{results.structureMaterials.steel.quantity} kg</p>
                         </div>
                         <div className="text-right">
@@ -1047,7 +1053,7 @@ const Calculator = () => {
 
                       <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">Sand (M-Sand)</p>
+                          <p className="font-medium text-gray-900">{t('materials.sandMSand')}</p>
                           <p className="text-sm text-gray-600">{results.structureMaterials.sand.quantity} cu.ft</p>
                         </div>
                         <div className="text-right">
@@ -1058,7 +1064,7 @@ const Calculator = () => {
 
                       <div className="flex justify-between items-center border-b border-primary-200 pb-2">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">Aggregate (20mm)</p>
+                          <p className="font-medium text-gray-900">{t('materials.aggregate20mm')}</p>
                           <p className="text-sm text-gray-600">{results.structureMaterials.aggregate.quantity} cu.ft</p>
                         </div>
                         <div className="text-right">
@@ -1069,7 +1075,7 @@ const Calculator = () => {
 
                       <div className="flex justify-between items-center pb-2">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">Bricks</p>
+                          <p className="font-medium text-gray-900">{t('materials.bricks')}</p>
                           <p className="text-sm text-gray-600">{results.structureMaterials.bricks.quantity} nos</p>
                         </div>
                         <div className="text-right">
@@ -1080,7 +1086,7 @@ const Calculator = () => {
                     </div>
                     
                     <div className="mt-3 pt-3 border-t border-primary-300 flex justify-between items-center">
-                      <p className="font-semibold text-primary-900">Structure Subtotal:</p>
+                      <p className="font-semibold text-primary-900">{t('results.structureSubtotal')}</p>
                       <p className="font-bold text-lg text-primary-900">₹{results.structureMaterials.totalCost}</p>
                     </div>
                   </div>
@@ -1089,12 +1095,12 @@ const Calculator = () => {
                   {results.foundationMaterials && (
                     <div className="bg-orange-50 rounded-lg p-4">
                       <h4 className="font-semibold text-orange-900 mb-3 flex items-center">
-                        🏗️ Foundation Materials
+                        🏗️ {t('results.foundationMaterials')}
                       </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center border-b border-orange-200 pb-2">
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">Cement</p>
+                            <p className="font-medium text-gray-900">{t('materials.cement')}</p>
                             <p className="text-sm text-gray-600">{results.foundationMaterials.cement.quantity} bags (50kg)</p>
                           </div>
                           <div className="text-right">
@@ -1105,7 +1111,7 @@ const Calculator = () => {
 
                         <div className="flex justify-between items-center border-b border-orange-200 pb-2">
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">Steel</p>
+                            <p className="font-medium text-gray-900">{t('materials.steel')}</p>
                             <p className="text-sm text-gray-600">{results.foundationMaterials.steel.quantity} kg</p>
                           </div>
                           <div className="text-right">
@@ -1116,7 +1122,7 @@ const Calculator = () => {
 
                         <div className="flex justify-between items-center border-b border-orange-200 pb-2">
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">Sand</p>
+                            <p className="font-medium text-gray-900">{t('materials.sand')}</p>
                             <p className="text-sm text-gray-600">{results.foundationMaterials.sand.quantity} cu.ft</p>
                           </div>
                           <div className="text-right">
@@ -1127,7 +1133,7 @@ const Calculator = () => {
 
                         <div className="flex justify-between items-center pb-2">
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">Aggregate</p>
+                            <p className="font-medium text-gray-900">{t('materials.aggregate')}</p>
                             <p className="text-sm text-gray-600">{results.foundationMaterials.aggregate.quantity} cu.ft</p>
                           </div>
                           <div className="text-right">
@@ -1138,7 +1144,7 @@ const Calculator = () => {
                       </div>
                       
                       <div className="mt-3 pt-3 border-t border-orange-300 flex justify-between items-center">
-                        <p className="font-semibold text-orange-900">Foundation Subtotal:</p>
+                        <p className="font-semibold text-orange-900">{t('results.foundationSubtotal')}</p>
                         <p className="font-bold text-lg text-orange-900">₹{results.foundationMaterials.totalCost}</p>
                       </div>
                     </div>
@@ -1146,7 +1152,7 @@ const Calculator = () => {
 
                   {/* Total Section */}
                   <div className="flex justify-between items-center pt-4 border-t-2 border-gray-300 bg-green-50 rounded-lg p-4">
-                    <p className="text-lg font-bold text-gray-900">Total Estimated Cost</p>
+                    <p className="text-lg font-bold text-gray-900">{t('results.totalEstimatedCost')}</p>
                     <p className="text-2xl font-bold text-green-600">₹{results.totalCost}</p>
                   </div>
                 </div>
@@ -1157,12 +1163,12 @@ const Calculator = () => {
                   className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
                 >
                   <span>📥</span>
-                  <span>Download Report</span>
+                  <span>{t('results.downloadReport')}</span>
                 </button>
 
                 <div className="mt-6 p-4 bg-primary-50 rounded-lg">
                   <p className="text-sm text-primary-800">
-                    <strong>Note:</strong> These are approximate estimates. Actual requirements may vary based on design, wastage, and site conditions. Prices shown are indicative for Ranchi, Jharkhand market.
+                    <strong>{t('results.noteLabel')}</strong> {t('results.note')}
                   </p>
                 </div>
               </div>
@@ -1172,8 +1178,8 @@ const Calculator = () => {
 
         {/* CTA Section */}
         <div className="mt-12 bg-gradient-to-r from-primary-700 to-primary-900 rounded-xl shadow-2xl p-8 text-center text-white">
-          <h2 className="text-3xl font-bold mb-4">Ready to Buy Construction Materials?</h2>
-          <p className="text-lg mb-6">Get quality materials delivered to your site in Ranchi</p>
+          <h2 className="text-3xl font-bold mb-4">{t('cta.title')}</h2>
+          <p className="text-lg mb-6">{t('cta.subtitle')}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
             {results && (
               <button
@@ -1182,9 +1188,9 @@ const Calculator = () => {
                 className="inline-flex items-center gap-2 bg-white text-primary-700 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {ordering ? (
-                  <><span className="inline-block w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></span> Adding to cart…</>
+                  <><span className="inline-block w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></span> {t('cta.adding')}</>
                 ) : (
-                  <>🛒 Order These Materials</>
+                  <>🛒 {t('cta.order')}</>
                 )}
               </button>
             )}
@@ -1192,12 +1198,12 @@ const Calculator = () => {
               href="/products"
               className="inline-block bg-primary-600/40 border border-white/40 text-white font-semibold px-8 py-3 rounded-lg hover:bg-primary-600/60 transition-colors duration-200"
             >
-              Browse Products
+              {t('cta.browse')}
             </a>
           </div>
           {results && (
             <p className="text-xs text-primary-100 mt-3">
-              Quantities are estimates from your calculation — review them in the cart before checkout.
+              {t('cta.reviewNote')}
             </p>
           )}
         </div>
@@ -1207,20 +1213,20 @@ const Calculator = () => {
       {showLeadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">📥 Download Your Estimate</h3>
-            <p className="text-sm text-gray-600 mb-6">Enter your details to download the report</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">📥 {t('lead.title')}</h3>
+            <p className="text-sm text-gray-600 mb-6">{t('lead.subtitle')}</p>
 
             {/* Name Input */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Name <span className="text-red-500">*</span>
+                {t('lead.name')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={leadData.name}
                 onChange={(e) => setLeadData({ ...leadData, name: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                placeholder="Enter your name"
+                placeholder={t('lead.namePlaceholder')}
                 autoFocus
               />
             </div>
@@ -1228,14 +1234,14 @@ const Calculator = () => {
             {/* Phone Input */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number <span className="text-red-500">*</span>
+                {t('lead.phone')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
                 value={leadData.phone}
                 onChange={(e) => setLeadData({ ...leadData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                placeholder="10-digit mobile number"
+                placeholder={t('lead.phonePlaceholder')}
                 maxLength="10"
               />
             </div>
@@ -1249,13 +1255,13 @@ const Calculator = () => {
                 }}
                 className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Cancel
+                {t('lead.cancel')}
               </button>
               <button
                 onClick={generatePDF}
                 className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
               >
-                Download
+                {t('lead.download')}
               </button>
             </div>
           </div>

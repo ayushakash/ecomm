@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Icon, Input, Skeleton, Text } from '../../../components/ui';
 import { useLocation } from '../../../contexts/LocationContext';
@@ -17,6 +18,7 @@ export interface CityPickerProps {
  * Selecting a city runs fetchMerchantsByCity, which persists it and toasts the result.
  */
 export function CityPicker({ onPicked }: CityPickerProps) {
+  const { t } = useTranslation('location');
   const { selectedCity, fetchMerchantsByCity } = useLocation();
   const { data: cities = [], isLoading, isError, refetch } = useAvailableCities();
   const [search, setSearch] = useState('');
@@ -43,13 +45,13 @@ export function CityPicker({ onPicked }: CityPickerProps) {
     <View style={styles.wrap}>
       <Input
         leftIcon="search"
-        placeholder="Search city..."
+        placeholder={t('city.searchPlaceholder')}
         value={search}
         onChangeText={setSearch}
         autoCorrect={false}
         autoCapitalize="words"
         returnKeyType="search"
-        accessibilityLabel="Search city"
+        accessibilityLabel={t('city.searchA11y')}
       />
       <View style={styles.list}>
         {isLoading ? (
@@ -66,14 +68,14 @@ export function CityPicker({ onPicked }: CityPickerProps) {
           <Pressable onPress={() => refetch()} style={styles.message} accessibilityRole="button">
             <Icon name="refresh" size={28} color="textMuted" />
             <Text variant="bodySm" color="textSecondary" align="center">
-              Couldn't load cities. Tap to retry.
+              {t('city.loadError')}
             </Text>
           </Pressable>
         ) : filtered.length === 0 ? (
           <View style={styles.message}>
             <Icon name="location-outline" size={32} color="borderStrong" />
             <Text variant="bodySm" color="textSecondary" align="center">
-              {search.trim() ? `No cities match "${search.trim()}"` : 'No cities available yet'}
+              {search.trim() ? t('city.noMatch', { query: search.trim() }) : t('city.noneAvailable')}
             </Text>
           </View>
         ) : (
@@ -87,7 +89,7 @@ export function CityPicker({ onPicked }: CityPickerProps) {
                 disabled={!!pendingCity}
                 accessibilityRole="button"
                 accessibilityState={{ selected, busy: pending }}
-                accessibilityLabel={`${city.city}, ${city.state}, ${city.merchantCount} stores`}
+                accessibilityLabel={`${city.city}, ${city.state}, ${t('city.stores', { count: city.merchantCount })}`}
                 style={({ pressed }) => [
                   styles.row,
                   index > 0 && styles.rowBorder,
@@ -107,7 +109,7 @@ export function CityPicker({ onPicked }: CityPickerProps) {
                   </Text>
                 </View>
                 <Text variant="caption" color="successDark" weight="bold">
-                  {city.merchantCount} {city.merchantCount === 1 ? 'store' : 'stores'}
+                  {t('city.stores', { count: city.merchantCount })}
                 </Text>
                 {pending ? (
                   <ActivityIndicator size="small" color={colors.primary} />

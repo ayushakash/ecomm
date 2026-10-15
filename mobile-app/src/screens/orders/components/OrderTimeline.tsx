@@ -1,16 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Badge, Icon, SkeletonLines, Text, type IconName } from '../../../components/ui';
 import { colors, spacing } from '../../../theme';
 import type { OrderLifecycleEvent, OrderStatusHistoryEntry } from '../../../types/models';
-import { formatDateTime, getLifecycleMeta } from './orderUtils';
+import { formatDateTime, getLifecycleMeta, orderStatusLabel } from './orderUtils';
 
-const USER_TYPE_LABEL: Record<string, string> = {
-  customer: 'You',
-  merchant: 'Seller',
-  admin: 'Chardeevari',
-  system: 'System',
-};
+/** Known triggeredBy.userType values; label key orders:timeline.by.<type>. */
+const USER_TYPES = new Set(['customer', 'merchant', 'admin', 'system']);
 
 export interface OrderTimelineProps {
   events: OrderLifecycleEvent[] | undefined;
@@ -23,16 +20,17 @@ export interface OrderTimelineProps {
 
 /** Order activity log (port of OrderLifecycleModal.js without the admin-only notification/metadata internals). */
 export function OrderTimeline({ events, loading, error, statusHistory, onRetry }: OrderTimelineProps) {
+  const { t } = useTranslation('orders');
   if (loading) return <SkeletonLines lines={4} />;
   if (error) {
     return (
       <View style={styles.notice}>
         <Icon name="alert-circle-outline" size={18} color="danger" />
         <Text variant="bodySm" color="textSecondary" style={styles.flex}>
-          Failed to fetch order activity.
+          {t('timeline.error')}
         </Text>
         <Text variant="label" weight="bold" color="primary" onPress={onRetry} accessibilityRole="button">
-          Retry
+          {t('retry')}
         </Text>
       </View>
     );
@@ -46,7 +44,7 @@ export function OrderTimeline({ events, loading, error, statusHistory, onRetry }
         <View style={styles.notice}>
           <Icon name="information-circle-outline" size={18} color="info" />
           <Text variant="bodySm" color="textSecondary">
-            No activity recorded for this order yet.
+            {t('timeline.empty')}
           </Text>
         </View>
       );
@@ -58,7 +56,7 @@ export function OrderTimeline({ events, loading, error, statusHistory, onRetry }
             key={`${entry.status}-${index}`}
             icon="ellipse"
             tone={colors.info}
-            title={entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+            title={orderStatusLabel(entry.status)}
             time={entry.timestamp}
             description={entry.note}
             last={index === history.length - 1}
@@ -81,7 +79,13 @@ export function OrderTimeline({ events, loading, error, statusHistory, onRetry }
             title={meta.title}
             time={event.timestamp}
             description={event.eventDescription}
-            badge={by?.userType ? (by.userType === 'customer' ? 'You' : by.userName || USER_TYPE_LABEL[by.userType]) : undefined}
+            badge={
+              by?.userType
+                ? by.userType === 'customer'
+                  ? t('timeline.by.customer')
+                  : by.userName || (USER_TYPES.has(by.userType) ? t(`timeline.by.${by.userType}`) : undefined)
+                : undefined
+            }
             last={index === sorted.length - 1}
           />
         );
@@ -115,6 +119,7 @@ function Row({
   badge?: string;
   last: boolean;
 }) {
+  const { t } = useTranslation('orders');
   return (
     <View style={styles.row}>
       <View style={styles.rail}>
@@ -139,7 +144,7 @@ function Row({
             {description}
           </Text>
         ) : null}
-        {badge ? <Badge label={`by ${badge}`} tone="neutral" style={styles.badge} /> : null}
+        {badge ? <Badge label={t('timeline.byLabel', { name: badge })} tone="neutral" style={styles.badge} /> : null}
       </View>
     </View>
   );

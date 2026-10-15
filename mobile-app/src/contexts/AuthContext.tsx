@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Platform } from 'react-native';
 import { queryKeys } from '../hooks/queryKeys';
 import { authAPI, getErrorMessage, onSessionExpired, pushAPI, userAPI } from '../services/api';
@@ -18,6 +19,7 @@ import { getPushToken } from '../services/notifications';
 import { tokenStorage } from '../services/tokenStorage';
 import type { AuthResponse, User } from '../types/models';
 import { toast } from '../utils/toast';
+import i18n from '../i18n';
 
 const USER_CACHE_KEY = 'chardeevari.user';
 
@@ -62,7 +64,7 @@ export const useAuth = (): AuthContextValue => {
 const isCachedUser = (value: unknown): value is User =>
   !!value && typeof value === 'object' && '_id' in value && typeof value._id === 'string';
 
-const CUSTOMER_ONLY_MESSAGE = 'This app is for customers. Merchants and admins please use chardeevari.in.';
+const customerOnlyMessage = () => i18n.t('common:auth.customerOnly');
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
@@ -133,6 +135,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [userId]);
 
+  // The device's language choice (made on first launch) is saved to the account so
+  // order notifications arrive in the same language.
+  const { i18n } = useTranslation();
+  const appLanguage = i18n.language;
+  const accountLanguage = user?.language;
+  useEffect(() => {
+    if (!userId || (appLanguage !== 'en' && appLanguage !== 'hi') || accountLanguage === appLanguage) return;
+    userAPI
+      .updateProfile({ language: appLanguage })
+      .then(({ user: fresh }) => setUser(fresh))
+      .catch(() => {});
+  }, [userId, appLanguage, accountLanguage, setUser]);
+
   /** Persist tokens + user from an auth response. Rejects non-customer roles. */
   const acceptAuth = useCallback(
     async (data: AuthResponse): Promise<boolean> => {
@@ -141,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await tokenStorage.set({ accessToken: data.accessToken, refreshToken: data.refreshToken });
         await authAPI.logout().catch(() => {});
         await tokenStorage.clear();
-        toast.error('Customer account required', CUSTOMER_ONLY_MESSAGE);
+        toast.error(i18n.t('common:auth.customerRequired'), customerOnlyMessage());
         return false;
       }
       await tokenStorage.set({ accessToken: data.accessToken, refreshToken: data.refreshToken });
@@ -155,12 +170,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await authAPI.sendOtp(phone.trim());
       if (data.userExists && data.userRole && data.userRole !== 'customer') {
-        toast.error('Customer account required', CUSTOMER_ONLY_MESSAGE);
-        return { success: false, error: CUSTOMER_ONLY_MESSAGE };
+        toast.error(i18n.t('common:auth.customerRequired'), customerOnlyMessage());
+        return { success: false, error: customerOnlyMessage() };
       }
       return { success: true, userExists: data.userExists, devOtp: data.otp };
     } catch (error) {
-      const message = getErrorMessage(error, 'Failed to send OTP');
+      const message = getErrorMessage(error, i18n.t('common:auth.sendOtpFailed'));
       toast.error(message);
       return { success: false, error: message };
     }
@@ -178,15 +193,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           const data = await authAPI.verifyOtpRegister(trimmed, phone.trim(), otp.trim());
           await acceptAuth(data);
-          toast.success('Account created!', 'You are now logged in.');
+          toast.success(i18n.t('common:auth.accountCreated'), i18n.t('common:auth.nowLoggedIn'));
           return { success: true, user: data.user };
         }
         const data = await authAPI.verifyOtpLogin(phone.trim(), otp.trim());
-        if (!(await acceptAuth(data))) return { success: false, error: CUSTOMER_ONLY_MESSAGE };
-        toast.success('Login successful!');
+        if (!(await acceptAuth(data))) return { success: false, error: customerOnlyMessage() };
+        toast.success(i18n.t('common:auth.loginSuccess'));
         return { success: true, user: data.user };
       } catch (error) {
-        const message = getErrorMessage(error, 'OTP verification failed');
+        const message = getErrorMessage(error, i18n.t('common:auth.otpFailed'));
         toast.error(message);
         return { success: false, error: message };
       }
@@ -199,11 +214,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await getGoogleIdToken();
       if (result.type === 'cancelled') return { success: true, cancelled: true };
       const data = await authAPI.google(result.idToken);
-      if (!(await acceptAuth(data))) return { success: false, error: CUSTOMER_ONLY_MESSAGE };
-      toast.success('Logged in with Google!');
+      if (!(await acceptAuth(data))) return { success: false, error: customerOnlyMessage() };
+      toast.success(i18n.t('common:auth.googleSuccess'));
       return { success: true, user: data.user, phoneRequired: data.phoneRequired };
     } catch (error) {
-      const message = getErrorMessage(error, 'Google login failed');
+      const message = getErrorMessage(error, i18n.t('common:auth.googleFailed'));
       toast.error(message);
       return { success: false, error: message };
     }
@@ -214,7 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await authAPI.sendLinkPhoneOtp(phone.trim());
       return { success: true, devOtp: data.otp };
     } catch (error) {
-      const message = getErrorMessage(error, 'Failed to send OTP');
+      const message = getErrorMessage(error, i18n.t('common:auth.sendOtpFailed'));
       toast.error(message);
       return { success: false, error: message };
     }
@@ -225,10 +240,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const data = await authAPI.verifyLinkPhone(phone.trim(), otp.trim());
         setUser(data.user);
-        toast.success('Phone number verified and linked!');
+        toast.success(i18n.t('common:auth.phoneLinked'));
         return { success: true, user: data.user };
       } catch (error) {
-        const message = getErrorMessage(error, 'Phone verification failed');
+        const message = getErrorMessage(error, i18n.t('common:auth.phoneFailed'));
         toast.error(message);
         return { success: false, error: message };
       }
@@ -241,7 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await authAPI.sendChangeEmailOtp(email.trim());
       return { success: true, devOtp: data.otp };
     } catch (error) {
-      const message = getErrorMessage(error, 'Failed to send verification code');
+      const message = getErrorMessage(error, i18n.t('common:auth.sendCodeFailed'));
       toast.error(message);
       return { success: false, error: message };
     }
@@ -252,10 +267,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const data = await authAPI.verifyChangeEmail(email.trim(), otp.trim());
         setUser(data.user);
-        toast.success('Email updated successfully!');
+        toast.success(i18n.t('common:auth.emailUpdated'));
         return { success: true, user: data.user };
       } catch (error) {
-        const message = getErrorMessage(error, 'Email verification failed');
+        const message = getErrorMessage(error, i18n.t('common:auth.emailFailed'));
         toast.error(message);
         return { success: false, error: message };
       }
@@ -268,10 +283,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const data = await userAPI.updateProfile(profile);
         setUser(data.user);
-        toast.success('Profile updated successfully!');
+        toast.success(i18n.t('common:auth.profileUpdated'));
         return { success: true, user: data.user };
       } catch (error) {
-        const message = getErrorMessage(error, 'Profile update failed');
+        const message = getErrorMessage(error, i18n.t('common:auth.profileFailed'));
         toast.error(message);
         return { success: false, error: message };
       }
@@ -302,7 +317,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await userAPI.deleteAccount();
     } catch (error) {
-      return { success: false, error: getErrorMessage(error, 'Could not delete account. Please try again.') };
+      return { success: false, error: getErrorMessage(error, i18n.t('common:auth.deleteFailed')) };
     }
     // Server already disabled the account and its tokens; only local state remains.
     await googleSignOut();

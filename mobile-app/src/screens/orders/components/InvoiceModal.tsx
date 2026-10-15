@@ -1,6 +1,7 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Modal, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -18,6 +19,7 @@ export interface InvoiceModalProps {
 
 /** GST invoice preview (GSTInvoicePreview.js) with Print and Share-as-PDF via expo-print / expo-sharing. */
 export function InvoiceModal({ visible, onClose, order }: InvoiceModalProps) {
+  const { t } = useTranslation('orders');
   const insets = useSafeAreaInsets();
   const html = useMemo(() => (visible ? buildInvoiceHtml(order) : ''), [visible, order]);
   const [busy, setBusy] = useState<'print' | 'share' | null>(null);
@@ -27,7 +29,7 @@ export function InvoiceModal({ visible, onClose, order }: InvoiceModalProps) {
     try {
       await Print.printAsync({ html });
     } catch {
-      toast.error('Could not open the print dialog');
+      toast.error(t('invoice.printError'));
     } finally {
       setBusy(null);
     }
@@ -38,16 +40,16 @@ export function InvoiceModal({ visible, onClose, order }: InvoiceModalProps) {
     try {
       const { uri } = await Print.printToFileAsync({ html });
       if (!(await Sharing.isAvailableAsync())) {
-        toast.error('Sharing is not available on this device');
+        toast.error(t('invoice.shareUnavailable'));
         return;
       }
       await Sharing.shareAsync(uri, {
         mimeType: 'application/pdf',
         UTI: 'com.adobe.pdf',
-        dialogTitle: `Invoice #${order.orderNumber}`,
+        dialogTitle: t('invoice.dialogTitle', { number: order.orderNumber }),
       });
     } catch {
-      toast.error('Could not create the invoice PDF');
+      toast.error(t('invoice.pdfError'));
     } finally {
       setBusy(null);
     }
@@ -64,7 +66,7 @@ export function InvoiceModal({ visible, onClose, order }: InvoiceModalProps) {
       <View style={styles.root}>
         <ScreenHeader
           compact
-          title="GST Tax Invoice"
+          title={t('invoice.title')}
           subtitle={`#${order.orderNumber}`}
           back={onClose}
           backIcon="close"
@@ -73,7 +75,7 @@ export function InvoiceModal({ visible, onClose, order }: InvoiceModalProps) {
         {Platform.OS === 'web' ? (
           <View style={styles.center}>
             <Text color="textSecondary" align="center">
-              Invoice preview is available in the app. Use Print to view it here.
+              {t('invoice.webNotice')}
             </Text>
           </View>
         ) : (
@@ -87,7 +89,7 @@ export function InvoiceModal({ visible, onClose, order }: InvoiceModalProps) {
         )}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
           <Button
-            title="Print"
+            title={t('invoice.print')}
             variant="outline"
             leftIcon="print-outline"
             onPress={print}
@@ -96,7 +98,7 @@ export function InvoiceModal({ visible, onClose, order }: InvoiceModalProps) {
             style={styles.flex}
           />
           <Button
-            title="Share PDF"
+            title={t('invoice.share')}
             variant="primary"
             leftIcon="share-outline"
             onPress={share}

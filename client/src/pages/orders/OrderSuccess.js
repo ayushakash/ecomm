@@ -7,8 +7,10 @@ import {
   ClockIcon,
   MapPinIcon
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const OrderSuccess = () => {
+  const { t } = useTranslation('checkout');
   const navigate = useNavigate();
   const location = useLocation();
   const orderData = location.state?.orderData;
@@ -25,27 +27,27 @@ const OrderSuccess = () => {
 
         {/* Success Message */}
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Order Placed Successfully!
+          {t('success.title')}
         </h1>
         <p className="text-gray-600 mb-6">
-          Thank you for your order. We'll prepare your items and deliver them soon.
+          {t('success.message')}
         </p>
 
         {/* Order Details */}
         {orderData && (
           <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-700">Order Number</span>
-              <span className="text-sm font-bold text-gray-900">{orderData.orderNumber || 'Generating...'}</span>
+              <span className="text-sm font-medium text-gray-700">{t('success.orderNumber')}</span>
+              <span className="text-sm font-bold text-gray-900">{orderData.orderNumber || t('success.generating')}</span>
             </div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-700">Total Amount</span>
+              <span className="text-sm font-medium text-gray-700">{t('success.totalAmount')}</span>
               <span className="text-sm font-bold text-green-600">₹{orderData.totalAmount || '0'}</span>
             </div>
             <div className="flex items-start justify-between">
-              <span className="text-sm font-medium text-gray-700">Delivery To</span>
+              <span className="text-sm font-medium text-gray-700">{t('success.deliveryTo')}</span>
               <span className="text-sm text-gray-900 text-right flex-1 ml-2">
-                {orderData.customerAddress || 'Your selected address'}
+                {orderData.customerAddress || t('success.selectedAddress')}
               </span>
             </div>
           </div>
@@ -56,8 +58,8 @@ const OrderSuccess = () => {
           <div className="flex items-center p-3 bg-green-50 rounded-lg">
             <MapPinIcon className="w-5 h-5 text-green-600 mr-3" />
             <div className="text-left">
-              <p className="text-sm font-medium text-green-900">Free Delivery</p>
-              <p className="text-xs text-green-700">No additional charges</p>
+              <p className="text-sm font-medium text-green-900">{t('success.freeDelivery')}</p>
+              <p className="text-xs text-green-700">{t('success.noExtraCharges')}</p>
             </div>
           </div>
         </div>
@@ -69,7 +71,7 @@ const OrderSuccess = () => {
             className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
           >
             <ShoppingBagIcon className="w-5 h-5 mr-2" />
-            View My Orders
+            {t('success.viewOrders')}
           </button>
 
           <button
@@ -77,14 +79,14 @@ const OrderSuccess = () => {
             className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center"
           >
             <HomeIcon className="w-5 h-5 mr-2" />
-            Continue Shopping
+            {t('success.continueShopping')}
           </button>
         </div>
 
         {/* Additional Info */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500">
-            You will receive order updates via SMS and email. For any queries, contact our support team.
+            {t('success.updatesInfo')}
           </p>
         </div>
       </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import SEO from '../components/SEO/SEO';
 import { getBlogPost } from '../data/blogPosts';
+import { useTranslation } from 'react-i18next';
 
 // Render **bold** segments inside a paragraph.
 const renderText = (text) => {
@@ -14,6 +15,7 @@ const renderText = (text) => {
 };
 
 const BlogPost = () => {
+  const { t, i18n } = useTranslation('blog');
   const { slug } = useParams();
   const post = getBlogPost(slug);
 
@@ -40,9 +42,9 @@ const BlogPost = () => {
       <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Breadcrumb */}
         <nav className="text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
-          <Link to="/" className="hover:text-primary-600">Home</Link>
+          <Link to="/" className="hover:text-primary-600">{t('post.breadcrumbHome')}</Link>
           <span className="mx-2">/</span>
-          <Link to="/blog" className="hover:text-primary-600">Blog</Link>
+          <Link to="/blog" className="hover:text-primary-600">{t('post.breadcrumbBlog')}</Link>
         </nav>
 
         {/* Header */}
@@ -50,7 +52,7 @@ const BlogPost = () => {
           <span className="text-xs font-semibold text-primary-600 uppercase tracking-wide">{post.category}</span>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2 mb-3">{post.title}</h1>
           <div className="flex items-center gap-3 text-sm text-gray-500">
-            <time dateTime={post.date}>{new Date(post.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</time>
+            <time dateTime={post.date}>{new Date(post.date).toLocaleDateString(i18n.language === 'hi' ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</time>
             {post.readTime && <><span>·</span><span>{post.readTime}</span></>}
           </div>
         </header>
@@ -112,7 +114,7 @@ const BlogPost = () => {
         {/* FAQ section */}
         {post.faqs && post.faqs.length > 0 && (
           <section className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('post.faqTitle')}</h2>
             <div className="space-y-4">
               {post.faqs.map((f, i) => (
                 <div key={i} className="bg-white rounded-lg border border-gray-200 p-5">
@@ -126,16 +128,16 @@ const BlogPost = () => {
 
         {/* Bottom CTA */}
         <div className="mt-12 bg-blue-50 border-2 border-blue-200 rounded-xl p-6 text-center">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to order construction materials in Ranchi?</h3>
-          <p className="text-gray-700 mb-4">Compare verified merchant prices and get doorstep delivery.</p>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">{t('post.ctaTitle')}</h3>
+          <p className="text-gray-700 mb-4">{t('post.ctaText')}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/products" className="inline-block bg-primary-700 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-800 transition-colors">Browse Products</Link>
-            <Link to="/calculator" className="inline-block bg-white border border-primary-300 text-primary-700 font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">Free Calculator</Link>
+            <Link to="/products" className="inline-block bg-primary-700 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-800 transition-colors">{t('post.browseProducts')}</Link>
+            <Link to="/calculator" className="inline-block bg-white border border-primary-300 text-primary-700 font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">{t('post.freeCalculator')}</Link>
           </div>
         </div>
 
         <div className="mt-8">
-          <Link to="/blog" className="text-primary-600 font-semibold hover:text-primary-700">← Back to all articles</Link>
+          <Link to="/blog" className="text-primary-600 font-semibold hover:text-primary-700">{t('post.backToAll')}</Link>
         </div>
       </article>
     </div>

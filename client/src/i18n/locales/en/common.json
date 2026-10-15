@@ -1,0 +1,128 @@
+{
+  "language": {
+    "label": "Language",
+    "changeLater": "You can change this anytime from the top bar."
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "retry": "Retry",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "yesDelete": "Yes, Delete",
+    "back": "Back"
+  },
+  "status": {
+    "loading": "Loading...",
+    "processing": "Processing...",
+    "deleting": "Deleting...",
+    "noData": "No data available",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "error": "Something went wrong"
+  },
+  "confirm": {
+    "title": "Are you sure?",
+    "irreversible": "This action cannot be undone."
+  },
+  "orderStatus": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "processing": "Processing",
+    "packed": "Packed",
+    "shipped": "Shipped",
+    "out_for_delivery": "Out for Delivery",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled",
+    "returned": "Returned"
+  },
+  "orderCard": {
+    "title": "Order #{{number}}",
+    "totalAmount": "Total Amount",
+    "itemsUnassigned_one": "{{count}} item unassigned",
+    "itemsUnassigned_other": "{{count}} items unassigned",
+    "multipleMerchants": "Multiple merchants",
+    "orderDate": "Order Date",
+    "details": "Details",
+    "lifecycle": "Lifecycle"
+  },
+  "productCard": {
+    "sku": "SKU: {{sku}}",
+    "perUnit": "per {{unit}}",
+    "units_one": "{{count}} unit",
+    "units_other": "{{count}} units",
+    "inStock": "in stock",
+    "cityChangeConfirm": "Your cart contains items from {{cartCity}}. Adding items from {{currentCity}} will clear your current cart. Continue?",
+    "onlyLeft": "Only {{count}} left!",
+    "outOfStock": "OUT OF STOCK",
+    "from": "From",
+    "off": "OFF",
+    "sizesAvailable_one": "{{count}} size available",
+    "sizesAvailable_other": "{{count}} sizes available",
+    "deliveryNote": "Same-day delivery · Pay on Delivery",
+    "bulk": "Bulk? {{qty}}+ {{unit}}",
+    "chooseOptions": "Choose Options",
+    "quantity": "Quantity",
+    "add": "ADD"
+  },
+  "categoryCard": {
+    "productCount_one": "{{count}} product",
+    "productCount_other": "{{count}} products"
+  },
+  "install": {
+    "title": "Install Chardeevari",
+    "subtitle": "Get the full app experience",
+    "iosTitle": "Add to iPhone / iPad:",
+    "iosStep1Before": "Tap the",
+    "iosStep1After": "Share button in Safari",
+    "iosStep2Before": "Tap",
+    "iosStep2Strong": "\"Add to Home Screen\"",
+    "iosStep3Before": "Tap",
+    "iosStep3Strong": "\"Add\"",
+    "iosStep3After": "— opens fullscreen!",
+    "button": "Install App"
+  },
+  "toasts": {
+    "auth": {
+      "loginSuccess": "Login successful!",
+      "loginFailed": "Login failed",
+      "registrationFailed": "Registration failed",
+      "profileUpdated": "Profile updated successfully!",
+      "profileUpdateFailed": "Profile update failed",
+      "otpSendFailed": "Failed to send OTP",
+      "googleSuccess": "Logged in with Google!",
+      "googleFailed": "Google login failed",
+      "phoneVerified": "Phone number verified and linked!",
+      "phoneVerifyFailed": "Phone verification failed",
+      "codeSendFailed": "Failed to send verification code",
+      "emailUpdated": "Email updated successfully!",
+      "emailVerifyFailed": "Email verification failed",
+      "otpVerifyFailed": "OTP verification failed"
+    },
+    "location": {
+      "exactUnavailable": "Exact location not available. Showing all city merchants. Delivery availability will be confirmed by merchant.",
+      "noMerchantsArea": "No merchants available in your area yet",
+      "loadAreaFailed": "Failed to load merchants in your area",
+      "foundInCity_one": "Found {{count}} merchant in {{city}}!",
+      "foundInCity_other": "Found {{count}} merchants in {{city}}!",
+      "noMerchantsCity": "No merchants currently serving {{city}}. We're expanding to new cities soon!",
+      "loadFailed": "Failed to load merchants",
+      "foundNearby_one": "Found {{count}} merchant near you!",
+      "foundNearby_other": "Found {{count}} merchants near you!",
+      "noMerchantsNearby": "No merchants deliver to your location yet. We're expanding soon!",
+      "loadNearbyFailed": "Failed to load merchants near you",
+      "notSupported": "Geolocation is not supported by your browser",
+      "gettingLocation": "Getting your location...",
+      "findingCity": "Finding your city...",
+      "findingMerchants": "Finding merchants near you...",
+      "cityUnknown": "Could not determine your city. Please select manually.",
+      "unableToGet": "Unable to get location",
+      "permissionDenied": "Location permission denied. You can enable it in browser settings.",
+      "positionUnavailable": "Location information unavailable",
+      "timeout": "Location request timed out"
+    }
+  }
+}

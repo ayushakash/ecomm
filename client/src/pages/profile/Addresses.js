@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addressAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import AddressFormModal from '../../components/modals/AddressFormModal';
 import {
   MapPinIcon,
@@ -17,6 +18,7 @@ import {
 
 
 const Addresses = () => {
+  const { t } = useTranslation('profile');
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
@@ -33,11 +35,11 @@ const Addresses = () => {
   const deleteAddressMutation = useMutation({
     mutationFn: (id) => addressAPI.deleteAddress(id),
     onSuccess: () => {
-      toast.success('Address deleted successfully!');
+      toast.success(t('addresses.toast.deleted'));
       refetch();
     },
     onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to delete address');
+      toast.error(err.response?.data?.message || t('addresses.toast.deleteFailed'));
     }
   });
 
@@ -45,11 +47,11 @@ const Addresses = () => {
   const setDefaultMutation = useMutation({
     mutationFn: (addressId) => addressAPI.setDefaultAddress(addressId),
     onSuccess: () => {
-      toast.success('Default address updated!');
+      toast.success(t('addresses.toast.defaultUpdated'));
       refetch();
     },
     onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to set default address');
+      toast.error(err.response?.data?.message || t('addresses.toast.defaultFailed'));
     }
   });
 
@@ -102,16 +104,16 @@ const Addresses = () => {
             <div className="text-white">
               <h1 className="text-3xl sm:text-4xl font-bold mb-2 flex items-center">
                 <MapPinIcon className="w-8 h-8 sm:w-10 sm:h-10 mr-3" />
-                My Addresses
+                {t('addresses.title')}
               </h1>
-              <p className="text-gray-100 text-sm sm:text-base">Manage your saved delivery addresses</p>
+              <p className="text-gray-100 text-sm sm:text-base">{t('addresses.subtitle')}</p>
             </div>
             <button
               onClick={handleAddNew}
               className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-white text-secondary-600 rounded-xl hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200 font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
             >
               <PlusIcon className="w-5 h-5 mr-2" />
-              Add New Address
+              {t('addresses.addNew')}
             </button>
           </div>
         </div>
@@ -139,11 +141,11 @@ const Addresses = () => {
                           {address.isDefault && (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-success-600 text-white shadow-sm">
                               <StarIcon className="w-3 h-3 mr-1 fill-white" />
-                              Default
+                              {t('addresses.default')}
                             </span>
                           )}
                           <span className="px-3 py-1 text-xs font-semibold bg-gray-100 text-gray-700 rounded-full capitalize">
-                            {address.addressType}
+                            {t(`addresses.type.${address.addressType}`, { defaultValue: address.addressType })}
                           </span>
                         </div>
 
@@ -173,7 +175,7 @@ const Addresses = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                              Near: {address.landmark}
+                              {t('addresses.near', { landmark: address.landmark })}
                             </p>
                           )}
                           <p className="font-medium text-gray-700">
@@ -192,20 +194,20 @@ const Addresses = () => {
                     <div className="flex sm:flex-col items-center sm:items-end gap-2 w-full sm:w-auto">
                       {confirmDeleteId === address._id ? (
                         <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
-                          <p className="text-sm font-semibold text-danger-700">Delete this address?</p>
+                          <p className="text-sm font-semibold text-danger-700">{t('addresses.deleteQuestion')}</p>
                           <div className="flex gap-2">
                             <button
                               onClick={() => setConfirmDeleteId(null)}
                               className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all duration-200"
                             >
-                              Cancel
+                              {t('cancel')}
                             </button>
                             <button
                               onClick={() => confirmDelete(address._id)}
                               disabled={deleteAddressMutation.isLoading}
                               className="px-4 py-2 text-sm bg-danger-600 hover:bg-danger-700 text-white rounded-xl font-semibold disabled:opacity-50 shadow-md transition-all duration-200"
                             >
-                              {deleteAddressMutation.isLoading ? 'Deleting...' : 'Yes, Delete'}
+                              {deleteAddressMutation.isLoading ? t('addresses.deleting') : t('addresses.yesDelete')}
                             </button>
                           </div>
                         </div>
@@ -217,21 +219,21 @@ const Addresses = () => {
                               disabled={setDefaultMutation.isLoading}
                               className="flex-1 sm:flex-none text-sm px-4 py-2 bg-success-600 hover:bg-success-700 text-white rounded-xl font-semibold disabled:opacity-50 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
                             >
-                              ⭐ Set Default
+                              ⭐ {t('addresses.setDefault')}
                             </button>
                           )}
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEdit(address)}
                               className="p-3 text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                              title="Edit Address"
+                              title={t('addresses.editTitle')}
                             >
                               <PencilIcon className="w-5 h-5" />
                             </button>
                             <button
                               onClick={() => handleDelete(address)}
                               className="p-3 text-white bg-danger-600 hover:bg-danger-700 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                              title="Delete Address"
+                              title={t('addresses.deleteTitle')}
                             >
                               <TrashIcon className="w-5 h-5" />
                             </button>
@@ -248,14 +250,14 @@ const Addresses = () => {
               <div className="bg-primary-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6 shadow-sm">
                 <MapPinIcon className="w-12 h-12 text-primary-700" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">No Addresses Yet</h3>
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">Add your first delivery address to start shopping and get products delivered to your doorstep</p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">{t('addresses.empty.title')}</h3>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">{t('addresses.empty.subtitle')}</p>
               <button
                 onClick={handleAddNew}
                 className="inline-flex items-center px-8 py-4 bg-primary-700 hover:bg-primary-800 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
               >
                 <PlusIcon className="w-5 h-5 mr-2" />
-                Add Your First Address
+                {t('addresses.empty.cta')}
               </button>
             </div>
           )}

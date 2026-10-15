@@ -1,0 +1,51 @@
+{
+  "picker": {
+    "default": "डिफ़ॉल्ट",
+    "title": "डिलीवरी की लोकेशन चुनें",
+    "deliveringIn": "यहां डिलीवरी होती है: {{areas}}",
+    "useCurrent": "मेरी अभी की लोकेशन लें",
+    "useCurrentAddress": "GPS से नया पता जोड़ें",
+    "useCurrentStores": "आपके पास डिलीवरी करने वाली दुकानें खोजें",
+    "pickOnMap": "मैप पर चुनें",
+    "pickOnMapAddress": "नए पते के लिए पिन लगाएं",
+    "pickOnMapSite": "अपनी साइट पर पिन लगाएं",
+    "savedAddresses": "सेव किए हुए पते",
+    "addNewAddress": "नया पता जोड़ें",
+    "manage": "मैनेज करें",
+    "orSelectCity": "या अपना शहर चुनें",
+    "addDeliveryAddress": "डिलीवरी का पता जोड़ें",
+    "loginA11y": "सेव किए पतों के लिए लॉग इन करें",
+    "loginTitle": "सही डिलीवरी के लिए लॉग इन करें",
+    "loginSubtitle": "पते सेव करें और जल्दी चेकआउट करें",
+    "privacy": "आपकी लोकेशन सिर्फ पास के विक्रेता दिखाने के लिए इस्तेमाल होती है। हम आपका डेटा किसी से शेयर नहीं करते।"
+  },
+  "toast": {
+    "noCityForPin": "उस जगह का शहर पता नहीं चल पाया",
+    "noCityForPinHint": "दूसरी जगह चुनें या शहर चुनें।",
+    "permissionDenied": "लोकेशन की अनुमति नहीं मिली",
+    "permissionDeniedHint": "आप इसे सेटिंग्स में चालू कर सकते हैं।",
+    "unableToLocate": "लोकेशन नहीं मिल पाई",
+    "unableToLocateHint": "देख लें कि लोकेशन चालू है।"
+  },
+  "city": {
+    "searchPlaceholder": "शहर खोजें...",
+    "searchA11y": "शहर खोजें",
+    "loadError": "शहर लोड नहीं हो पाए। फिर से कोशिश करने के लिए दबाएं।",
+    "noMatch": "\"{{query}}\" से कोई शहर नहीं मिला",
+    "noneAvailable": "अभी कोई शहर उपलब्ध नहीं है",
+    "stores_one": "{{count}} दुकान",
+    "stores_other": "{{count}} दुकानें"
+  },
+  "map": {
+    "permissionDenied": "लोकेशन की अनुमति नहीं मिली",
+    "tapInstead": "इसकी जगह मैप पर टैप करें।",
+    "locateFailed": "आपकी लोकेशन नहीं मिल पाई",
+    "hint": "अपनी लोकेशन चुनने के लिए मैप पर टैप करें या पिन खिसकाएं",
+    "fetching": "पता ढूंढ रहे हैं…",
+    "locationSelected": "लोकेशन चुनी गई",
+    "title": "मैप पर लोकेशन चुनें",
+    "searchPlaceholder": "इलाका, लैंडमार्क या शहर खोजें",
+    "selected": "चुनी हुई लोकेशन",
+    "confirm": "लोकेशन कन्फर्म करें"
+  }
+}

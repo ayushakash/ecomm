@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,6 +54,7 @@ function ActionRow({ icon, title, subtitle, onPress, busy, disabled }: ActionRow
 
 function AddressRow({ address, selected, onPress }: { address: Address; selected: boolean; onPress: () => void }) {
   const icon: IconName = address.addressType === 'office' ? 'briefcase-outline' : address.addressType === 'other' ? 'location-outline' : 'home-outline';
+  const { t } = useTranslation('location');
   return (
     <Pressable
       onPress={onPress}
@@ -69,7 +71,7 @@ function AddressRow({ address, selected, onPress }: { address: Address; selected
           <Text variant="title" weight="bold" numberOfLines={1} style={styles.shrink}>
             {address.title}
           </Text>
-          {address.isDefault && <Badge label="Default" tone="success" />}
+          {address.isDefault && <Badge label={t('picker.default')} tone="success" />}
         </View>
         <Text variant="bodySm" color="textSecondary" numberOfLines={2}>
           {[address.addressLine1, address.addressLine2, address.area, address.city].filter(Boolean).join(', ')}
@@ -86,6 +88,7 @@ function AddressRow({ address, selected, onPress }: { address: Address; selected
  * Logged-in users with saved addresses pick an address; everyone else picks a city, GPS or a map pin.
  */
 export default function LocationPickerScreen({ navigation, route }: RootStackScreenProps<'LocationPicker'>) {
+  const { t } = useTranslation('location');
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
   const { addresses, selectedAddress, setSelectedAddress, fetchMerchantsByCoordinates, isLoadingMerchants } = useLocation();
@@ -110,7 +113,7 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
     handledPin.current = pickedLocation;
     navigation.setParams({ pickedLocation: undefined });
     if (!pickedLocation.city) {
-      toast.error('Could not determine the city for that spot', 'Try another point or pick a city.');
+      toast.error(t('toast.noCityForPin'), t('toast.noCityForPinHint'));
       return;
     }
     setApplyingPin(true);
@@ -126,7 +129,7 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
         if (count > 0) close();
       })
       .finally(() => setApplyingPin(false));
-  }, [pickedLocation, fetchMerchantsByCoordinates, navigation, close]);
+  }, [pickedLocation, fetchMerchantsByCoordinates, navigation, close, t]);
 
   const handleCurrentLocation = async () => {
     if (showAddresses) {
@@ -135,7 +138,7 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          toast.error('Location permission denied', 'You can enable it in Settings.');
+          toast.error(t('toast.permissionDenied'), t('toast.permissionDeniedHint'));
           return;
         }
         const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -143,7 +146,7 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
         const place = await reverseGeocode(coordinates);
         navigation.replace('AddEditAddress', { pickedLocation: place ?? { coordinates } });
       } catch {
-        toast.error('Unable to get location', 'Make sure location services are on.');
+        toast.error(t('toast.unableToLocate'), t('toast.unableToLocateHint'));
       } finally {
         setLocatingForAddress(false);
       }
@@ -173,9 +176,9 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
   return (
     <Screen background={colors.background}>
       <ScreenHeader
-        title="Select delivery location"
+        title={t('picker.title')}
         icon="navigate-outline"
-        subtitle={settings?.serviceAreasNote ? `Delivering in: ${settings.serviceAreasNote}` : undefined}
+        subtitle={settings?.serviceAreasNote ? t('picker.deliveringIn', { areas: settings.serviceAreasNote }) : undefined}
         backIcon="close"
         back={close}
       />
@@ -186,16 +189,16 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
         <Animated.View entering={FadeInDown.duration(220)} style={styles.card}>
           <ActionRow
             icon="locate"
-            title="Use my current location"
-            subtitle={showAddresses ? 'Add a new address using GPS' : 'Find stores that deliver to you'}
+            title={t('picker.useCurrent')}
+            subtitle={showAddresses ? t('picker.useCurrentAddress') : t('picker.useCurrentStores')}
             onPress={handleCurrentLocation}
             busy={detecting || locatingForAddress}
           />
           <View style={styles.cardDivider} />
           <ActionRow
             icon="map-outline"
-            title="Pick on map"
-            subtitle={showAddresses ? 'Drop a pin for a new address' : 'Drop a pin at your site'}
+            title={t('picker.pickOnMap')}
+            subtitle={showAddresses ? t('picker.pickOnMapAddress') : t('picker.pickOnMapSite')}
             onPress={pickOnMap}
             busy={applyingPin}
           />
@@ -205,7 +208,7 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
           <Animated.View entering={FadeInDown.delay(60).duration(220)} style={styles.section}>
             <View style={styles.sectionHead}>
               <Text variant="label" color="textSecondary" style={styles.sectionLabel}>
-                SAVED ADDRESSES
+                {t('picker.savedAddresses')}
               </Text>
               {isLoadingMerchants && <ActivityIndicator size="small" color={colors.textMuted} />}
             </View>
@@ -221,14 +224,14 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
             </View>
             <View style={styles.addressActions}>
               <Button
-                title="Add new address"
+                title={t('picker.addNewAddress')}
                 variant="outline"
                 leftIcon="add"
                 style={styles.flex}
                 onPress={() => navigation.navigate('AddEditAddress')}
               />
               <Button
-                title="Manage"
+                title={t('picker.manage')}
                 variant="ghost"
                 rightIcon="chevron-forward"
                 onPress={() => navigation.navigate('Addresses')}
@@ -240,7 +243,7 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
             <View style={styles.orRow}>
               <View style={styles.orLine} />
               <Text variant="caption" color="textMuted">
-                or select your city
+                {t('picker.orSelectCity')}
               </Text>
               <View style={styles.orLine} />
             </View>
@@ -251,7 +254,7 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
             />
             {isAuthenticated && (
               <Button
-                title="Add a delivery address"
+                title={t('picker.addDeliveryAddress')}
                 variant="outline"
                 leftIcon="add"
                 onPress={() => navigation.navigate('AddEditAddress')}
@@ -264,16 +267,16 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
           <Pressable
             onPress={() => navigation.navigate('Login')}
             accessibilityRole="button"
-            accessibilityLabel="Login for saved addresses"
+            accessibilityLabel={t('picker.loginA11y')}
             style={({ pressed }) => [styles.loginCard, pressed && styles.pressed]}
           >
             <Icon name="person-circle-outline" size={28} color="primary" />
             <View style={styles.flex}>
               <Text variant="title" weight="bold">
-                Login for precise delivery
+                {t('picker.loginTitle')}
               </Text>
               <Text variant="caption" color="textSecondary">
-                Save addresses and check out faster
+                {t('picker.loginSubtitle')}
               </Text>
             </View>
             <Icon name="chevron-forward" size={18} color="textMuted" />
@@ -283,7 +286,7 @@ export default function LocationPickerScreen({ navigation, route }: RootStackScr
         <View style={styles.privacy}>
           <Icon name="lock-closed-outline" size={14} color="textMuted" />
           <Text variant="caption" color="textMuted" style={styles.flex}>
-            Your location is only used to show nearby merchants. We never share your data.
+            {t('picker.privacy')}
           </Text>
         </View>
       </ScrollView>

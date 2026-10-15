@@ -1,0 +1,79 @@
+{
+  "cta": {
+    "shopNow": "Shop now",
+    "viewProduct": "View product",
+    "learnMore": "Learn more",
+    "chatWhatsApp": "Chat on WhatsApp",
+    "openCalculator": "Open calculator"
+  },
+  "hero": {
+    "badge": "★ Trusted since 2000 · Ranchi ka bharosa",
+    "title": "Order Building Materials Online in",
+    "body": "Cement, TMT steel (sariya), sand, bricks & aggregates — apne hi fleet se same-day delivery, ghar tak.",
+    "pill": "Same-day delivery · Own fleet"
+  },
+  "bulkSlide": {
+    "badge": "BUILDERS & CONTRACTORS",
+    "title": "Bulk orders at",
+    "highlight": "best rates",
+    "body": "Share your site requirement on WhatsApp and get bulk pricing and delivery slots fast."
+  },
+  "calcSlide": {
+    "badge": "FREE TOOL",
+    "title": "How much material do you",
+    "highlight": "need?",
+    "body": "Estimate cement, sand, aggregate, bricks and steel for your slab, wall or plaster in seconds."
+  },
+  "filterA11y": "Sort and filter products",
+  "deliveringIn": "Currently delivering in:",
+  "shopByCategory": "Shop by category",
+  "allMaterials": "All Building Materials",
+  "noStores": "No stores here yet",
+  "loadingProducts": "Loading products…",
+  "productsFound_one": "{{count}} product found",
+  "productsFound_other": "{{count}} products found",
+  "sorted": "Sorted",
+  "sortFilter": "Sort & filter",
+  "allProducts": "All Products",
+  "empty": {
+    "noMerchantsTitle": "No merchants in {{place}} yet",
+    "yourArea": "your area",
+    "noMerchantsMessage": "We're expanding to new areas soon. Try a different location or check back later.",
+    "tryAddress": "Try a different address",
+    "selectCity": "Select a different city",
+    "loadFailedTitle": "Couldn't load products",
+    "loadFailedMessage": "Check your connection and try again.",
+    "noProducts": "No products found",
+    "noProductsCategory": "No products available in this category",
+    "adjustFilters": "Try adjusting your filters.",
+    "clearFilters": "Clear filters"
+  },
+  "trust": {
+    "years": "25+",
+    "yearsLabel": "Years in\nbusiness",
+    "onTime": "On-time",
+    "onTimeLabel": "Own-fleet\ndelivery",
+    "genuine": "100%",
+    "genuineLabel": "Genuine\nbrands"
+  },
+  "promo": {
+    "calcA11y": "Open material calculator",
+    "calcTitle": "Material calculator",
+    "calcBody": "Estimate cement, sand, bricks & steel for your project — then add it all to cart.",
+    "bulkTitle": "Bulk order? Get best rates",
+    "bulkBody": "Site-wise pricing for builders & contractors",
+    "callToOrder": "Call to order"
+  },
+  "selectBanner": {
+    "title": "Select your delivery location",
+    "body": "Add an address to see products available in your area",
+    "detecting": "Detecting...",
+    "useCurrent": "Use current location",
+    "addAddress": "Add address"
+  },
+  "noMerchants": {
+    "title": "No merchants available in {{place}}",
+    "body": "Try selecting a different delivery address or check back later",
+    "addNew": "Add new"
+  }
+}

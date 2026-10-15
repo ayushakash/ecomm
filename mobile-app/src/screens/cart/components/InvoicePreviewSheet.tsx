@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { BottomSheet, Button, Text } from '../../../components/ui';
 import { colors, radii, spacing } from '../../../theme';
@@ -31,6 +32,7 @@ function SummaryRow({ label, value, strong }: { label: string; value: string; st
 
 /** Web Checkout "Sample Invoice" modal (preview only; the real invoice is generated after confirmation). */
 export function InvoicePreviewSheet({ visible, onClose, cart, totals, address, fallbackName, fallbackPhone }: InvoicePreviewSheetProps) {
+  const { t } = useTranslation('checkout');
   // Stable per opening so the number doesn't flicker on re-render.
   const meta = useMemo(
     () => ({ number: `INV-${Date.now().toString().slice(-8)}`, date: new Date().toLocaleDateString('en-IN') }),
@@ -42,35 +44,37 @@ export function InvoicePreviewSheet({ visible, onClose, cart, totals, address, f
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Tax invoice"
-      subtitle="Sample invoice — for preview only"
+      title={t('invoice.title')}
+      subtitle={t('invoice.subtitle')}
       maxHeightRatio={0.92}
-      footer={<Button title="Close" variant="outline" fullWidth onPress={onClose} />}
+      footer={<Button title={t('invoice.close')} variant="outline" fullWidth onPress={onClose} />}
     >
       <View style={styles.wrap}>
         <View style={styles.parties}>
           <View style={styles.party}>
-            <Text variant="caption" color="textMuted" weight="semibold">FROM</Text>
+            <Text variant="caption" color="textMuted" weight="semibold">{t('invoice.from')}</Text>
             <Text variant="bodySm" weight="semibold">Chardeevari</Text>
-            <Text variant="caption" color="textSecondary">Seller details appear on the final invoice</Text>
+            <Text variant="caption" color="textSecondary">{t('invoice.sellerNote')}</Text>
           </View>
           <View style={styles.party}>
-            <Text variant="caption" color="textMuted" weight="semibold">BILL TO</Text>
-            <Text variant="bodySm" weight="semibold">{address?.fullName || fallbackName || 'Customer Name'}</Text>
-            <Text variant="caption" color="textSecondary">{address?.addressLine1 || 'Address Line 1'}</Text>
+            <Text variant="caption" color="textMuted" weight="semibold">{t('invoice.billTo')}</Text>
+            <Text variant="bodySm" weight="semibold">{address?.fullName || fallbackName || t('invoice.placeholderName')}</Text>
+            <Text variant="caption" color="textSecondary">{address?.addressLine1 || t('invoice.placeholderAddress')}</Text>
             {!!address?.addressLine2 && <Text variant="caption" color="textSecondary">{address.addressLine2}</Text>}
             <Text variant="caption" color="textSecondary">
-              {address?.area || 'Area'}, {address?.city || 'City'} - {address?.pincode || '000000'}
+              {address?.area || t('invoice.placeholderArea')}, {address?.city || t('invoice.placeholderCity')} - {address?.pincode || '000000'}
             </Text>
-            <Text variant="caption" color="textSecondary">Phone: {address?.phoneNumber || fallbackPhone || 'N/A'}</Text>
+            <Text variant="caption" color="textSecondary">
+              {t('invoice.phone', { phone: address?.phoneNumber || fallbackPhone || t('invoice.na') })}
+            </Text>
           </View>
         </View>
 
         <View style={styles.meta}>
           {[
-            ['Invoice no.', meta.number],
-            ['Date', meta.date],
-            ['Payment', 'COD'],
+            [t('invoice.number'), meta.number],
+            [t('invoice.date'), meta.date],
+            [t('invoice.payment'), t('invoice.cod')],
           ].map(([label, value]) => (
             <View key={label} style={styles.metaCell}>
               <Text variant="micro" color="textMuted">{label}</Text>
@@ -94,9 +98,16 @@ export function InvoicePreviewSheet({ visible, onClose, cart, totals, address, f
                   </Text>
                   <Text variant="bodySm" weight="semibold">{rupees(item.price * item.quantity)}</Text>
                 </View>
-                <Text variant="micro" color="textMuted">SKU: {item.sku || 'N/A'} · HSN/SAC: -</Text>
+                <Text variant="micro" color="textMuted">SKU: {item.sku || t('invoice.na')} · HSN/SAC: -</Text>
                 <Text variant="caption" color="textSecondary">
-                  {item.quantity} {item.unit} × {rupees(item.price)} (base {rupees(basePrice)}) · GST {gstRate}% {rupees(gstAmount)}
+                  {t('invoice.itemLine', {
+                    quantity: item.quantity,
+                    unit: item.unit,
+                    price: rupees(item.price),
+                    base: rupees(basePrice),
+                    rate: gstRate,
+                    gst: rupees(gstAmount),
+                  })}
                 </Text>
               </View>
             );
@@ -106,23 +117,22 @@ export function InvoicePreviewSheet({ visible, onClose, cart, totals, address, f
         {totals && (
           <View style={styles.summary}>
             {!!totals.subtotalBeforeGST && (
-              <SummaryRow label="Taxable amount (base)" value={rupees(Math.round(totals.subtotalBeforeGST))} />
+              <SummaryRow label={t('invoice.taxable')} value={rupees(Math.round(totals.subtotalBeforeGST))} />
             )}
-            {totals.tax > 0 && <SummaryRow label="GST amount" value={rupees(Math.round(totals.tax))} />}
-            <SummaryRow label="Subtotal (inc. GST)" value={rupees(totals.subtotal)} />
+            {totals.tax > 0 && <SummaryRow label={t('invoice.gstAmount')} value={rupees(Math.round(totals.tax))} />}
+            <SummaryRow label={t('invoice.subtotalIncGst')} value={rupees(totals.subtotal)} />
             {totals.deliveryCharges > 0 && (
-              <SummaryRow label="Delivery charges" value={rupees(Math.round(totals.deliveryCharges))} />
+              <SummaryRow label={t('invoice.deliveryCharges')} value={rupees(Math.round(totals.deliveryCharges))} />
             )}
-            {totals.platformFee > 0 && <SummaryRow label="Platform fee" value={rupees(Math.round(totals.platformFee))} />}
+            {totals.platformFee > 0 && <SummaryRow label={t('invoice.platformFee')} value={rupees(Math.round(totals.platformFee))} />}
             <View style={styles.divider} />
-            <SummaryRow strong label="Total amount" value={rupees(Math.round(totals.totalAmount))} />
+            <SummaryRow strong label={t('invoice.totalAmount')} value={rupees(Math.round(totals.totalAmount))} />
           </View>
         )}
 
         <View style={styles.note}>
           <Text variant="caption" color="info">
-            Note: This is a sample invoice for preview purposes only. The actual invoice will be generated after order
-            confirmation and will include additional details like invoice number, authorized signature, and official seal.
+            {t('invoice.note')}
           </Text>
         </View>
       </View>

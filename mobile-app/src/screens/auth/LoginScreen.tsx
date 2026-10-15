@@ -17,10 +17,12 @@ import {
   View,
   type TextInput,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Icon, Input, Screen, Text } from '../../components/ui';
 import { WEBSITE_URL } from '../../config';
+import i18n from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import { completeLogin } from '../../navigation/authRedirect';
 import type { RootStackScreenProps } from '../../navigation/types';
@@ -38,6 +40,7 @@ const RESEND_SECONDS = 30;
 /** phone/otp = WhatsApp OTP login; linkPhone/linkOtp = after Google when the account has no phone. */
 type Step = 'phone' | 'otp' | 'linkPhone' | 'linkOtp';
 
+/** Values are auth-namespace translation keys, resolved at render. */
 interface FieldErrors {
   phone?: string;
   otp?: string;
@@ -59,11 +62,12 @@ function useResendTimer() {
 }
 
 function announceOtpSent(phone: string, devOtp?: string) {
-  if (devOtp) toast.info('OTP sent to your WhatsApp', `For testing: ${devOtp}`, 8000);
-  else toast.success('OTP sent to your WhatsApp', `+91 ${phone}`);
+  if (devOtp) toast.info(i18n.t('auth:otpSent'), i18n.t('auth:otpForTesting', { otp: devOtp }), 8000);
+  else toast.success(i18n.t('auth:otpSent'), `+91 ${phone}`);
 }
 
 export default function LoginScreen({ navigation, route }: RootStackScreenProps<'Login'>) {
+  const { t } = useTranslation('auth');
   const redirect = route.params?.redirect;
   const insets = useSafeAreaInsets();
   const { sendOtp, verifyOtp, loginWithGoogle, sendLinkPhoneOtp, linkPhone, isGoogleAvailable } = useAuth();
@@ -98,9 +102,9 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
   const validatePhone = (): boolean => {
     const value = phone.trim();
     const error = !value
-      ? 'Mobile number is required'
+      ? 'errors.phoneRequired'
       : !PHONE_REGEX.test(value)
-        ? 'Please enter a valid 10-digit mobile number'
+        ? 'errors.phoneInvalid'
         : undefined;
     setErrors(error ? { phone: error } : {});
     return !error;
@@ -144,9 +148,9 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
   const handleVerify = async (code = otp) => {
     if (verifying) return;
     const next: FieldErrors = {};
-    if (!code.trim()) next.otp = 'OTP is required';
-    else if (!OTP_REGEX.test(code.trim())) next.otp = 'Please enter a valid OTP';
-    if (isNewUser && name.trim().length < 2) next.name = 'Please enter your name (at least 2 characters)';
+    if (!code.trim()) next.otp = 'errors.otpRequired';
+    else if (!OTP_REGEX.test(code.trim())) next.otp = 'errors.otpInvalid';
+    if (isNewUser && name.trim().length < 2) next.name = 'errors.nameShort';
     setErrors(next);
     if (next.name) {
       nameRef.current?.focus();
@@ -246,23 +250,23 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
   // ── Copy ─────────────────────────────────────────────────────────────────
   const title =
     step === 'phone'
-      ? 'Login or sign up'
+      ? t('title.phone')
       : step === 'linkPhone'
-        ? 'Add your phone number'
+        ? t('title.linkPhone')
         : isNewUser
-          ? 'Create your account'
-          : 'Verify your number';
+          ? t('title.newUser')
+          : t('title.verify');
 
   const subtitle =
     step === 'phone'
-      ? 'Building materials delivered to your site. Log in with your WhatsApp number.'
+      ? t('subtitle.phone')
       : step === 'linkPhone'
-        ? "You're signed in with Google. Add a WhatsApp number so merchants can reach you about deliveries."
+        ? t('subtitle.linkPhone')
         : isNewUser
-          ? "Looks like you're new here! Enter your name and the OTP we sent to your WhatsApp."
-          : 'Enter the OTP sent to your WhatsApp';
+          ? t('subtitle.newUser')
+          : t('subtitle.verify');
 
-  const verifyLabel = step === 'linkOtp' ? 'Verify & link number' : isNewUser ? 'Create Account & Login' : 'Verify & Login';
+  const verifyLabel = step === 'linkOtp' ? t('verify.link') : isNewUser ? t('verify.create') : t('verify.login');
 
   return (
     <Screen background={colors.surface}>
@@ -273,7 +277,7 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
             hitSlop={layout.hitSlop}
             style={styles.iconButton}
             accessibilityRole="button"
-            accessibilityLabel="Change number"
+            accessibilityLabel={t('changeNumber')}
           >
             <Icon name="arrow-back" size={22} />
           </Pressable>
@@ -286,10 +290,10 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
             hitSlop={layout.hitSlop}
             style={styles.skip}
             accessibilityRole="button"
-            accessibilityLabel="Skip adding phone number"
+            accessibilityLabel={t('skipA11y')}
           >
             <Text variant="label" color="textSecondary">
-              Skip for now
+              {t('skip')}
             </Text>
           </Pressable>
         ) : (
@@ -298,7 +302,7 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
             hitSlop={layout.hitSlop}
             style={styles.iconButton}
             accessibilityRole="button"
-            accessibilityLabel="Close login"
+            accessibilityLabel={t('close')}
           >
             <Icon name="close" size={24} />
           </Pressable>
@@ -330,7 +334,7 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                 <Icon name="storefront-outline" size={20} color="danger" />
                 <View style={styles.flex}>
                   <Text variant="label" color="dangerDark">
-                    Customer account required
+                    {t('rejection.title')}
                   </Text>
                   <Text variant="bodySm" color="textSecondary" style={styles.rejectionText}>
                     {rejection}
@@ -338,11 +342,11 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                   <Pressable
                     onPress={() => openExternal(WEBSITE_URL)}
                     accessibilityRole="link"
-                    accessibilityLabel="Open chardeevari.in"
+                    accessibilityLabel={t('rejection.openSite')}
                     hitSlop={layout.hitSlop}
                   >
                     <Text variant="label" color="primary" style={styles.underline}>
-                      Open chardeevari.in
+                      {t('rejection.openSite')}
                     </Text>
                   </Pressable>
                 </View>
@@ -352,7 +356,7 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
             {step === 'phone' || step === 'linkPhone' ? (
               <View style={styles.form}>
                 <Input
-                  label="WhatsApp number"
+                  label={t('phone.label')}
                   prefix="+91"
                   value={phone}
                   onChangeText={(text) => {
@@ -360,7 +364,7 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                     if (errors.phone) setErrors({});
                     if (rejection) setRejection(null);
                   }}
-                  placeholder="10-digit WhatsApp number"
+                  placeholder={t('phone.placeholder')}
                   keyboardType="phone-pad"
                   inputMode="tel"
                   textContentType="telephoneNumber"
@@ -369,15 +373,15 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                   autoFocus
                   returnKeyType="done"
                   onSubmitEditing={() => handleSendOtp(step === 'phone' ? 'otp' : 'linkOtp')}
-                  error={errors.phone}
-                  hint="OTP will be sent to this WhatsApp number"
+                  error={errors.phone && t(errors.phone)}
+                  hint={t('phone.hint')}
                   right={
                     PHONE_REGEX.test(phone) ? <Icon name="checkmark-circle" size={20} color="success" /> : undefined
                   }
-                  accessibilityLabel="WhatsApp number"
+                  accessibilityLabel={t('phone.label')}
                 />
                 <Button
-                  title="Send OTP via WhatsApp"
+                  title={t('phone.send')}
                   variant="whatsapp"
                   size="lg"
                   leftIcon="logo-whatsapp"
@@ -393,12 +397,12 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                     <View style={styles.orRow}>
                       <View style={styles.orLine} />
                       <Text variant="caption" color="textMuted">
-                        Or continue with
+                        {t('orContinue')}
                       </Text>
                       <View style={styles.orLine} />
                     </View>
                     <Button
-                      title="Continue with Google"
+                      title={t('google')}
                       variant="outline"
                       size="lg"
                       leftIcon="logo-google"
@@ -422,10 +426,10 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                     onPress={goBackStep}
                     hitSlop={layout.hitSlop}
                     accessibilityRole="button"
-                    accessibilityLabel="Change number"
+                    accessibilityLabel={t('changeNumber')}
                   >
                     <Text variant="label" color="primary" style={styles.underline}>
-                      Change
+                      {t('change')}
                     </Text>
                   </Pressable>
                 </View>
@@ -433,27 +437,27 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                 {isNewUser ? (
                   <Input
                     ref={nameRef}
-                    label="Your name"
+                    label={t('name.label')}
                     leftIcon="person-outline"
                     value={name}
                     onChangeText={(text) => {
                       setName(text);
                       if (errors.name) setErrors((e) => ({ ...e, name: undefined }));
                     }}
-                    placeholder="Enter your full name"
+                    placeholder={t('name.placeholder')}
                     textContentType="name"
                     autoComplete="name"
                     autoCapitalize="words"
                     returnKeyType="next"
                     onSubmitEditing={() => otpRef.current?.focus()}
-                    error={errors.name}
-                    accessibilityLabel="Your name"
+                    error={errors.name && t(errors.name)}
+                    accessibilityLabel={t('name.label')}
                   />
                 ) : null}
 
                 <View>
                   <Text variant="label" color="textSecondary" style={styles.otpLabel}>
-                    Enter OTP
+                    {t('otp.label')}
                   </Text>
                   <OtpInput
                     ref={otpRef}
@@ -463,7 +467,7 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                       if (errors.otp) setErrors((e) => ({ ...e, otp: undefined }));
                     }}
                     onComplete={handleOtpComplete}
-                    error={errors.otp}
+                    error={errors.otp && t(errors.otp)}
                     autoFocus={!isNewUser}
                     disabled={verifying}
                   />
@@ -471,11 +475,11 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
 
                 <View style={styles.resendRow}>
                   <Text variant="bodySm" color="textSecondary">
-                    Didn't get the code?
+                    {t('otp.noCode')}
                   </Text>
                   {timer.secondsLeft > 0 ? (
                     <Text variant="bodySm" color="textMuted">
-                      Resend in 0:{String(timer.secondsLeft).padStart(2, '0')}
+                      {t('otp.resendIn', { time: `0:${String(timer.secondsLeft).padStart(2, '0')}` })}
                     </Text>
                   ) : (
                     <Pressable
@@ -483,10 +487,10 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                       disabled={sending}
                       hitSlop={layout.hitSlop}
                       accessibilityRole="button"
-                      accessibilityLabel="Resend OTP"
+                      accessibilityLabel={t('otp.resend')}
                     >
                       <Text variant="label" color={sending ? 'textMuted' : 'primary'} style={styles.underline}>
-                        {sending ? 'Sending…' : 'Resend OTP'}
+                        {sending ? t('otp.sending') : t('otp.resend')}
                       </Text>
                     </Pressable>
                   )}
@@ -509,12 +513,12 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
             <View style={styles.trustRow}>
               <Icon name="shield-checkmark-outline" size={16} color="success" />
               <Text variant="caption" color="textSecondary">
-                Secure login · We never share your number
+                {t('secure')}
               </Text>
             </View>
             {step === 'phone' ? (
               <Text variant="caption" color="textMuted" align="center">
-                Want to sell on Chardeevari?{' '}
+                {t('sell')}{' '}
                 <Text
                   variant="caption"
                   color="primary"
@@ -523,7 +527,7 @@ export default function LoginScreen({ navigation, route }: RootStackScreenProps<
                   onPress={() => openExternal(`${WEBSITE_URL}/merchant-register`)}
                   accessibilityRole="link"
                 >
-                  Merchant sign up
+                  {t('merchantSignup')}
                 </Text>
               </Text>
             ) : null}

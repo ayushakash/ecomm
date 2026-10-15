@@ -1,0 +1,119 @@
+{
+  "materials": {
+    "cement": "सीमेंट",
+    "steel": "सरिया (TMT)",
+    "steelTmt": "सरिया (TMT)",
+    "steelTmtBars": "सरिया (TMT बार)",
+    "sand": "बालू",
+    "sandMSand": "बालू (M-Sand)",
+    "aggregate": "गिट्टी",
+    "aggregate20mm": "गिट्टी (20mm)",
+    "bricks": "ईंट"
+  },
+  "toasts": {
+    "noLivePrices": "{{city}} के लिए लाइव कीमत नहीं मिली — स्टैंडर्ड रेट लगाए गए हैं",
+    "somePricesStandard": "कुछ कीमतें स्टैंडर्ड रेट पर हैं (लोकल डेटा नहीं): {{materials}}",
+    "pdfDownloaded": "PDF रिपोर्ट डाउनलोड हो गई!",
+    "noMatch": "प्रोडक्ट्स अपने-आप नहीं मिले। प्रोडक्ट्स देखकर खुद कार्ट में डालें।",
+    "addedToCart_one": "{{count}} मटीरियल कार्ट में डाला गया — चेकआउट से पहले मात्रा जांच लें।",
+    "addedToCart_other": "{{count}} मटीरियल कार्ट में डाले गए — चेकआउट से पहले मात्रा जांच लें।",
+    "notAvailable": "अभी उपलब्ध नहीं: {{materials}}। ज़रूरत हो तो खुद जोड़ें।"
+  },
+  "errors": {
+    "enterDimensions": "कृपया लंबाई और चौड़ाई या फिर एरिया डालें।",
+    "calculateFirst": "पहले मटीरियल का हिसाब लगाएं",
+    "nameAndPhone": "कृपया अपना नाम और फ़ोन नंबर डालें",
+    "validPhone": "कृपया सही 10 अंकों का फ़ोन नंबर डालें"
+  },
+  "canvas": {
+    "grid": "ग्रिड: {{colsX}} × {{colsY}} (दूरी {{spacing}} ft)",
+    "squareAssumed": "(चौकोर नक्शा माना गया)"
+  },
+  "pdf": {
+    "subtitle": "निर्माण मटीरियल अनुमान",
+    "email": "ईमेल: {{email}}",
+    "phone": "फ़ोन: {{phone}}",
+    "customerDetails": "ग्राहक की जानकारी",
+    "name": "नाम: {{name}}",
+    "date": "तारीख: {{date}}",
+    "projectDetails": "प्रोजेक्ट की जानकारी",
+    "location": "जगह: {{city}}",
+    "dimensions": "नाप: {{length}} ft × {{breadth}} ft",
+    "builtUpArea": "बिल्ट-अप एरिया: {{area}} sq.ft",
+    "floors": "मंज़िलों की संख्या: {{floors}}",
+    "columns": "ज़रूरी कॉलम: {{columns}} ({{colsX}} × {{colsY}} ग्रिड)",
+    "materialRequirements": "मटीरियल की ज़रूरत और कीमत",
+    "standardPricing": "(स्टैंडर्ड कीमत से)",
+    "structureMaterials": "स्ट्रक्चर मटीरियल",
+    "foundationMaterials": "नींव मटीरियल",
+    "totalEstimatedCost": "कुल अनुमानित खर्च",
+    "pricesBasedOn_one": "* कीमतें {{city}} के {{count}} वेरिफ़ाइड दुकानदार पर आधारित",
+    "pricesBasedOn_other": "* कीमतें {{city}} के {{count}} वेरिफ़ाइड दुकानदारों पर आधारित",
+    "standardEstimates": "* कीमतें स्टैंडर्ड अनुमान हैं, बाज़ार के हिसाब से बदल सकती हैं",
+    "actualMayVary": "* असली ज़रूरत डिज़ाइन, बर्बादी और साइट के हिसाब से बदल सकती है",
+    "preliminary": "* यह शुरुआती अनुमान है। फ़ाइनल मात्रा किसी सिविल इंजीनियर से जंचवाएं।"
+  },
+  "header": {
+    "title": "निर्माण मटीरियल कैलकुलेटर",
+    "subtitle": "अपने प्रोजेक्ट के लिए सीमेंट, सरिया, बालू और ईंट का अनुमान लगाएं",
+    "detectingCity": "शहर पता कर रहे हैं...",
+    "live": "● लाइव",
+    "estimated": "○ अनुमान",
+    "marketPrice": "बाज़ार कीमत",
+    "custom": "अपनी कीमत"
+  },
+  "form": {
+    "lengthBreadth": "लंबाई और चौड़ाई",
+    "length": "लंबाई (ft)",
+    "breadth": "चौड़ाई (ft)",
+    "examplePlaceholder": "जैसे {{value}}",
+    "or": "या",
+    "area": "कुल बिल्ट-अप एरिया (sq.ft)",
+    "floors": "मंज़िलों की संख्या",
+    "includeFooting": "नींव (फुटिंग) शामिल करें",
+    "materialPrices": "मटीरियल की कीमत",
+    "priceCement": "सीमेंट (₹/bag)",
+    "priceSteel": "सरिया (₹/kg)",
+    "priceSand": "बालू (₹/cu.ft)",
+    "priceAgg": "गिट्टी (₹/cu.ft)",
+    "priceBricks": "ईंट (₹/1000 nos)",
+    "calculated": "हिसाब हो गया ✓",
+    "calculate": "मटीरियल का हिसाब लगाएं"
+  },
+  "results": {
+    "layout": "लेआउट नक्शा",
+    "title": "मटीरियल अनुमान",
+    "overview": "प्रोजेक्ट की झलक",
+    "dimensions": "नाप:",
+    "area": "एरिया:",
+    "floors": "मंज़िल:",
+    "columns": "कॉलम:",
+    "squareAssumed": "एरिया से चौकोर नक्शा माना गया",
+    "structureMaterials": "स्ट्रक्चर मटीरियल",
+    "foundationMaterials": "नींव मटीरियल",
+    "structureSubtotal": "स्ट्रक्चर सब-टोटल:",
+    "foundationSubtotal": "नींव सब-टोटल:",
+    "totalEstimatedCost": "कुल अनुमानित खर्च",
+    "downloadReport": "रिपोर्ट डाउनलोड करें",
+    "noteLabel": "ध्यान दें:",
+    "note": "ये लगभग अनुमान हैं। असली ज़रूरत डिज़ाइन, बर्बादी और साइट के हिसाब से बदल सकती है। दिखाई गई कीमतें रांची, झारखंड बाज़ार के हिसाब से हैं।"
+  },
+  "cta": {
+    "title": "निर्माण मटीरियल खरीदना है?",
+    "subtitle": "रांची में अपनी साइट पर अच्छी क्वालिटी का मटीरियल डिलीवरी पाएं",
+    "adding": "कार्ट में डाल रहे हैं…",
+    "order": "ये मटीरियल ऑर्डर करें",
+    "browse": "प्रोडक्ट्स देखें",
+    "reviewNote": "मात्रा आपके हिसाब से अनुमानित है — चेकआउट से पहले कार्ट में जांच लें।"
+  },
+  "lead": {
+    "title": "अपना अनुमान डाउनलोड करें",
+    "subtitle": "रिपोर्ट डाउनलोड करने के लिए अपनी जानकारी डालें",
+    "name": "आपका नाम",
+    "phone": "फ़ोन नंबर",
+    "namePlaceholder": "अपना नाम डालें",
+    "phonePlaceholder": "10 अंकों का मोबाइल नंबर",
+    "cancel": "रद्द करें",
+    "download": "डाउनलोड करें"
+  }
+}

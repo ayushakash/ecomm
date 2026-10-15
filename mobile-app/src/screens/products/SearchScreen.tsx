@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
@@ -72,6 +73,7 @@ function useRecentSearches() {
  * Empty state: recent + popular searches and category tiles; results: category scope chips + infinite grid.
  */
 export default function SearchScreen({ navigation, route }: RootStackScreenProps<'Search'>) {
+  const { t } = useTranslation('products');
   const { width } = useWindowDimensions();
   const tileSize = Math.floor((width - SCREEN_PADDING * 2 - spacing.sm * 4) / 5);
   const { activeMerchantIds, selectedCity, selectedAddress, isLoadingMerchants } = useLocation();
@@ -131,7 +133,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
               key={c._id}
               onPress={() => navigation.navigate('MainTabs', { screen: 'ProductsTab', params: { categoryId: c._id } })}
               accessibilityRole="button"
-              accessibilityLabel={`Browse ${c.name}`}
+              accessibilityLabel={t('search.browseA11y', { name: c.name })}
               style={({ pressed }) => [styles.suggestionRow, pressed && styles.pressed]}
             >
               <Icon name="grid-outline" size={16} color="textSecondary" />
@@ -139,7 +141,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
                 {c.name}
               </Text>
               <Text variant="caption" color="secondaryDark" weight="bold">
-                Category
+                {t('search.categoryTag')}
               </Text>
               <Icon name="chevron-forward" size={14} color="textMuted" />
             </Pressable>
@@ -147,17 +149,17 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
         </View>
       )}
       <Text variant="h3">
-        {search ? `Results for “${search}”` : scopeName ?? 'Products'}
+        {search ? t('search.resultsFor', { term: search }) : scopeName ?? t('search.products')}
         {search && scopeName ? (
           <Text variant="h3" color="textSecondary">
             {' '}
-            in {scopeName}
+            {t('search.inScope', { name: scopeName })}
           </Text>
         ) : null}
       </Text>
       {!feed.isLoading && (
         <Text variant="caption" color="textSecondary">
-          {feed.totalProducts} {feed.totalProducts === 1 ? 'product' : 'products'} found
+          {t('search.found', { count: feed.totalProducts })}
         </Text>
       )}
     </View>
@@ -168,9 +170,9 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
       return (
         <EmptyState
           icon="storefront-outline"
-          title={`No merchants in ${locationName ?? 'your area'} yet`}
-          message="We're expanding to new areas soon. Try a different location or check back later."
-          actionLabel="Change location"
+          title={locationName ? t('noMerchants.cityTitle', { city: locationName }) : t('noMerchants.areaTitle')}
+          message={t('noMerchants.cityMessage')}
+          actionLabel={t('noMerchants.changeLocation')}
           onAction={() => navigation.navigate('LocationPicker')}
         />
       );
@@ -197,22 +199,22 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
             feed.isError ? (
               <EmptyState
                 icon="cloud-offline-outline"
-                title="Couldn't load products"
-                message="Check your connection and try again."
-                actionLabel="Retry"
+                title={t('empty.loadErrorTitle')}
+                message={t('empty.loadErrorMessage')}
+                actionLabel={t('empty.retry')}
                 onAction={() => feed.retry()}
                 fill={false}
               />
             ) : (
               <EmptyState
                 icon="search-outline"
-                title="No products found"
+                title={t('empty.noProductsTitle')}
                 message={
                   categoryId
-                    ? 'Nothing matches in this category. Try searching all categories.'
-                    : 'Try a different word, like “cement” or “bricks”.'
+                    ? t('search.noMatchCategory')
+                    : t('search.noMatchHint')
                 }
-                actionLabel={categoryId ? 'Search all categories' : undefined}
+                actionLabel={categoryId ? t('search.searchAll') : undefined}
                 onAction={() => setCategoryId('')}
                 fill={false}
               />
@@ -241,7 +243,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
           onPress={() => navigation.goBack()}
           hitSlop={layout.hitSlop}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('search.goBack')}
           style={styles.back}
         >
           <Icon name="arrow-back" size={24} />
@@ -263,7 +265,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
           contentContainerStyle={styles.scopeChips}
           style={styles.scopeBar}
         >
-          <Chip label="All" selected={categoryId === ''} onPress={() => setCategoryId('')} />
+          <Chip label={t('rail.all')} selected={categoryId === ''} onPress={() => setCategoryId('')} />
           {categories.map((c) => (
             <Chip key={c._id} label={c.name} selected={categoryId === c._id} onPress={() => setCategoryId(c._id)} />
           ))}
@@ -281,10 +283,10 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
           {recent.length > 0 && (
             <Animated.View entering={FadeInDown.duration(200)} style={styles.section}>
               <View style={styles.sectionHead}>
-                <Text variant="h3">Recent searches</Text>
-                <Pressable onPress={clearRecent} hitSlop={layout.hitSlop} accessibilityRole="button" accessibilityLabel="Clear recent searches">
+                <Text variant="h3">{t('search.recent')}</Text>
+                <Pressable onPress={clearRecent} hitSlop={layout.hitSlop} accessibilityRole="button" accessibilityLabel={t('search.clearRecentA11y')}>
                   <Text variant="label" color="secondaryDark" weight="bold">
-                    Clear all
+                    {t('search.clearAll')}
                   </Text>
                 </Pressable>
               </View>
@@ -294,7 +296,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
                     key={term}
                     onPress={() => runSearch(term)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Search ${term}`}
+                    accessibilityLabel={t('search.searchTermA11y', { term })}
                     style={({ pressed }) => [styles.recentRow, pressed && styles.pressed]}
                   >
                     <Icon name="time-outline" size={18} color="textMuted" />
@@ -305,7 +307,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
                       onPress={() => removeRecent(term)}
                       hitSlop={layout.hitSlop}
                       accessibilityRole="button"
-                      accessibilityLabel={`Remove ${term} from recent searches`}
+                      accessibilityLabel={t('search.removeRecentA11y', { term })}
                     >
                       <Icon name="close" size={18} color="textMuted" />
                     </Pressable>
@@ -317,7 +319,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
 
           <Animated.View entering={FadeInDown.delay(40).duration(200)} style={styles.section}>
             <Text variant="h3" style={styles.sectionTitle}>
-              Popular searches
+              {t('search.popular')}
             </Text>
             <View style={styles.popular}>
               {POPULAR.map((term) => (
@@ -329,7 +331,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
           {categories && categories.length > 0 && (
             <Animated.View entering={FadeInDown.delay(80).duration(200)} style={styles.section}>
               <Text variant="h3" style={styles.sectionTitle}>
-                Browse categories
+                {t('search.browseCategories')}
               </Text>
               <View style={styles.categoryGrid}>
                 {categories.map((c) => (

@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { isRunningInExpoGo } from 'expo';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,6 +18,8 @@ import { AppToast } from './src/components/ui/AppToast';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { CartProvider } from './src/contexts/CartContext';
 import { LocationProvider } from './src/contexts/LocationContext';
+import { loadLanguage } from './src/i18n';
+import { LanguageSelectScreen } from './src/i18n/LanguageSelectScreen';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -44,13 +46,27 @@ export default function App() {
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
   });
-  const ready = fontsLoaded || !!fontError;
+  // undefined = still reading the saved language; false = ask on first launch.
+  const [languageChosen, setLanguageChosen] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    loadLanguage().then(setLanguageChosen, () => setLanguageChosen(false));
+  }, []);
+  const ready = (fontsLoaded || !!fontError) && languageChosen !== undefined;
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
 
   if (!ready) return null;
+
+  if (!languageChosen) {
+    return (
+      <SafeAreaProvider>
+        <LanguageSelectScreen onDone={() => setLanguageChosen(true)} />
+        <StatusBar style="dark" />
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={styles.root}>

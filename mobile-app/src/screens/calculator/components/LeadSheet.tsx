@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { BottomSheet, Button, Input } from '../../../components/ui';
 import { spacing } from '../../../theme';
@@ -16,6 +17,7 @@ interface Props {
 
 /** Lead capture before the estimate download (web "Download Your Estimate" modal). */
 export function LeadSheet({ visible, onClose, onSubmit, defaultName = '', defaultPhone = '' }: Props) {
+  const { t } = useTranslation('calculator');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
@@ -35,11 +37,11 @@ export function LeadSheet({ visible, onClose, onSubmit, defaultName = '', defaul
   const submit = async () => {
     const trimmed = name.trim();
     if (!trimmed || !phone) {
-      toast.error('Please enter your name and phone number');
+      toast.error(t('lead.nameAndPhoneRequired'));
       return;
     }
     if (phone.length < 10) {
-      toast.error('Please enter a valid 10-digit phone number');
+      toast.error(t('lead.invalidPhone'));
       return;
     }
     setBusy(true);
@@ -56,21 +58,21 @@ export function LeadSheet({ visible, onClose, onSubmit, defaultName = '', defaul
     <BottomSheet
       visible={visible}
       onClose={close}
-      title="Download your estimate"
-      subtitle="Enter your details to get the PDF report"
+      title={t('lead.title')}
+      subtitle={t('lead.subtitle')}
       footer={
         <View style={styles.footer}>
-          <Button title="Cancel" variant="outline" onPress={close} style={styles.flex} disabled={busy} />
-          <Button title="Download" variant="success" leftIcon="download-outline" onPress={submit} loading={busy} style={styles.flex} />
+          <Button title={t('lead.cancel')} variant="outline" onPress={close} style={styles.flex} disabled={busy} />
+          <Button title={t('lead.download')} variant="success" leftIcon="download-outline" onPress={submit} loading={busy} style={styles.flex} />
         </View>
       }
     >
       <View style={styles.form}>
         <Input
-          label="Your name *"
+          label={t('lead.nameLabel')}
           value={name}
           onChangeText={setName}
-          placeholder="Enter your name"
+          placeholder={t('lead.namePlaceholder')}
           autoFocus
           autoCapitalize="words"
           autoComplete="name"
@@ -78,11 +80,11 @@ export function LeadSheet({ visible, onClose, onSubmit, defaultName = '', defaul
           returnKeyType="next"
         />
         <Input
-          label="Phone number *"
+          label={t('lead.phoneLabel')}
           prefix="+91"
           value={phone}
-          onChangeText={(t) => setPhone(t.replace(/\D/g, '').slice(0, 10))}
-          placeholder="10-digit mobile number"
+          onChangeText={(text) => setPhone(text.replace(/\D/g, '').slice(0, 10))}
+          placeholder={t('lead.phonePlaceholder')}
           keyboardType="number-pad"
           autoComplete="tel"
           textContentType="telephoneNumber"

@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { BottomSheet, Button, Icon, Input, Text } from '../../../components/ui';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -8,14 +9,12 @@ import { toast } from '../../../utils/toast';
 
 const CONFIRM_WORD = 'DELETE';
 
-const WHAT_IS_DELETED = [
-  'Your name, phone number, email and Google sign-in link',
-  'Saved addresses and your cart',
-  'Reviews you have written',
-];
+/** Keys under account:delete.items. */
+const WHAT_IS_DELETED = ['profile', 'addresses', 'reviews'] as const;
 
 /** Permanent account deletion (Google Play requirement). Mirrors web /delete-account. */
 export function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const { t } = useTranslation('account');
   const { deleteAccount } = useAuth();
   const [typed, setTyped] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -36,7 +35,7 @@ export function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onC
     if (res.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       onClose();
-      toast.success('Account deleted', 'Your personal data has been removed.');
+      toast.success(t('delete.success'), t('delete.successSub'));
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       setError(res.error);
@@ -47,11 +46,11 @@ export function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onC
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Delete account"
-      subtitle="This cannot be undone"
+      title={t('menu.deleteAccount')}
+      subtitle={t('delete.subtitle')}
       footer={
         <Button
-          title="Delete my account"
+          title={t('delete.button')}
           variant="danger"
           leftIcon="trash-outline"
           fullWidth
@@ -65,28 +64,28 @@ export function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onC
         <View style={styles.warning}>
           <Icon name="warning-outline" size={20} color="danger" />
           <Text variant="bodySm" color="danger" weight="semibold" style={styles.flex}>
-            Your account will be permanently deleted and you will be logged out.
+            {t('delete.warning')}
           </Text>
         </View>
 
-        <Text variant="title">What gets deleted</Text>
+        <Text variant="title">{t('delete.whatTitle')}</Text>
         {WHAT_IS_DELETED.map((line) => (
           <View key={line} style={styles.row}>
             <Icon name="close-circle-outline" size={18} color="textSecondary" />
             <Text variant="bodySm" color="textSecondary" style={styles.flex}>
-              {line}
+              {t(`delete.items.${line}`)}
             </Text>
           </View>
         ))}
         <View style={styles.row}>
           <Icon name="document-text-outline" size={18} color="textSecondary" />
           <Text variant="bodySm" color="textSecondary" style={styles.flex}>
-            Past order invoices are kept as required by GST law, but are no longer linked to an account.
+            {t('delete.invoicesKept')}
           </Text>
         </View>
 
         <Input
-          label={`Type ${CONFIRM_WORD} to confirm`}
+          label={t('delete.typeToConfirm', { word: CONFIRM_WORD })}
           value={typed}
           onChangeText={setTyped}
           autoCapitalize="characters"

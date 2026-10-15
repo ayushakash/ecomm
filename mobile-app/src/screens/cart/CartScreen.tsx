@@ -1,5 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { Button, Card, EmptyState, Icon, Screen, ScreenHeader, Skeleton, Text } from '../../components/ui';
@@ -17,6 +18,7 @@ import { CartLineItem } from './components/CartLineItem';
 
 /** Port of client/src/pages/cart/Cart.js. */
 export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>) {
+  const { t } = useTranslation('cart');
   const { cart, isHydrated, removeFromCart, updateQuantity, clearCart, syncCartPrices } = useCart();
   const { isAuthenticated } = useAuth();
   const requireAuth = useAuthGate();
@@ -50,9 +52,9 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
   };
 
   const confirmClear = () =>
-    Alert.alert('Clear cart?', 'All items will be removed from your cart.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: clearCart },
+    Alert.alert(t('clear.title'), t('clear.message'), [
+      { text: t('clear.cancel'), style: 'cancel' },
+      { text: t('clear.confirm'), style: 'destructive', onPress: clearCart },
     ]);
 
   const openProduct = useCallback(
@@ -65,7 +67,7 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
   if (!isHydrated) {
     return (
       <Screen>
-        <ScreenHeader title="Cart" back={false} icon="cart-outline" />
+        <ScreenHeader title={t('title')} back={false} icon="cart-outline" />
         <View style={styles.content}>
           {[0, 1, 2].map((i) => (
             <View key={i} style={styles.skeletonRow}>
@@ -85,12 +87,12 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
   if (cart.length === 0) {
     return (
       <Screen>
-        <ScreenHeader title="Cart" back={false} icon="cart-outline" />
+        <ScreenHeader title={t('title')} back={false} icon="cart-outline" />
         <EmptyState
           icon="cart-outline"
-          title="Your cart is empty"
-          message="Discover quality construction materials and start building!"
-          actionLabel="Start shopping"
+          title={t('empty.title')}
+          message={t('empty.message')}
+          actionLabel={t('empty.action')}
           onAction={goShopping}
         />
       </Screen>
@@ -98,19 +100,19 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
   }
 
   const ctaLabel = !isMinimumOrderMet
-    ? `Minimum order: ${formatPrice(minimumOrderValue)}`
+    ? t('cta.minimum', { amount: formatPrice(minimumOrderValue) })
     : !isAuthenticated
-      ? 'Login to checkout'
-      : 'Proceed to checkout';
+      ? t('cta.login')
+      : t('cta.proceed');
 
   return (
     <Screen>
       <ScreenHeader
-        title="Cart"
+        title={t('title')}
         icon="cart-outline"
-        subtitle={`${cart.length} item${cart.length !== 1 ? 's' : ''}`}
+        subtitle={t('itemCount', { count: cart.length })}
         back={false}
-        actions={[{ icon: 'trash-outline', onPress: confirmClear, accessibilityLabel: 'Clear cart' }]}
+        actions={[{ icon: 'trash-outline', onPress: confirmClear, accessibilityLabel: t('clear.button') }]}
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -129,17 +131,17 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
           <Pressable onPress={goShopping} accessibilityRole="button" style={styles.continue}>
             <Icon name="add-circle-outline" size={18} color="primary" />
             <Text variant="label" color="primary" weight="semibold">
-              Add more items
+              {t('addMore')}
             </Text>
           </Pressable>
         </Card>
         <Text variant="micro" color="textMuted" align="center">
-          Tip: swipe an item left to remove it
+          {t('swipeTip')}
         </Text>
 
         <Card style={styles.section}>
           <Text variant="h3" style={styles.sectionTitle}>
-            Bill details
+            {t('billDetails')}
           </Text>
           <BillSummary totals={totals} updating={pricingFetching} fallbackSubtotal={localTotal} itemCount={cart.length} />
         </Card>
@@ -148,8 +150,8 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
           <View style={[styles.notice, styles.noticeAmber]}>
             <Icon name="lock-closed-outline" size={18} color={colors.warning} />
             <View style={styles.flex}>
-              <Text variant="label" weight="semibold">Login required</Text>
-              <Text variant="caption" color="textSecondary">Please login to proceed with checkout</Text>
+              <Text variant="label" weight="semibold">{t('loginNotice.title')}</Text>
+              <Text variant="caption" color="textSecondary">{t('loginNotice.message')}</Text>
             </View>
           </View>
         )}
@@ -158,10 +160,12 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
           <View style={[styles.notice, styles.noticeAmber]}>
             <Icon name="warning-outline" size={18} color={colors.warning} />
             <View style={styles.flex}>
-              <Text variant="label" weight="semibold">Minimum order required</Text>
+              <Text variant="label" weight="semibold">{t('minimumNotice.title')}</Text>
               <Text variant="caption" color="textSecondary">
-                Add items worth {formatPrice(minimumOrderValue - subtotal)} more to meet the minimum order value of{' '}
-                {formatPrice(minimumOrderValue)}
+                {t('minimumNotice.message', {
+                  remaining: formatPrice(minimumOrderValue - subtotal),
+                  minimum: formatPrice(minimumOrderValue),
+                })}
               </Text>
             </View>
           </View>
@@ -170,7 +174,7 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
         <View style={styles.altActions}>
           {!!whatsAppLink && (
             <Button
-              title="Order on WhatsApp — no login needed"
+              title={t('whatsappOrder')}
               variant="whatsapp"
               leftIcon="logo-whatsapp"
               fullWidth
@@ -179,21 +183,21 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
           )}
           {!!callNumber && (
             <Button
-              title={`Call to order${totalAmount > 10000 ? ' — best rate for bulk' : ''}`}
+              title={totalAmount > 10000 ? t('callToOrderBulk') : t('callToOrder')}
               variant="outline"
               leftIcon="call-outline"
               fullWidth
               onPress={() => void callToOrder()}
             />
           )}
-          <Button title="Clear cart" variant="ghost" leftIcon="trash-outline" fullWidth onPress={confirmClear} />
+          <Button title={t('clear.button')} variant="ghost" leftIcon="trash-outline" fullWidth onPress={confirmClear} />
         </View>
       </ScrollView>
 
       <View style={styles.bottomBar}>
         <View>
           <Text variant="caption" color="textSecondary">
-            {totals ? 'To pay' : 'Subtotal'}
+            {totals ? t('toPay') : t('subtotal')}
           </Text>
           <Text variant="h2">{formatPrice(totalAmount)}</Text>
         </View>

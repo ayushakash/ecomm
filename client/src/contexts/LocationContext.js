@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { useAuth } from './AuthContext';
 import { merchantAPI, addressAPI } from '../services/api';
 import { toast } from 'react-hot-toast';
+import i18n from '../i18n';
 import { reverseGeocode } from '../services/geocodingService';
 import { normalizeCityName } from '../utils/cityNameMapping';
 
@@ -127,8 +128,7 @@ export const LocationProvider = ({ children }) => {
 
       if (!hasCoordinates) {
         toast.warning(
-          'Exact location not available. Showing all city merchants. ' +
-          'Delivery availability will be confirmed by merchant.',
+          i18n.t('common:toasts.location.exactUnavailable'),
           { duration: 5000 }
         );
       }
@@ -152,11 +152,11 @@ export const LocationProvider = ({ children }) => {
         });
       } else {
         setLocationInfo(null);
-        toast.error('No merchants available in your area yet');
+        toast.error(i18n.t('common:toasts.location.noMerchantsArea'));
       }
     } catch (error) {
       console.error('Failed to fetch nearby merchants:', error);
-      toast.error('Failed to load merchants in your area');
+      toast.error(i18n.t('common:toasts.location.loadAreaFailed'));
       setNearbyMerchants([]);
       setMerchantIds([]);
     } finally {
@@ -212,19 +212,19 @@ export const LocationProvider = ({ children }) => {
           fallbackApplied: false,
           merchantCount: merchants.length
         });
-        if (!silent) toast.success(`Found ${merchants.length} merchants in ${cityName}!`);
+        if (!silent) toast.success(i18n.t('common:toasts.location.foundInCity', { count: merchants.length, city: cityName }));
       } else {
         setLocationInfo(null);
         if (!silent) {
           toast.error(
-            `No merchants currently serving ${cityName}. We're expanding to new cities soon!`,
+            i18n.t('common:toasts.location.noMerchantsCity', { city: cityName }),
             { duration: 6000 }
           );
         }
       }
     } catch (error) {
       console.error('Failed to fetch merchants by city:', error);
-      if (!silent) toast.error('Failed to load merchants');
+      if (!silent) toast.error(i18n.t('common:toasts.location.loadFailed'));
       setCityMerchantIds([]);
     } finally {
       setIsLoadingMerchants(false);
@@ -272,12 +272,12 @@ export const LocationProvider = ({ children }) => {
           fallbackApplied: response.fallbackApplied,
           merchantCount: merchants.length
         });
-        if (!silent) toast.success(`Found ${merchants.length} merchants near you!`, { id: 'location' });
+        if (!silent) toast.success(i18n.t('common:toasts.location.foundNearby', { count: merchants.length }), { id: 'location' });
       } else {
         setLocationInfo(null);
         if (!silent) {
           toast.error(
-            `No merchants deliver to your location yet. We're expanding soon!`,
+            i18n.t('common:toasts.location.noMerchantsNearby'),
             { id: 'location', duration: 6000 }
           );
         }
@@ -285,7 +285,7 @@ export const LocationProvider = ({ children }) => {
       return merchants.length;
     } catch (error) {
       console.error('Failed to fetch merchants by coordinates:', error);
-      if (!silent) toast.error('Failed to load merchants near you', { id: 'location' });
+      if (!silent) toast.error(i18n.t('common:toasts.location.loadNearbyFailed'), { id: 'location' });
       setCityMerchantIds([]);
       return 0;
     } finally {
@@ -297,18 +297,18 @@ export const LocationProvider = ({ children }) => {
   const requestLocationPermission = async () => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        toast.error('Geolocation is not supported by your browser');
+        toast.error(i18n.t('common:toasts.location.notSupported'));
         reject(new Error('Geolocation not supported'));
         return;
       }
 
-      toast.loading('Getting your location...', { id: 'location' });
+      toast.loading(i18n.t('common:toasts.location.gettingLocation'), { id: 'location' });
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
           try {
-            toast.loading('Finding your city...', { id: 'location' });
+            toast.loading(i18n.t('common:toasts.location.findingCity'), { id: 'location' });
             const addressData = await reverseGeocode(latitude, longitude);
 
             if (addressData.success && addressData.city) {
@@ -323,7 +323,7 @@ export const LocationProvider = ({ children }) => {
                 coordinates: { latitude, longitude }
               };
 
-              toast.loading('Finding merchants near you...', { id: 'location' });
+              toast.loading(i18n.t('common:toasts.location.findingMerchants'), { id: 'location' });
               await fetchMerchantsByCoordinates(cityData);
               resolve(addressData);
             } else {
@@ -331,19 +331,19 @@ export const LocationProvider = ({ children }) => {
             }
           } catch (geocodeError) {
             console.error('Geocoding error:', geocodeError);
-            toast.error('Could not determine your city. Please select manually.', { id: 'location' });
+            toast.error(i18n.t('common:toasts.location.cityUnknown'), { id: 'location' });
             reject(geocodeError);
           }
         },
         (error) => {
           console.error('Location error:', error);
-          let errorMessage = 'Unable to get location';
+          let errorMessage = i18n.t('common:toasts.location.unableToGet');
           if (error.code === error.PERMISSION_DENIED) {
-            errorMessage = 'Location permission denied. You can enable it in browser settings.';
+            errorMessage = i18n.t('common:toasts.location.permissionDenied');
           } else if (error.code === error.POSITION_UNAVAILABLE) {
-            errorMessage = 'Location information unavailable';
+            errorMessage = i18n.t('common:toasts.location.positionUnavailable');
           } else if (error.code === error.TIMEOUT) {
-            errorMessage = 'Location request timed out';
+            errorMessage = i18n.t('common:toasts.location.timeout');
           }
           toast.error(errorMessage, { id: 'location' });
           reject(error);

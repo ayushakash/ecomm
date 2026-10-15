@@ -1,0 +1,97 @@
+{
+  "location": {
+    "detecting": "Detecting location...",
+    "findingMerchants": "Finding merchants near you...",
+    "noAddress": {
+      "title": "Set your delivery location",
+      "subtitle": "Add an address for precise delivery, or use your current location to browse products near you.",
+      "addAddress": "Add Delivery Address",
+      "useCurrent": "Use current location to browse"
+    },
+    "citySelector": {
+      "title": "Where should we deliver?",
+      "subtitle": "Select your city to see products and merchants available in your area.",
+      "useMyLocation": "Use my current location",
+      "orPickCity": "or pick a city",
+      "searchPlaceholder": "Search city...",
+      "loadingCities": "Loading cities...",
+      "noMatch": "No cities match \"{{query}}\"",
+      "noCities": "No cities available yet",
+      "storeCount_one": "{{count}} store",
+      "storeCount_other": "{{count}} stores",
+      "registerPrompt": "<reg>Register</reg> or <login>Login</login> for a fully personalised experience"
+    },
+    "noMerchants": {
+      "title": "No merchants in your area yet",
+      "body": "We don't have merchants serving <b>{{area}}, {{city}}</b> yet.",
+      "hint": "We're expanding to new areas soon. Try a different address.",
+      "changeAddress": "Change Address"
+    }
+  },
+  "list": {
+    "error": "Error loading products: {{message}}",
+    "browsingIn": "Browsing in <b>{{city}}</b>. Add an address for accurate delivery options.",
+    "addAddress": "Add Address",
+    "deliveringTo": "Delivering to {{area}}, {{city}}",
+    "merchantsWithin_one": "{{count}} merchant · within {{radius}}km",
+    "merchantsWithin_other": "{{count}} merchants · within {{radius}}km",
+    "expandedSearch": "(expanded search)",
+    "showingIn": "Showing products in {{city}}",
+    "merchantsAvailable_one": "{{count}} merchant available · <reg>Register</reg> for precise delivery",
+    "merchantsAvailable_other": "{{count}} merchants available · <reg>Register</reg> for precise delivery",
+    "change": "Change",
+    "changeCity": "Change city",
+    "title": "Construction Materials",
+    "subtitle": "Find the best quality materials for your construction needs",
+    "searchPlaceholder": "Search products...",
+    "searchShort": "Search...",
+    "allCategories": "All Categories",
+    "categories": "Categories",
+    "min": "Min",
+    "max": "Max",
+    "sort": {
+      "latest": "Latest",
+      "priceLowHigh": "Price: Low to High",
+      "priceHighLow": "Price: High to Low",
+      "lowPrice": "Low Price",
+      "highPrice": "High Price"
+    },
+    "empty": {
+      "title": "No products found",
+      "subtitle": "Try adjusting your search or filter criteria."
+    }
+  },
+  "detail": {
+    "toast": {
+      "selectSize": "Please select a size first",
+      "outOfStock": "Product is out of stock",
+      "added_one": "Added {{count}} item to cart",
+      "added_other": "Added {{count}} items to cart"
+    },
+    "error": "Error loading product: {{message}}",
+    "notFound": "Product not found",
+    "outOfStock": "Out of Stock",
+    "outOfStockLower": "Out of stock",
+    "from": "From",
+    "percentOff": "{{percent}}% OFF",
+    "badges": {
+      "fastDelivery": "⚡ Delivery in 60 min — Ranchi",
+      "payOnDelivery": "💵 Pay on Delivery",
+      "genuine": "✓ 100% genuine · GST billing"
+    },
+    "selectSize": "Select Size",
+    "required": "(required)",
+    "stockAvailable": "Stock: {{stock}} {{unit}} available",
+    "description": "Description",
+    "specifications": "Specifications",
+    "qty": "Qty",
+    "addMore": "Add More",
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now",
+    "orderOnWhatsApp": "Order on WhatsApp",
+    "callToOrder": "Call to Order",
+    "selectSizeHint": "↑ Select a size above to continue",
+    "viewCart_one": "View Cart ({{count}} in cart) →",
+    "viewCart_other": "View Cart ({{count}} in cart) →"
+  }
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Badge, BottomSheet, Button, Icon, Text, type IconName } from '../../../components/ui';
 import { colors, radii, spacing } from '../../../theme';
@@ -11,13 +12,14 @@ const ADDRESS_ICONS: Record<string, IconName> = {
 
 /** Address summary used on Checkout (web Checkout address radio card). */
 export function AddressDetails({ address }: { address: Address }) {
+  const { t } = useTranslation('checkout');
   return (
     <View style={styles.details}>
       <View style={styles.titleRow}>
         <Text variant="title" numberOfLines={1} style={styles.shrink}>
           {address.title}
         </Text>
-        {address.isDefault && <Badge label="Default" tone="success" size="sm" />}
+        {address.isDefault && <Badge label={t('address.default')} tone="success" size="sm" />}
       </View>
       <Text variant="bodySm" color="textSecondary">
         {address.fullName} · {address.phoneNumber}
@@ -52,12 +54,13 @@ export interface AddressPickerSheetProps {
 
 /** Web Checkout "Select Delivery Address" list as a bottom sheet. */
 export function AddressPickerSheet({ visible, addresses, selectedId, onSelect, onAddNew, onClose }: AddressPickerSheetProps) {
+  const { t } = useTranslation('checkout');
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Select delivery address"
-      footer={<Button title="Add new address" variant="outline" leftIcon="add" fullWidth onPress={onAddNew} />}
+      title={t('address.selectTitle')}
+      footer={<Button title={t('address.addNew')} variant="outline" leftIcon="add" fullWidth onPress={onAddNew} />}
     >
       <View style={styles.list}>
         {addresses.map((address) => {

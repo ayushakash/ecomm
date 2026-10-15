@@ -1,0 +1,45 @@
+{
+  "empty": {
+    "title": "Your Cart is Empty",
+    "subtitle": "Discover amazing construction materials and start building!",
+    "startShopping": "Start Shopping"
+  },
+  "header": {
+    "title": "Shopping Cart",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items"
+  },
+  "item": {
+    "remove": "Remove item"
+  },
+  "continueShopping": "Continue Shopping",
+  "summary": {
+    "title": "Order Summary",
+    "subtotal_one": "Subtotal ({{count}} item)",
+    "subtotal_other": "Subtotal ({{count}} items)",
+    "baseAmount": "Base Amount",
+    "gstIncluded": "Prices shown are final (GST included)",
+    "delivery": "Delivery",
+    "free": "FREE",
+    "platformFee": "Platform Fee",
+    "total": "Total",
+    "updatingPrices": "Updating prices..."
+  },
+  "loginRequired": {
+    "title": "Login required",
+    "message": "Please login to proceed with checkout"
+  },
+  "minimumOrder": {
+    "title": "Minimum Order Required",
+    "message": "Add items worth ₹{{remaining}} more to meet the minimum order value of ₹{{minimum}}"
+  },
+  "actions": {
+    "minimumOrder": "Minimum Order: ₹{{minimum}}",
+    "loginToCheckout": "Login to Checkout",
+    "proceedToCheckout": "Proceed to Checkout",
+    "whatsappOrder": "Order on WhatsApp — No Login Needed",
+    "callToOrder": "Call to Order",
+    "callToOrderBulk": "Call to Order — Best Rate for Bulk",
+    "clearCart": "Clear Cart"
+  }
+}

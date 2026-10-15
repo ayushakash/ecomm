@@ -13,10 +13,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import SEO from '../../components/SEO/SEO';
 import analytics from '../../services/analytics';
+import { useTranslation, Trans } from 'react-i18next';
 
 // ─── Shown to logged-in users with no saved address ──────────────────────────
 
 const NoAddressScreen = ({ requestLocationPermission }) => {
+  const { t } = useTranslation('products');
   const [detecting, setDetecting] = useState(false);
 
   const handleDetect = async () => {
@@ -35,16 +37,16 @@ const NoAddressScreen = ({ requestLocationPermission }) => {
       <div className="bg-primary-50 rounded-full h-20 w-20 flex items-center justify-center mx-auto mb-6">
         <MapPinIcon className="h-10 w-10 text-primary-700" />
       </div>
-      <h2 className="text-xl font-bold text-gray-900 mb-2">Set your delivery location</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-2">{t('location.noAddress.title')}</h2>
       <p className="text-gray-500 text-sm mb-8">
-        Add an address for precise delivery, or use your current location to browse products near you.
+        {t('location.noAddress.subtitle')}
       </p>
 
       <Link
         to="/profile/addresses"
         className="flex items-center justify-center gap-2 w-full bg-primary-700 hover:bg-primary-800 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors mb-3"
       >
-        Add Delivery Address
+        {t('location.noAddress.addAddress')}
       </Link>
 
       <button
@@ -53,9 +55,9 @@ const NoAddressScreen = ({ requestLocationPermission }) => {
         className="flex items-center justify-center gap-2 w-full border border-gray-300 hover:bg-gray-50 disabled:opacity-60 text-gray-700 px-4 py-3 rounded-lg font-medium text-sm transition-colors"
       >
         {detecting ? (
-          <><ArrowPathIcon className="h-4 w-4 animate-spin" /> Detecting location...</>
+          <><ArrowPathIcon className="h-4 w-4 animate-spin" /> {t('location.detecting')}</>
         ) : (
-          <><MapPinIcon className="h-4 w-4" /> Use current location to browse</>
+          <><MapPinIcon className="h-4 w-4" /> {t('location.noAddress.useCurrent')}</>
         )}
       </button>
     </div>
@@ -68,6 +70,7 @@ const CitySelectorScreen = ({ fetchMerchantsByCity, requestLocationPermission })
   const [availableCities, setAvailableCities] = useState([]);
   const [citySearch, setCitySearch] = useState('');
   const [loadingCities, setLoadingCities] = useState(true);
+  const { t } = useTranslation('products');
   const [detecting, setDetecting] = useState(false);
 
   useEffect(() => {
@@ -97,9 +100,9 @@ const CitySelectorScreen = ({ fetchMerchantsByCity, requestLocationPermission })
       <div className="bg-primary-50 rounded-full h-20 w-20 flex items-center justify-center mx-auto mb-6">
         <MapPinIcon className="h-10 w-10 text-primary-700" />
       </div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Where should we deliver?</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('location.citySelector.title')}</h2>
       <p className="text-gray-500 text-sm mb-8">
-        Select your city to see products and merchants available in your area.
+        {t('location.citySelector.subtitle')}
       </p>
 
       {/* Detect location */}
@@ -109,15 +112,15 @@ const CitySelectorScreen = ({ fetchMerchantsByCity, requestLocationPermission })
         className="flex items-center justify-center gap-2 w-full bg-primary-700 hover:bg-primary-800 disabled:opacity-60 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors mb-6"
       >
         {detecting ? (
-          <><ArrowPathIcon className="h-4 w-4 animate-spin" /> Detecting location...</>
+          <><ArrowPathIcon className="h-4 w-4 animate-spin" /> {t('location.detecting')}</>
         ) : (
-          <><MapPinIcon className="h-4 w-4" /> Use my current location</>
+          <><MapPinIcon className="h-4 w-4" /> {t('location.citySelector.useMyLocation')}</>
         )}
       </button>
 
       <div className="flex items-center gap-3 mb-4">
         <hr className="flex-1 border-gray-200" />
-        <span className="text-xs text-gray-400">or pick a city</span>
+        <span className="text-xs text-gray-400">{t('location.citySelector.orPickCity')}</span>
         <hr className="flex-1 border-gray-200" />
       </div>
 
@@ -126,7 +129,7 @@ const CitySelectorScreen = ({ fetchMerchantsByCity, requestLocationPermission })
         <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <input
           type="text"
-          placeholder="Search city..."
+          placeholder={t('location.citySelector.searchPlaceholder')}
           value={citySearch}
           onChange={e => setCitySearch(e.target.value)}
           className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -136,10 +139,10 @@ const CitySelectorScreen = ({ fetchMerchantsByCity, requestLocationPermission })
       {/* City list */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden text-left">
         {loadingCities ? (
-          <div className="py-8 text-center text-sm text-gray-400">Loading cities...</div>
+          <div className="py-8 text-center text-sm text-gray-400">{t('location.citySelector.loadingCities')}</div>
         ) : filtered.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-400">
-            {citySearch ? `No cities match "${citySearch}"` : 'No cities available yet'}
+            {citySearch ? t('location.citySelector.noMatch', { query: citySearch }) : t('location.citySelector.noCities')}
           </div>
         ) : (
           filtered.map((city, i) => (
@@ -153,7 +156,7 @@ const CitySelectorScreen = ({ fetchMerchantsByCity, requestLocationPermission })
                 <span className="ml-2 text-xs text-gray-500">{city.state}</span>
               </div>
               <span className="text-xs text-green-600 font-medium">
-                {city.merchantCount} {city.merchantCount === 1 ? 'store' : 'stores'}
+                {t('location.citySelector.storeCount', { count: city.merchantCount })}
               </span>
             </button>
           ))
@@ -161,8 +164,14 @@ const CitySelectorScreen = ({ fetchMerchantsByCity, requestLocationPermission })
       </div>
 
       <p className="mt-8 text-xs text-gray-400">
-        <Link to="/register" className="text-primary-700 font-medium">Register</Link> or{' '}
-        <Link to="/login" className="text-primary-700 font-medium">Login</Link> for a fully personalised experience
+        <Trans
+          t={t}
+          i18nKey="location.citySelector.registerPrompt"
+          components={{
+            reg: <Link to="/register" className="text-primary-700 font-medium" />,
+            login: <Link to="/login" className="text-primary-700 font-medium" />,
+          }}
+        />
       </p>
     </div>
   );
@@ -171,6 +180,7 @@ const CitySelectorScreen = ({ fetchMerchantsByCity, requestLocationPermission })
 // ─── Main ProductList ─────────────────────────────────────────────────────────
 
 const ProductList = () => {
+  const { t } = useTranslation('products');
   const { user, loading: authLoading } = useAuth();
   const {
     selectedAddress, merchantIds,
@@ -187,8 +197,8 @@ const ProductList = () => {
   // Track search analytics with debounce
   useEffect(() => {
     if (searchTerm && searchTerm.trim().length > 2) {
-      const t = setTimeout(() => analytics.trackSearch(searchTerm.trim()), 1000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => analytics.trackSearch(searchTerm.trim()), 1000);
+      return () => clearTimeout(timer);
     }
   }, [searchTerm]);
 
@@ -229,7 +239,7 @@ const ProductList = () => {
     return (
       <div className="flex flex-col justify-center items-center py-16">
         <PageSpinner />
-        <p className="mt-2 text-sm text-gray-400">Finding merchants near you...</p>
+        <p className="mt-2 text-sm text-gray-400">{t('location.findingMerchants')}</p>
       </div>
     );
   }
@@ -258,16 +268,21 @@ const ProductList = () => {
         <div className="bg-amber-50 rounded-full h-20 w-20 flex items-center justify-center mx-auto mb-6">
           <MapPinIcon className="h-10 w-10 text-amber-500" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">No merchants in your area yet</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">{t('location.noMerchants.title')}</h2>
         <p className="text-gray-500 text-sm mb-2">
-          We don't have merchants serving <strong>{selectedAddress.area}, {selectedAddress.city}</strong> yet.
+          <Trans
+            t={t}
+            i18nKey="location.noMerchants.body"
+            values={{ area: selectedAddress.area, city: selectedAddress.city }}
+            components={{ b: <strong /> }}
+          />
         </p>
-        <p className="text-gray-400 text-xs mb-6">We're expanding to new areas soon. Try a different address.</p>
+        <p className="text-gray-400 text-xs mb-6">{t('location.noMerchants.hint')}</p>
         <Link
           to="/profile/addresses"
           className="inline-block bg-primary-700 text-white px-6 py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium"
         >
-          Change Address
+          {t('location.noMerchants.changeAddress')}
         </Link>
       </div>
     );
@@ -286,7 +301,7 @@ const ProductList = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600">Error loading products: {error.message}</p>
+        <p className="text-red-600">{t('list.error', { message: error.message })}</p>
       </div>
     );
   }
@@ -307,13 +322,18 @@ const ProductList = () => {
       {user && !selectedAddress && selectedCity && (
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-between gap-3">
           <p className="text-sm text-amber-800">
-            Browsing in <strong>{selectedCity.city}</strong>. Add an address for accurate delivery options.
+            <Trans
+              t={t}
+              i18nKey="list.browsingIn"
+              values={{ city: selectedCity.city }}
+              components={{ b: <strong /> }}
+            />
           </p>
           <Link
             to="/profile/addresses"
             className="text-xs font-medium text-amber-700 hover:text-amber-900 underline whitespace-nowrap"
           >
-            Add Address
+            {t('list.addAddress')}
           </Link>
         </div>
       )}
@@ -328,21 +348,26 @@ const ProductList = () => {
                 {user && selectedAddress ? (
                   <>
                     <p className="text-sm font-medium text-green-900">
-                      Delivering to {selectedAddress.area}, {selectedAddress.city}
+                      {t('list.deliveringTo', { area: selectedAddress.area, city: selectedAddress.city })}
                     </p>
                     <p className="text-xs text-green-700">
-                      {locationInfo.merchantCount} merchants · within {locationInfo.searchRadius}km
-                      {locationInfo.fallbackApplied && ' (expanded search)'}
+                      {t('list.merchantsWithin', { count: locationInfo.merchantCount, radius: locationInfo.searchRadius })}
+                      {locationInfo.fallbackApplied && ` ${t('list.expandedSearch')}`}
                     </p>
                   </>
                 ) : (
                   <>
                     <p className="text-sm font-medium text-green-900">
-                      Showing products in {selectedCity?.city}
+                      {t('list.showingIn', { city: selectedCity?.city })}
                     </p>
                     <p className="text-xs text-green-700">
-                      {locationInfo.merchantCount} merchants available ·{' '}
-                      <Link to="/register" className="underline">Register</Link> for precise delivery
+                      <Trans
+                        t={t}
+                        i18nKey="list.merchantsAvailable"
+                        count={locationInfo.merchantCount}
+                        values={{ count: locationInfo.merchantCount }}
+                        components={{ reg: <Link to="/register" className="underline" /> }}
+                      />
                     </p>
                   </>
                 )}
@@ -350,14 +375,14 @@ const ProductList = () => {
             </div>
             {user ? (
               <Link to="/profile/addresses" className="text-xs text-green-600 hover:text-green-800 underline">
-                Change
+                {t('list.change')}
               </Link>
             ) : (
               <button
                 onClick={() => {/* header handles this */}}
                 className="text-xs text-green-600 hover:text-green-800 underline"
               >
-                Change city
+                {t('list.changeCity')}
               </button>
             )}
           </div>
@@ -366,8 +391,8 @@ const ProductList = () => {
 
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Construction Materials</h1>
-        <p className="mt-2 text-gray-600">Find the best quality materials for your construction needs</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('list.title')}</h1>
+        <p className="mt-2 text-gray-600">{t('list.subtitle')}</p>
       </div>
 
       {/* Filters - Desktop */}
@@ -376,7 +401,7 @@ const ProductList = () => {
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder={t('list.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -389,7 +414,7 @@ const ProductList = () => {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="">All Categories</option>
+            <option value="">{t('list.allCategories')}</option>
             {categorieList?.categories?.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
@@ -397,14 +422,14 @@ const ProductList = () => {
 
           <input
             type="number"
-            placeholder="Min"
+            placeholder={t('list.min')}
             value={priceRange.min}
             onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
             className="px-3 py-2 text-sm w-20 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
           <input
             type="number"
-            placeholder="Max"
+            placeholder={t('list.max')}
             value={priceRange.max}
             onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
             className="px-3 py-2 text-sm w-20 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -416,9 +441,9 @@ const ProductList = () => {
               onChange={(e) => setSortBy(e.target.value)}
               className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none pr-8 bg-white"
             >
-              <option value="latest">Latest</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
+              <option value="latest">{t('list.sort.latest')}</option>
+              <option value="price-low">{t('list.sort.priceLowHigh')}</option>
+              <option value="price-high">{t('list.sort.priceHighLow')}</option>
             </select>
             <ChevronDownIcon className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none text-gray-400" />
           </div>
@@ -431,7 +456,7 @@ const ProductList = () => {
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder={t('list.searchShort')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -444,7 +469,7 @@ const ProductList = () => {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
-            <option value="">Categories</option>
+            <option value="">{t('list.categories')}</option>
             {categorieList?.categories?.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
@@ -456,9 +481,9 @@ const ProductList = () => {
               onChange={(e) => setSortBy(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none pr-8 bg-white"
             >
-              <option value="latest">Latest</option>
-              <option value="price-low">Low Price</option>
-              <option value="price-high">High Price</option>
+              <option value="latest">{t('list.sort.latest')}</option>
+              <option value="price-low">{t('list.sort.lowPrice')}</option>
+              <option value="price-high">{t('list.sort.highPrice')}</option>
             </select>
             <ChevronDownIcon className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 pointer-events-none text-gray-400" />
           </div>
@@ -469,8 +494,8 @@ const ProductList = () => {
       {productList?.products?.length === 0 ? (
         <div className="text-center py-12">
           <FunnelIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
-          <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">{t('list.empty.title')}</h3>
+          <p className="mt-1 text-sm text-gray-500">{t('list.empty.subtitle')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

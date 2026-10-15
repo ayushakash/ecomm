@@ -1,0 +1,43 @@
+{
+  "list": {
+    "title": "Construction Materials Blog",
+    "subtitle": "Expert tips, guides, and insights for your construction projects in Ranchi, Jharkhand",
+    "readMore": "Read More →"
+  },
+  "info": {
+    "title": "Why Choose Quality Construction Materials in Ranchi?",
+    "intro": "Ranchi, the capital of Jharkhand, is experiencing rapid urbanization and infrastructure development. Choosing the right construction materials is crucial for ensuring the durability and safety of your building projects.",
+    "considerationsTitle": "Key Considerations for Construction in Ranchi",
+    "climate": {
+      "title": "Climate Factors:",
+      "text": "Ranchi's climate requires materials that can withstand monsoon rains and temperature variations."
+    },
+    "quality": {
+      "title": "Quality Certification:",
+      "text": "Always choose ISI-marked cement, TMT bars, and other certified materials."
+    },
+    "local": {
+      "title": "Local Availability:",
+      "text": "Source materials from reliable suppliers in Ranchi to ensure timely delivery and competitive pricing."
+    },
+    "sustainability": {
+      "title": "Sustainability:",
+      "text": "Consider eco-friendly options like M-Sand and recycled aggregates."
+    }
+  },
+  "cta": {
+    "title": "Need Construction Materials?",
+    "text": "Browse our wide range of quality construction materials with doorstep delivery in Ranchi.",
+    "button": "View Products"
+  },
+  "post": {
+    "breadcrumbHome": "Home",
+    "breadcrumbBlog": "Blog",
+    "faqTitle": "Frequently Asked Questions",
+    "ctaTitle": "Ready to order construction materials in Ranchi?",
+    "ctaText": "Compare verified merchant prices and get doorstep delivery.",
+    "browseProducts": "Browse Products",
+    "freeCalculator": "Free Calculator",
+    "backToAll": "← Back to all articles"
+  }
+}

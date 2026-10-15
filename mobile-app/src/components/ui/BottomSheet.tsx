@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, shadows, spacing } from '../../theme';
 import { Icon } from './Icon';
 import { Text } from './Text';
+import { useTranslation } from 'react-i18next';
 
 export interface BottomSheetProps {
   visible: boolean;
@@ -48,6 +49,7 @@ export function BottomSheet({
   scrollable = true,
   contentStyle,
 }: BottomSheetProps) {
+  const { t } = useTranslation('common');
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
@@ -99,7 +101,7 @@ export function BottomSheet({
     <Modal visible transparent statusBarTranslucent navigationBarTranslucent animationType="none" onRequestClose={onClose}>
       <GestureHandlerRootView style={styles.root}>
         <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('actions.close')} />
         </Animated.View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.kav} pointerEvents="box-none">
           <Animated.View
@@ -122,7 +124,7 @@ export function BottomSheet({
                         </Text>
                       )}
                     </View>
-                    <Pressable onPress={onClose} hitSlop={12} style={styles.close} accessibilityLabel="Close">
+                    <Pressable onPress={onClose} hitSlop={12} style={styles.close} accessibilityLabel={t('actions.close')}>
                       <Icon name="close" size={20} color="textSecondary" />
                     </Pressable>
                   </View>

@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge, Button, Card, EmptyState, Icon, Screen, ScreenHeader, Skeleton, Text, type IconName } from '../../components/ui';
@@ -12,6 +13,7 @@ import { toast } from '../../utils/toast';
 const TYPE_ICON: Record<string, IconName> = { home: 'home-outline', office: 'business-outline', other: 'location-outline' };
 
 export default function AddressesScreen({ navigation, route }: RootStackScreenProps<'Addresses'>) {
+  const { t } = useTranslation('account');
   const selectMode = route.params?.selectMode ?? false;
   const insets = useSafeAreaInsets();
   const { addresses, selectedAddress, setSelectedAddress, fetchAddresses } = useLocation();
@@ -34,7 +36,7 @@ export default function AddressesScreen({ navigation, route }: RootStackScreenPr
     setBusyId(address._id);
     try {
       await addressAPI.setDefault(address._id);
-      toast.success('Default address updated!');
+      toast.success(t('addresses.defaultUpdated'));
       await fetchAddresses();
     } catch {
       // api interceptor toasts
@@ -44,16 +46,16 @@ export default function AddressesScreen({ navigation, route }: RootStackScreenPr
   };
 
   const handleDelete = (address: Address) =>
-    Alert.alert('Delete address?', 'Are you sure you want to delete this address?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('addresses.deleteTitle'), t('addresses.deleteMessage'), [
+      { text: t('logout.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('addresses.delete'),
         style: 'destructive',
         onPress: async () => {
           setBusyId(address._id);
           try {
             await addressAPI.remove(address._id);
-            toast.success('Address deleted successfully!');
+            toast.success(t('addresses.deleted'));
             await fetchAddresses();
           } catch {
             // api interceptor toasts
@@ -89,7 +91,7 @@ export default function AddressesScreen({ navigation, route }: RootStackScreenPr
               <Text variant="title" weight="bold" numberOfLines={1} style={styles.shrink}>
                 {item.title}
               </Text>
-              {item.isDefault && <Badge label="Default" tone="success" size="sm" />}
+              {item.isDefault && <Badge label={t('addresses.default')} tone="success" size="sm" />}
             </View>
             <Text variant="bodySm" weight="semibold">
               {item.fullName} · {item.phoneNumber}
@@ -99,7 +101,7 @@ export default function AddressesScreen({ navigation, route }: RootStackScreenPr
             </Text>
             {item.landmark ? (
               <Text variant="caption" color="textMuted">
-                Near {item.landmark}
+                {t('addresses.near', { landmark: item.landmark })}
               </Text>
             ) : null}
             <Text variant="bodySm" color="textSecondary">
@@ -110,13 +112,13 @@ export default function AddressesScreen({ navigation, route }: RootStackScreenPr
         </View>
         <View style={styles.actions}>
           {!item.isDefault && (
-            <Button title="Set default" variant="ghost" size="sm" loading={busy} onPress={() => handleSetDefault(item)} />
+            <Button title={t('addresses.setDefault')} variant="ghost" size="sm" loading={busy} onPress={() => handleSetDefault(item)} />
           )}
           <View style={styles.flex} />
           <Pressable
             onPress={() => navigation.navigate('AddEditAddress', { addressId: item._id, address: item })}
             accessibilityRole="button"
-            accessibilityLabel={`Edit ${item.title}`}
+            accessibilityLabel={t('addresses.editA11y', { title: item.title })}
             hitSlop={8}
             style={styles.iconBtn}
           >
@@ -125,7 +127,7 @@ export default function AddressesScreen({ navigation, route }: RootStackScreenPr
           <Pressable
             onPress={() => handleDelete(item)}
             accessibilityRole="button"
-            accessibilityLabel={`Delete ${item.title}`}
+            accessibilityLabel={t('addresses.deleteA11y', { title: item.title })}
             hitSlop={8}
             style={styles.iconBtn}
             disabled={busy}
@@ -140,9 +142,9 @@ export default function AddressesScreen({ navigation, route }: RootStackScreenPr
   return (
     <Screen>
       <ScreenHeader
-        title={selectMode ? 'Select address' : 'My addresses'}
+        title={selectMode ? t('addresses.selectTitle') : t('addresses.title')}
         icon="location-outline"
-        actions={[{ icon: 'add', onPress: addNew, accessibilityLabel: 'Add address' }]}
+        actions={[{ icon: 'add', onPress: addNew, accessibilityLabel: t('addresses.add') }]}
       />
       {!loaded && addresses.length === 0 ? (
         <View style={styles.list}>
@@ -160,9 +162,9 @@ export default function AddressesScreen({ navigation, route }: RootStackScreenPr
           ListEmptyComponent={
             <EmptyState
               icon="location-outline"
-              title="No addresses saved"
-              message="Add a delivery address to get started"
-              actionLabel="Add address"
+              title={t('addresses.emptyTitle')}
+              message={t('addresses.emptyMessage')}
+              actionLabel={t('addresses.add')}
               onAction={addNew}
             />
           }
@@ -170,7 +172,7 @@ export default function AddressesScreen({ navigation, route }: RootStackScreenPr
       )}
       {addresses.length > 0 && (
         <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
-          <Button title="Add new address" leftIcon="add" variant="secondary" fullWidth onPress={addNew} />
+          <Button title={t('addresses.addNew')} leftIcon="add" variant="secondary" fullWidth onPress={addNew} />
         </View>
       )}
     </Screen>

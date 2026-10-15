@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { orderAPI, addressAPI } from '../../services/api';
 import { reverseGeocode } from '../../services/geocodingService';
 import toast from 'react-hot-toast';
+import { useTranslation, Trans } from 'react-i18next';
 import LocationConfirmation from '../../components/location/LocationConfirmation';
 import AddressFormModal from '../../components/modals/AddressFormModal';
 import analytics from '../../services/analytics';
@@ -28,6 +29,7 @@ import {
 
 
 const Checkout = () => {
+  const { t } = useTranslation('checkout');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { cart, clearCart, cartCity } = useCart();
@@ -181,10 +183,10 @@ const Checkout = () => {
     onError: (err) => {
       console.error("❌ Order creation failed:", err.response?.data || err.message);
       if (err.response?.status === 401) {
-        toast.error('Please login to place order');
+        toast.error(t('toast.loginToOrder'));
         navigate('/login');
       } else {
-        alert("Failed to place order. Please try again!");
+        alert(t('toast.orderFailed'));
       }
     }
   });
@@ -200,7 +202,7 @@ const Checkout = () => {
     setGettingLocation(true);
 
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by this browser');
+      toast.error(t('location:errors.notSupported'));
       setGettingLocation(false);
       return;
     }
@@ -217,7 +219,7 @@ const Checkout = () => {
               address: address,
               isCurrentLocation: true
             });
-            toast.success('Current location detected successfully!');
+            toast.success(t('toast.currentLocationDetected'));
           })
           .catch((error) => {
             console.error('Reverse geocoding failed:', error);
@@ -226,7 +228,7 @@ const Checkout = () => {
               address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
               isCurrentLocation: true
             });
-            toast.success('Location detected successfully!');
+            toast.success(t('toast.locationDetected'));
           })
           .finally(() => {
             setGettingLocation(false);
@@ -234,17 +236,17 @@ const Checkout = () => {
       },
       (error) => {
         console.error('Error getting location:', error);
-        let errorMessage = 'Unable to get your location';
+        let errorMessage = t('location:errors.unableToGet');
 
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied. Please enable location permissions.';
+            errorMessage = t('location:errors.denied');
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information unavailable.';
+            errorMessage = t('location:errors.unavailable');
             break;
           case error.TIMEOUT:
-            errorMessage = 'Location request timed out.';
+            errorMessage = t('location:errors.timeout');
             break;
         }
 
@@ -288,7 +290,7 @@ const Checkout = () => {
     // Check if user is authenticated - if not, prompt for login
     if (!user) {
       const shouldLogin = window.confirm(
-        'Please login or register to place your order.\n\nClick OK to login, or Cancel to register.'
+        t('loginOrRegisterConfirm')
       );
       if (shouldLogin) {
         navigate('/login');
@@ -305,7 +307,7 @@ const Checkout = () => {
     }
 
     if (!selectedAddress) {
-      toast.error('Please select a delivery address');
+      toast.error(t('toast.selectAddress'));
       return;
     }
 
@@ -313,7 +315,7 @@ const Checkout = () => {
     if (cartCity && selectedAddress.city) {
       if (cartCity.toLowerCase() !== selectedAddress.city.toLowerCase()) {
         toast.error(
-          `Cart contains items from ${cartCity} but delivery address is in ${selectedAddress.city}. Please clear your cart or select a ${cartCity} address.`,
+          t('toast.cityMismatch', { cartCity, addressCity: selectedAddress.city }),
           { duration: 5000 }
         );
         return;
@@ -327,7 +329,7 @@ const Checkout = () => {
     });
 
     if (unavailableItems.length > 0) {
-      toast.error(`${unavailableItems.length} item(s) in your cart cannot be delivered to the selected address`);
+      toast.error(t('toast.undeliverable', { count: unavailableItems.length }));
       return;
     }
 
@@ -372,7 +374,7 @@ const Checkout = () => {
 
   const handlePhoneSendOTP = async () => {
     if (!/^[6-9]\d{9}$/.test(phoneInput.trim())) {
-      setPhoneModalError('Please enter a valid 10-digit mobile number');
+      setPhoneModalError(t('phone.invalidNumber'));
       return;
     }
     setPhoneModalError('');
@@ -382,7 +384,7 @@ const Checkout = () => {
       if (result.success) {
         if (result.otp) setDevOtp(result.otp); // dev mode
         setPhoneModalStep(2);
-        toast.success(`OTP sent to +91${phoneInput}`);
+        toast.success(t('phone.otpSent', { phone: `+91${phoneInput}` }));
       }
     } finally {
       setPhoneModalLoading(false);
@@ -391,7 +393,7 @@ const Checkout = () => {
 
   const handlePhoneVerifyOTP = async () => {
     if (!/^\d{4,6}$/.test(phoneOtp.trim())) {
-      setPhoneModalError('Please enter a valid OTP');
+      setPhoneModalError(t('phone.invalidOtp'));
       return;
     }
     setPhoneModalError('');
@@ -432,8 +434,8 @@ const Checkout = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
         <div className="bg-primary-700 rounded-xl shadow-lg p-6 mb-6 text-white">
-          <h1 className="text-2xl font-bold">Checkout</h1>
-          <p className="text-gray-200 text-sm mt-1">Complete your order</p>
+          <h1 className="text-2xl font-bold">{t('header.title')}</h1>
+          <p className="text-gray-200 text-sm mt-1">{t('header.subtitle')}</p>
         </div>
 
         {/* Outside delivery hours notice — orders accepted 24x7, delivery 8 AM - 7 PM */}
@@ -442,10 +444,10 @@ const Checkout = () => {
             <span className="text-xl leading-none">🕗</span>
             <div>
               <p className="text-sm font-semibold text-blue-900">
-                We're accepting your order, but it's currently outside delivery hours
+                {t('deliveryHours.title')}
               </p>
               <p className="text-sm text-blue-700 mt-0.5">
-                {getDeliveryWindowMessage()} Delivery hours: <strong>{DELIVERY_WINDOW_LABEL}</strong>.
+                {getDeliveryWindowMessage()} {t('deliveryHours.label')}: <strong>{DELIVERY_WINDOW_LABEL}</strong>.
               </p>
             </div>
           </div>
@@ -458,11 +460,10 @@ const Checkout = () => {
               <ExclamationTriangleIcon className="h-6 w-6 text-yellow-400 mr-3 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-yellow-800 mb-1">
-                  Some items cannot be delivered to your address
+                  {t('unavailable.title')}
                 </h3>
                 <p className="text-sm text-yellow-700 mb-2">
-                  {unavailableItems.length} item(s) in your cart are from merchants not available in{' '}
-                  <strong>{selectedAddress.area}, {selectedAddress.city}</strong>
+                  <Trans t={t} i18nKey="unavailable.message" count={unavailableItems.length} values={{ place: `${selectedAddress.area}, ${selectedAddress.city}` }} components={{ b: <strong /> }} />
                 </p>
                 <ul className="list-disc list-inside text-xs text-yellow-600 space-y-1">
                   {unavailableItems.map(item => (
@@ -470,7 +471,7 @@ const Checkout = () => {
                   ))}
                 </ul>
                 <p className="text-xs text-yellow-600 mt-2">
-                  Please remove these items or select a different delivery address to continue.
+                  {t('unavailable.hint')}
                 </p>
               </div>
             </div>
@@ -480,7 +481,7 @@ const Checkout = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Checkout Form */}
         <div className="order-2 lg:order-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-5">Delivery Details</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-5">{t('deliveryDetails')}</h2>
 
           {/* City Mismatch Warning */}
           {cartCity && selectedAddress && selectedAddress.city &&
@@ -489,9 +490,9 @@ const Checkout = () => {
               <div className="flex items-start">
                 <ExclamationTriangleIcon className="w-6 h-6 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="text-red-900 font-bold text-base mb-2">City Mismatch</h4>
+                  <h4 className="text-red-900 font-bold text-base mb-2">{t('cityMismatch.title')}</h4>
                   <p className="text-red-800 text-sm mb-4">
-                    Your cart contains items from <span className="font-bold bg-red-100 px-2 py-0.5 rounded">{cartCity}</span>, but you're trying to deliver to <span className="font-bold bg-red-100 px-2 py-0.5 rounded">{selectedAddress.city}</span>.
+                    <Trans t={t} i18nKey="cityMismatch.message" values={{ cartCity, addressCity: selectedAddress.city }} components={{ b: <span className="font-bold bg-red-100 px-2 py-0.5 rounded" /> }} />
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <button
@@ -500,7 +501,7 @@ const Checkout = () => {
                       className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold"
                     >
                       <TrashIcon className="h-4 w-4" />
-                      Clear Cart & Start Fresh
+                      {t('cityMismatch.clearCart')}
                     </button>
                     <button
                       type="button"
@@ -510,15 +511,15 @@ const Checkout = () => {
                         );
                         if (matchingAddress) {
                           setSelectedAddress(matchingAddress);
-                          toast.success(`Switched to ${cartCity} address`);
+                          toast.success(t('cityMismatch.switched', { city: cartCity }));
                         } else {
-                          toast.error(`No address found in ${cartCity}. Please add one or clear cart.`);
+                          toast.error(t('cityMismatch.noAddress', { city: cartCity }));
                         }
                       }}
                       className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-semibold"
                     >
                       <ArrowPathIcon className="h-4 w-4" />
-                      Switch to {cartCity} Address
+                      {t('cityMismatch.switch', { city: cartCity })}
                     </button>
                   </div>
                 </div>
@@ -532,16 +533,16 @@ const Checkout = () => {
               <div className="flex items-start gap-3">
                 <PhoneIcon className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-semibold text-amber-800 text-sm">Phone number required</p>
+                  <p className="font-semibold text-amber-800 text-sm">{t('phone.requiredTitle')}</p>
                   <p className="text-xs text-amber-700 mt-1">
-                    Please verify your phone number before checkout — this helps us confirm your delivery.
+                    {t('phone.requiredMessage')}
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowPhoneModal(true)}
                     className="mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors"
                   >
-                    Verify Phone Number
+                    {t('phone.verifyButton')}
                   </button>
                 </div>
               </div>
@@ -552,14 +553,14 @@ const Checkout = () => {
           {user && (
             <div className="mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base font-semibold text-gray-900">Select Delivery Address</h3>
+                <h3 className="text-base font-semibold text-gray-900">{t('addresses.selectTitle')}</h3>
                 <button
                   type="button"
                   onClick={() => setShowAddAddressForm(true)}
                   className="text-primary-700 hover:text-primary-800 text-sm font-semibold flex items-center transition-colors"
                 >
                   <PlusIcon className="w-4 h-4 mr-1" />
-                  Add New
+                  {t('addresses.addNew')}
                 </button>
               </div>
 
@@ -600,7 +601,7 @@ const Checkout = () => {
                                   <h4 className="font-medium text-gray-900">{address.title}</h4>
                                   {address.isDefault && (
                                     <span className="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                                      Default
+                                      {t('addresses.default')}
                                     </span>
                                   )}
                                 </div>
@@ -622,14 +623,14 @@ const Checkout = () => {
                   ) : (
                     <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-xl bg-gradient-to-br from-gray-50 to-stone-50">
                       <MapPinIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 font-medium mb-4">No saved addresses found</p>
+                      <p className="text-gray-600 font-medium mb-4">{t('addresses.none')}</p>
                       <button
                         type="button"
                         onClick={() => setShowAddAddressForm(true)}
                         className="inline-flex items-center text-primary-700 hover:text-primary-800 font-semibold transition-colors"
                       >
                         <PlusIcon className="w-5 h-5 mr-1" />
-                        Add your first address
+                        {t('addresses.addFirst')}
                       </button>
                     </div>
                   )}
@@ -641,21 +642,21 @@ const Checkout = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Delivery Instructions (Optional)
+                {t('form.instructions')}
               </label>
               <textarea
                 name="deliveryInstructions"
                 value={formData.deliveryInstructions}
                 onChange={handleInputChange}
                 rows={3}
-                placeholder="Any special instructions for delivery..."
+                placeholder={t('form.instructionsPlaceholder')}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Method
+                {t('form.paymentMethod')}
               </label>
               <select
                 name="paymentMethod"
@@ -663,8 +664,8 @@ const Checkout = () => {
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
               >
-                <option value="cod">Cash on Delivery</option>
-                <option value="" disabled>Online Payment (Coming Soon)</option>
+                <option value="cod">{t('form.cod')}</option>
+                <option value="" disabled>{t('form.onlineSoon')}</option>
               </select>
             </div>
 
@@ -678,17 +679,17 @@ const Checkout = () => {
               }`}
             >
               {!selectedAddress
-                ? 'Select an Address to Continue'
+                ? t('form.selectAddressToContinue')
                 : unavailableItems.length > 0
-                ? 'Remove Unavailable Items'
-                : 'Place Order'}
+                ? t('form.removeUnavailable')
+                : t('form.placeOrder')}
             </button>
           </form>
         </div>
 
         {/* Order Summary - first on mobile, right on desktop */}
         <div className="order-1 lg:order-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:sticky lg:top-8 self-start">
-          <h2 className="text-lg font-bold text-gray-900 mb-5">Order Summary</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-5">{t('summary.title')}</h2>
           
           {/* Cart Items */}
           <div className="space-y-4 mb-6">
@@ -705,7 +706,7 @@ const Checkout = () => {
                       )}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {item.quantity} x ₹{item.price.toLocaleString()} <span className="text-xs text-gray-500">per {item.unit}</span>
+                      {item.quantity} x ₹{item.price.toLocaleString()} <span className="text-xs text-gray-500">{t('summary.perUnit', { unit: item.unit })}</span>
                     </p>
                   </div>
                   <span className="font-black text-lg text-primary-700">
@@ -719,7 +720,7 @@ const Checkout = () => {
           {/* Totals */}
           <div className="border-t-2 border-gray-200 pt-4 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Subtotal ({cart.length} item{cart.length !== 1 ? 's' : ''}):</span>
+              <span className="text-gray-600">{t('summary.subtotal', { count: cart.length })}:</span>
               <span className="font-semibold text-gray-900">₹{finalPricing.subtotal.toLocaleString()}</span>
             </div>
 
@@ -728,7 +729,7 @@ const Checkout = () => {
               <>
                 {finalPricing.subtotalBeforeGST && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">└─ Base Amount:</span>
+                    <span className="text-gray-500">└─ {t('summary.baseAmount')}:</span>
                     <span className="text-gray-500">₹{Math.round(finalPricing.subtotalBeforeGST).toLocaleString()}</span>
                   </div>
                 )}
@@ -741,9 +742,9 @@ const Checkout = () => {
 
             <div className="flex justify-between">
               <span className="text-gray-600">
-                Delivery {pricingData?.breakdown?.deliveryConfig?.type === 'threshold' &&
+                {t('summary.delivery')} {pricingData?.breakdown?.deliveryConfig?.type === 'threshold' &&
                         finalPricing.subtotal >= pricingData.breakdown.deliveryConfig.freeDeliveryThreshold ?
-                        '(Free)' : ''}:
+                        `(${t('summary.free')})` : ''}:
               </span>
               <span className="font-medium">₹{Math.round(finalPricing.deliveryCharges).toLocaleString()}</span>
             </div>
@@ -751,21 +752,21 @@ const Checkout = () => {
              pricingData.breakdown.deliveryConfig.freeDeliveryThreshold > 0 &&
              finalPricing.subtotal < pricingData.breakdown.deliveryConfig.freeDeliveryThreshold && (
               <div className="text-xs text-primary-700 bg-primary-50 rounded-lg px-3 py-2">
-                Add ₹{(pricingData.breakdown.deliveryConfig.freeDeliveryThreshold - finalPricing.subtotal).toLocaleString()} more for free delivery
+                {t('summary.addForFreeDelivery', { amount: (pricingData.breakdown.deliveryConfig.freeDeliveryThreshold - finalPricing.subtotal).toLocaleString() })}
               </div>
             )}
             {finalPricing.platformFee && finalPricing.platformFee > 0 && (
               <div className="flex justify-between">
-                <span className="text-gray-600">Platform Fee:</span>
+                <span className="text-gray-600">{t('summary.platformFee')}:</span>
                 <span className="font-medium">₹{Math.round(finalPricing.platformFee).toLocaleString()}</span>
               </div>
             )}
             <div className="flex justify-between items-center text-lg sm:text-xl font-bold border-t-2 border-gray-300 pt-4 mt-3">
-              <span className="text-gray-900">Total:</span>
+              <span className="text-gray-900">{t('summary.total')}:</span>
               <div className="text-right">
                 <span className="text-2xl font-bold text-gray-900">₹{Math.round(finalPricing.totalAmount).toLocaleString()}</span>
                 {pricingLoading && (
-                  <div className="text-xs text-primary-600 mt-1 animate-pulse">Updating prices...</div>
+                  <div className="text-xs text-primary-600 mt-1 animate-pulse">{t('summary.updatingPrices')}</div>
                 )}
               </div>
             </div>
@@ -774,7 +775,7 @@ const Checkout = () => {
             {pricingData?.breakdown?.gstDisplayMode === 'no-display' && !requireGSTBill && (
               <div className="flex items-start gap-1.5 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
                 <InformationCircleIcon className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                Prices shown are final (GST included). Check "I need a GST Invoice" to see the breakdown.
+                {t('summary.gstIncludedHint')}
               </div>
             )}
           </div>
@@ -791,10 +792,10 @@ const Checkout = () => {
               <div>
                 <div className="flex items-center gap-1.5">
                   <DocumentTextIcon className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-semibold text-gray-900">I need a GST Invoice</span>
+                  <span className="text-sm font-semibold text-gray-900">{t('gst.needInvoice')}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Check this to see a detailed GST breakdown and generate a sample invoice.
+                  {t('gst.needInvoiceHint')}
                 </p>
               </div>
             </label>
@@ -805,7 +806,7 @@ const Checkout = () => {
                 className="mt-3 w-full inline-flex items-center justify-center gap-2 text-green-700 border border-green-200 bg-green-50 hover:bg-green-100 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
               >
                 <DocumentTextIcon className="h-4 w-4" />
-                Preview Sample Invoice
+                {t('gst.previewSample')}
               </button>
             )}
           </div>
@@ -819,9 +820,10 @@ const Checkout = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-primary-700 p-6 rounded-t-xl">
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-white">Select Delivery Address</h2>
+                <h2 className="text-xl font-bold text-white">{t('addresses.selectTitle')}</h2>
                 <button
                   onClick={() => setShowAddressSelection(false)}
+                  aria-label={t('close')}
                   className="text-white hover:text-gray-200 text-2xl font-bold transition-colors duration-150"
                 >
                   ✕
@@ -866,7 +868,7 @@ const Checkout = () => {
                                   <h4 className="font-medium text-gray-900">{address.title}</h4>
                                   {address.isDefault && (
                                     <span className="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                                      Default
+                                      {t('addresses.default')}
                                     </span>
                                   )}
                                 </div>
@@ -888,7 +890,7 @@ const Checkout = () => {
                   ) : (
                     <div className="text-center py-8">
                       <MapPinIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">No saved addresses found</p>
+                      <p className="text-gray-500">{t('addresses.none')}</p>
                     </div>
                   )}
 
@@ -898,7 +900,7 @@ const Checkout = () => {
                     className="w-full p-4 border border-dashed border-gray-300 rounded-xl hover:border-primary-400 hover:bg-primary-50 transition-colors flex items-center justify-center group"
                   >
                     <PlusIcon className="w-5 h-5 text-gray-400 group-hover:text-primary-700 mr-2 transition-colors" />
-                    <span className="text-gray-600 group-hover:text-primary-700 font-semibold transition-colors">Add New Address</span>
+                    <span className="text-gray-600 group-hover:text-primary-700 font-semibold transition-colors">{t('addresses.addNewAddress')}</span>
                   </button>
                 </div>
               )}
@@ -922,11 +924,12 @@ const Checkout = () => {
               {/* Invoice Header */}
               <div className="flex justify-between items-start mb-8 pb-6 border-b-2 border-gray-200">
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-black text-primary-700 mb-2">📄 TAX INVOICE</h1>
-                  <p className="text-sm text-gray-600 font-medium">Sample Invoice - For Preview Only</p>
+                  <h1 className="text-3xl sm:text-4xl font-black text-primary-700 mb-2">📄 {t('sample.title')}</h1>
+                  <p className="text-sm text-gray-600 font-medium">{t('sample.subtitle')}</p>
                 </div>
                 <button
                   onClick={() => setShowInvoice(false)}
+                  aria-label={t('close')}
                   className="text-gray-400 hover:text-gray-600 text-2xl font-bold transition-colors duration-150"
                 >
                   ✕
@@ -936,39 +939,39 @@ const Checkout = () => {
               {/* Company Details */}
               <div className="grid grid-cols-2 gap-8 mb-8">
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">From:</h3>
-                  <p className="text-sm text-gray-800 font-semibold">Your Company Name</p>
+                  <h3 className="font-semibold text-gray-900 mb-2">{t('sample.from')}:</h3>
+                  <p className="text-sm text-gray-800 font-semibold">{t('sample.companyName')}</p>
                   <p className="text-sm text-gray-600">123 Business Street</p>
                   <p className="text-sm text-gray-600">City, State - 123456</p>
                   <p className="text-sm text-gray-600 mt-2">GSTIN: 22AAAAA0000A1Z5</p>
-                  <p className="text-sm text-gray-600">Phone: +91 1234567890</p>
+                  <p className="text-sm text-gray-600">{t('invoice.phoneLabel')}: +91 1234567890</p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Bill To:</h3>
-                  <p className="text-sm text-gray-800 font-semibold">{selectedAddress?.fullName || user?.name || 'Customer Name'}</p>
-                  <p className="text-sm text-gray-600">{selectedAddress?.addressLine1 || 'Address Line 1'}</p>
+                  <h3 className="font-semibold text-gray-900 mb-2">{t('invoice.billTo')}:</h3>
+                  <p className="text-sm text-gray-800 font-semibold">{selectedAddress?.fullName || user?.name || t('sample.customerName')}</p>
+                  <p className="text-sm text-gray-600">{selectedAddress?.addressLine1 || t('sample.addressLine1')}</p>
                   {selectedAddress?.addressLine2 && (
                     <p className="text-sm text-gray-600">{selectedAddress.addressLine2}</p>
                   )}
                   <p className="text-sm text-gray-600">
-                    {selectedAddress?.area || 'Area'}, {selectedAddress?.city || 'City'} - {selectedAddress?.pincode || '000000'}
+                    {selectedAddress?.area || t('sample.area')}, {selectedAddress?.city || t('sample.city')} - {selectedAddress?.pincode || '000000'}
                   </p>
-                  <p className="text-sm text-gray-600 mt-2">Phone: {selectedAddress?.phoneNumber || user?.phone || 'N/A'}</p>
+                  <p className="text-sm text-gray-600 mt-2">{t('invoice.phoneLabel')}: {selectedAddress?.phoneNumber || user?.phone || 'N/A'}</p>
                 </div>
               </div>
 
               {/* Invoice Details */}
               <div className="grid grid-cols-3 gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="text-xs text-gray-600">Invoice Number</p>
+                  <p className="text-xs text-gray-600">{t('sample.invoiceNumber')}</p>
                   <p className="text-sm font-semibold text-gray-900">INV-{Date.now().toString().slice(-8)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600">Invoice Date</p>
+                  <p className="text-xs text-gray-600">{t('invoice.date')}</p>
                   <p className="text-sm font-semibold text-gray-900">{new Date().toLocaleDateString('en-IN')}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600">Payment Method</p>
+                  <p className="text-xs text-gray-600">{t('invoice.paymentMethod')}</p>
                   <p className="text-sm font-semibold text-gray-900">{formData.paymentMethod.toUpperCase()}</p>
                 </div>
               </div>
@@ -979,12 +982,12 @@ const Checkout = () => {
                   <thead className="bg-gray-100 border-b-2 border-gray-300">
                     <tr>
                       <th className="text-left p-3 text-sm font-semibold text-gray-700">#</th>
-                      <th className="text-left p-3 text-sm font-semibold text-gray-700">Item Description</th>
+                      <th className="text-left p-3 text-sm font-semibold text-gray-700">{t('invoice.table.description')}</th>
                       <th className="text-right p-3 text-sm font-semibold text-gray-700">HSN/SAC</th>
-                      <th className="text-right p-3 text-sm font-semibold text-gray-700">Qty</th>
-                      <th className="text-right p-3 text-sm font-semibold text-gray-700">Rate</th>
+                      <th className="text-right p-3 text-sm font-semibold text-gray-700">{t('invoice.table.qty')}</th>
+                      <th className="text-right p-3 text-sm font-semibold text-gray-700">{t('sample.rate')}</th>
                       <th className="text-right p-3 text-sm font-semibold text-gray-700">GST %</th>
-                      <th className="text-right p-3 text-sm font-semibold text-gray-700">Amount</th>
+                      <th className="text-right p-3 text-sm font-semibold text-gray-700">{t('sample.amount')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1013,7 +1016,7 @@ const Checkout = () => {
                           <td className="p-3 text-sm text-gray-600 text-right">{item.quantity} {item.unit}</td>
                           <td className="p-3 text-sm text-gray-600 text-right">
                             <div>₹{item.price.toFixed(2)}</div>
-                            <div className="text-xs text-gray-500">Base: ₹{basePrice.toFixed(2)}</div>
+                            <div className="text-xs text-gray-500">{t('sample.base')}: ₹{basePrice.toFixed(2)}</div>
                           </td>
                           <td className="p-3 text-sm text-gray-600 text-right">
                             <div>{gstRate}%</div>
@@ -1033,34 +1036,34 @@ const Checkout = () => {
                   <div className="space-y-2">
                     {finalPricing.subtotalBeforeGST && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Taxable Amount (Base):</span>
+                        <span className="text-gray-600">{t('invoice.taxableAmount')}:</span>
                         <span className="font-medium text-gray-900">₹{Math.round(finalPricing.subtotalBeforeGST).toFixed(2)}</span>
                       </div>
                     )}
                     {finalPricing.tax > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">GST Amount:</span>
+                        <span className="text-gray-600">{t('sample.gstAmount')}:</span>
                         <span className="font-medium text-gray-900">₹{Math.round(finalPricing.tax).toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm font-semibold border-t border-gray-200 pt-2">
-                      <span className="text-gray-900">Subtotal (Inc. GST):</span>
+                      <span className="text-gray-900">{t('invoice.subtotalIncGst')}:</span>
                       <span className="text-gray-900">₹{finalPricing.subtotal.toFixed(2)}</span>
                     </div>
                     {finalPricing.deliveryCharges > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Delivery Charges:</span>
+                        <span className="text-gray-600">{t('invoice.deliveryCharges')}:</span>
                         <span className="font-medium text-gray-900">₹{Math.round(finalPricing.deliveryCharges).toFixed(2)}</span>
                       </div>
                     )}
                     {finalPricing.platformFee && finalPricing.platformFee > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Platform Fee:</span>
+                        <span className="text-gray-600">{t('summary.platformFee')}:</span>
                         <span className="font-medium text-gray-900">₹{Math.round(finalPricing.platformFee).toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-lg font-bold border-t-2 border-gray-300 pt-2 mt-2">
-                      <span className="text-gray-900">Total Amount:</span>
+                      <span className="text-gray-900">{t('sample.totalAmount')}:</span>
                       <span className="text-gray-900">₹{Math.round(finalPricing.totalAmount).toFixed(2)}</span>
                     </div>
                   </div>
@@ -1070,7 +1073,7 @@ const Checkout = () => {
               {/* Footer Note */}
               <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-xs text-blue-800">
-                  <strong>Note:</strong> This is a sample invoice for preview purposes only. The actual invoice will be generated after order confirmation and will include additional details like invoice number, authorized signature, and official seal.
+                  <strong>{t('sample.noteLabel')}:</strong> {t('sample.note')}
                 </p>
               </div>
 
@@ -1080,7 +1083,7 @@ const Checkout = () => {
                   onClick={() => setShowInvoice(false)}
                   className="px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
                 >
-                  Close
+                  {t('close')}
                 </button>
               </div>
             </div>
@@ -1092,16 +1095,16 @@ const Checkout = () => {
       {showPhoneModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Verify Your Phone Number</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">{t('phone.modalTitle')}</h2>
             <p className="text-sm text-gray-500 mb-6">
-              A verified phone number is required to place orders so we can contact you about your delivery.
+              {t('phone.modalSubtitle')}
             </p>
 
             {phoneModalStep === 1 ? (
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mobile Number
+                    {t('phone.mobileNumber')}
                   </label>
                   <div className="flex">
                     <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
@@ -1112,7 +1115,7 @@ const Checkout = () => {
                       value={phoneInput}
                       onChange={(e) => { setPhoneInput(e.target.value.replace(/\D/g, '')); setPhoneModalError(''); }}
                       maxLength={10}
-                      placeholder="10-digit mobile number"
+                      placeholder={t('address.placeholders.phone')}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
@@ -1123,21 +1126,21 @@ const Checkout = () => {
                     onClick={() => setShowPhoneModal(false)}
                     className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button
                     onClick={handlePhoneSendOTP}
                     disabled={phoneModalLoading}
                     className="flex-1 py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
                   >
-                    {phoneModalLoading ? 'Sending...' : 'Send OTP'}
+                    {phoneModalLoading ? t('phone.sending') : t('phone.sendOtp')}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  Enter the OTP sent to <strong>+91{phoneInput}</strong> via WhatsApp.
+                  <Trans t={t} i18nKey="phone.enterOtpSent" values={{ phone: `+91${phoneInput}` }} components={{ b: <strong /> }} />
                 </p>
                 {devOtp && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
@@ -1153,7 +1156,7 @@ const Checkout = () => {
                     value={phoneOtp}
                     onChange={(e) => { setPhoneOtp(e.target.value.replace(/\D/g, '')); setPhoneModalError(''); }}
                     maxLength={6}
-                    placeholder="Enter OTP"
+                    placeholder={t('phone.enterOtp')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-center text-lg font-mono tracking-widest focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                   {phoneModalError && <p className="text-red-600 text-sm mt-1">{phoneModalError}</p>}
@@ -1163,14 +1166,14 @@ const Checkout = () => {
                     onClick={() => { setPhoneModalStep(1); setPhoneOtp(''); setPhoneModalError(''); }}
                     className="text-primary-600 hover:text-primary-500"
                   >
-                    Change Number
+                    {t('phone.changeNumber')}
                   </button>
                   <button
                     onClick={handlePhoneSendOTP}
                     disabled={phoneModalLoading}
                     className="text-primary-600 hover:text-primary-500 underline disabled:opacity-50"
                   >
-                    Resend OTP
+                    {t('phone.resendOtp')}
                   </button>
                 </div>
                 <div className="flex gap-3">
@@ -1178,14 +1181,14 @@ const Checkout = () => {
                     onClick={() => setShowPhoneModal(false)}
                     className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button
                     onClick={handlePhoneVerifyOTP}
                     disabled={phoneModalLoading}
                     className="flex-1 py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
                   >
-                    {phoneModalLoading ? 'Verifying...' : 'Verify & Continue'}
+                    {phoneModalLoading ? t('phone.verifying') : t('phone.verifyContinue')}
                   </button>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, MapPinIcon, CheckIcon } from '@heroicons/react/24/outline';
 import MapComponent from './MapComponent';
+import { useTranslation } from 'react-i18next';
 import { reverseGeocode } from '../../services/geocodingService';
 
 /**
@@ -18,6 +19,7 @@ import { reverseGeocode } from '../../services/geocodingService';
  *   initialPosition - { lat, lng } — pre-place the pin if coordinates already exist
  */
 const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
+  const { t } = useTranslation('location');
   const [selectedPos, setSelectedPos] = useState(null);
   const [geocoding, setGeocoding] = useState(false);
   const [addressPreview, setAddressPreview] = useState('');
@@ -43,14 +45,14 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
 
   const handleLocationSelect = async (lat, lng) => {
     setSelectedPos({ lat, lng });
-    setAddressPreview('Fetching address...');
+    setAddressPreview(t('map.fetchingAddress'));
     setGeocoding(true);
 
     try {
       const result = await reverseGeocode(lat, lng);
       if (result.success) {
         const parts = [result.area, result.city, result.state, result.pincode].filter(Boolean);
-        setAddressPreview(parts.join(', ') || result.formattedAddress || 'Location selected');
+        setAddressPreview(parts.join(', ') || result.formattedAddress || t('map.locationSelected'));
       } else {
         setAddressPreview(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
       }
@@ -63,7 +65,7 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setAddressPreview('Geolocation is not supported by your browser');
+      setAddressPreview(t('errors.notSupported'));
       return;
     }
     setLocating(true);
@@ -75,7 +77,7 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
       },
       () => {
         setLocating(false);
-        setAddressPreview('Could not get your location. Tap on the map instead.');
+        setAddressPreview(t('map.locateFailed'));
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -120,12 +122,13 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
               <MapPinIcon className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Select Location on Map</h2>
-              <p className="text-xs text-gray-500">Click on the map or drag the pin to set your location</p>
+              <h2 className="text-lg font-bold text-gray-900">{t('map.title')}</h2>
+              <p className="text-xs text-gray-500">{t('map.subtitle')}</p>
             </div>
           </div>
           <button
             onClick={handleClose}
+            aria-label={t('close')}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
           >
             <XMarkIcon className="w-5 h-5" />
@@ -152,20 +155,20 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
             className="w-full mb-3 py-2.5 border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {locating ? (
-              <><span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span> Locating…</>
+              <><span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span> {t('map.locating')}</>
             ) : (
-              <><MapPinIcon className="w-4 h-4" /> Use My Current Location</>
+              <><MapPinIcon className="w-4 h-4" /> {t('useMyCurrentLocation')}</>
             )}
           </button>
 
           {selectedPos ? (
             <div className="mb-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Selected Location</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('map.selectedLocation')}</p>
               <p className="text-sm text-gray-800 font-medium">
                 {geocoding ? (
                   <span className="flex items-center gap-2 text-gray-500">
                     <span className="inline-block w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
-                    Fetching address...
+                    {t('map.fetchingAddress')}
                   </span>
                 ) : (
                   addressPreview || `${selectedPos.lat.toFixed(5)}, ${selectedPos.lng.toFixed(5)}`
@@ -177,7 +180,7 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
             </div>
           ) : (
             <p className="text-sm text-gray-500 mb-3 text-center">
-              Tap anywhere on the map to drop a pin
+              {t('map.tapToDrop')}
             </p>
           )}
 
@@ -186,7 +189,7 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
               onClick={handleClose}
               className="flex-1 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-100 transition-all"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               onClick={handleConfirm}
@@ -194,9 +197,9 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, initialPosition }) => {
               className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {geocoding ? (
-                <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Processing...</>
+                <><span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> {t('map.processing')}</>
               ) : (
-                <><CheckIcon className="w-4 h-4" /> Confirm Location</>
+                <><CheckIcon className="w-4 h-4" /> {t('map.confirm')}</>
               )}
             </button>
           </div>

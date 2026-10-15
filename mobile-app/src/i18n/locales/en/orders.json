@@ -1,0 +1,140 @@
+{
+  "retry": "Retry",
+  "orderNumber": "Order #{{number}}",
+  "itemCount_one": "{{count}} item",
+  "itemCount_other": "{{count}} items",
+  "status": {
+    "pending": "Placed",
+    "approved": "Confirmed",
+    "assigned": "Confirmed",
+    "processing": "Packing",
+    "shipped": "Out for delivery",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "filters": {
+    "all": "All",
+    "pending": "Placed",
+    "assigned": "Confirmed",
+    "processing": "Packing",
+    "shipped": "Out for delivery",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "payment": {
+    "cod": "Cash on Delivery",
+    "online": "Online Payment",
+    "bank": "Bank transfer"
+  },
+  "paymentStatus": {
+    "paid": "Paid",
+    "refunded": "Refunded",
+    "failed": "Failed",
+    "pending": "Pay on Delivery"
+  },
+  "eta": {
+    "arrivingMins_one": "Arriving in {{count}} min",
+    "arrivingMins_other": "Arriving in {{count}} mins",
+    "arrivingMinutes_one": "Arriving in {{count}} minute",
+    "arrivingMinutes_other": "Arriving in {{count}} minutes",
+    "expected": "Expected: {{time}}",
+    "hoursMins": "{{hours}}h {{mins}}m",
+    "mins_one": "{{count}} min",
+    "mins_other": "{{count}} mins",
+    "delayed": "Delayed",
+    "expectedDelivery": "Expected delivery"
+  },
+  "bill": {
+    "itemTotal": "Item total",
+    "taxable": "Taxable amount",
+    "subtotalInclGst": "Subtotal (incl. GST)",
+    "delivery": "Delivery charge",
+    "platformFee": "Platform fee",
+    "free": "FREE"
+  },
+  "lifecycle": {
+    "order_created": "Order placed",
+    "order_assigned": "Seller assigned",
+    "order_accepted": "Order accepted",
+    "order_rejected": "Seller declined",
+    "order_shipped": "Out for delivery",
+    "order_delivered": "Delivered",
+    "order_cancelled": "Order cancelled",
+    "payment_confirmed": "Payment confirmed",
+    "payment_failed": "Payment failed",
+    "stock_updated": "Stock updated",
+    "refund_initiated": "Refund initiated",
+    "refund_completed": "Refund completed"
+  },
+  "list": {
+    "title": "My Orders",
+    "subtitle": "Track all your orders in one place",
+    "errorTitle": "Couldn't load your orders",
+    "errorMessage": "Check your connection and try again.",
+    "emptyFiltered": "No orders: {{status}}",
+    "emptyFilteredMessage": "Try another filter to see the rest of your orders.",
+    "showAll": "Show all orders",
+    "emptyTitle": "No orders yet",
+    "emptyMessage": "Start shopping to see your orders here!",
+    "browse": "Browse Products"
+  },
+  "card": {
+    "a11y": "Order {{number}}, {{status}}, {{amount}}",
+    "viewDetails": "View details"
+  },
+  "progress": {
+    "cancelled": "Order cancelled",
+    "cancelledOn": "Cancelled on {{date}}",
+    "cancelledNoDate": "This order was cancelled."
+  },
+  "timeline": {
+    "error": "Failed to fetch order activity.",
+    "empty": "No activity recorded for this order yet.",
+    "byLabel": "by {{name}}",
+    "by": {
+      "customer": "You",
+      "merchant": "Seller",
+      "admin": "Chardeevari",
+      "system": "System"
+    }
+  },
+  "invoice": {
+    "title": "GST Tax Invoice",
+    "printError": "Could not open the print dialog",
+    "shareUnavailable": "Sharing is not available on this device",
+    "dialogTitle": "Invoice #{{number}}",
+    "pdfError": "Could not create the invoice PDF",
+    "webNotice": "Invoice preview is available in the app. Use Print to view it here.",
+    "print": "Print",
+    "share": "Share PDF"
+  },
+  "detail": {
+    "title": "Order details",
+    "cancelSuccess": "Order cancelled successfully",
+    "errorTitle": "Couldn't load this order",
+    "notFound": "Order not found",
+    "backToOrders": "Back to orders",
+    "cancelTitle": "Cancel Order",
+    "cancelConfirm": "Are you sure you want to cancel order #{{number}}? This action cannot be undone and the order will be permanently cancelled.",
+    "cancelKeep": "No, Keep Order",
+    "cancelYes": "Yes, Cancel Order",
+    "placedOn": "Placed on {{date}}",
+    "viewInvoice": "View GST invoice",
+    "status": "Order status",
+    "itemsInOrder_one": "{{count}} item in this order",
+    "itemsInOrder_other": "{{count}} items in this order",
+    "unknownProduct": "Unknown Product",
+    "bill": "Bill details",
+    "totalAmount": "Total amount",
+    "viewShareInvoice": "View / share GST invoice",
+    "address": "Delivery address",
+    "payment": "Payment",
+    "activity": "Order activity",
+    "help": "Need help with this order?",
+    "whatsappUnavailable": "WhatsApp support is not available right now",
+    "callUs": "Call us",
+    "callUnavailable": "Call support is not available right now",
+    "cancelling": "Cancelling...",
+    "cancelNote": "Note: Orders that have been delivered cannot be cancelled"
+  }
+}

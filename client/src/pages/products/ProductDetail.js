@@ -9,8 +9,10 @@ import analytics from '../../services/analytics';
 import SEO from '../../components/SEO/SEO';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
+import { useTranslation } from 'react-i18next';
 
 const ProductDetail = () => {
+  const { t } = useTranslation('products');
   const { id } = useParams();
   const { addToCart, getCartItem } = useCart();
   const navigate = useNavigate();
@@ -47,25 +49,25 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (hasVariants && !selectedVariant) {
-      toast.error('Please select a size first');
+      toast.error(t('detail.toast.selectSize'));
       return;
     }
     if (!product || activeStock <= 0) {
-      toast.error('Product is out of stock');
+      toast.error(t('detail.toast.outOfStock'));
       return;
     }
     addToCart(product, quantity, null, selectedVariant);
     analytics.trackAddToCart(product, quantity);
-    toast.success(`Added ${quantity} ${quantity === 1 ? 'item' : 'items'} to cart`);
+    toast.success(t('detail.toast.added', { count: quantity }));
   };
 
   const handleBuyNow = () => {
     if (hasVariants && !selectedVariant) {
-      toast.error('Please select a size first');
+      toast.error(t('detail.toast.selectSize'));
       return;
     }
     if (!product || activeStock <= 0) {
-      toast.error('Product is out of stock');
+      toast.error(t('detail.toast.outOfStock'));
       return;
     }
     addToCart(product, quantity, null, selectedVariant);
@@ -98,7 +100,7 @@ const ProductDetail = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600">Error loading product: {error.message}</p>
+        <p className="text-red-600">{t('detail.error', { message: error.message })}</p>
       </div>
     );
   }
@@ -106,7 +108,7 @@ const ProductDetail = () => {
   if (!product) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Product not found</p>
+        <p className="text-gray-600">{t('detail.notFound')}</p>
       </div>
     );
   }
@@ -159,7 +161,7 @@ const ProductDetail = () => {
                 {(product.totalStock || product.stock) <= 0 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <span className="bg-red-500 text-white px-6 py-3 rounded-full text-lg font-bold">
-                      Out of Stock
+                      {t('detail.outOfStock')}
                     </span>
                   </div>
                 )}
@@ -302,7 +304,7 @@ const ProductDetail = () => {
             <div className="flex items-baseline gap-2">
               {hasVariants && !selectedVariant ? (
                 <>
-                  <span className="text-sm text-gray-400 font-medium">From</span>
+                  <span className="text-sm text-gray-400 font-medium">{t('detail.from')}</span>
                   <span className="text-xl lg:text-2xl font-bold text-gray-900">
                     ₹{Math.min(...product.variants.map(v => v.price)).toLocaleString()}
                   </span>
@@ -319,7 +321,7 @@ const ProductDetail = () => {
                   {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
                   {product.mrp > activePrice && (
                     <span className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                      {Math.round((1 - activePrice / product.mrp) * 100)}% OFF
+                      {t('detail.percentOff', { percent: Math.round((1 - activePrice / product.mrp) * 100) })}
                     </span>
                   )}
                 </>
@@ -329,13 +331,13 @@ const ProductDetail = () => {
             {/* Trust badges */}
             <div className="flex flex-wrap gap-2 text-xs font-semibold">
               <span className="inline-flex items-center bg-green-50 text-green-700 px-2.5 py-1 rounded-full">
-                ⚡ Delivery in 60 min — Ranchi
+                {t('detail.badges.fastDelivery')}
               </span>
               <span className="inline-flex items-center bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-                💵 Pay on Delivery
+                {t('detail.badges.payOnDelivery')}
               </span>
               <span className="inline-flex items-center bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">
-                ✓ 100% genuine · GST billing
+                {t('detail.badges.genuine')}
               </span>
             </div>
 
@@ -343,8 +345,8 @@ const ProductDetail = () => {
             {hasVariants && (
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">
-                  Select Size
-                  {!selectedVariant && <span className="ml-1 text-red-500 text-xs">(required)</span>}
+                  {t('detail.selectSize')}
+                  {!selectedVariant && <span className="ml-1 text-red-500 text-xs">{t('detail.required')}</span>}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {product.variants.map((variant) => (
@@ -364,13 +366,13 @@ const ProductDetail = () => {
                       }`}
                     >
                       {variant.label}
-                      {variant.stock <= 0 && <span className="block text-xs font-normal">Out of stock</span>}
+                      {variant.stock <= 0 && <span className="block text-xs font-normal">{t('detail.outOfStockLower')}</span>}
                     </button>
                   ))}
                 </div>
                 {selectedVariant && (
                   <p className="text-xs text-gray-500 mt-2">
-                    Stock: {selectedVariant.stock} {product.unit} available
+                    {t('detail.stockAvailable', { stock: selectedVariant.stock, unit: product.unit || '' })}
                   </p>
                 )}
               </div>
@@ -379,14 +381,14 @@ const ProductDetail = () => {
             {/* Out of stock badge */}
             {activeStock <= 0 && (!hasVariants || selectedVariant) && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">
-                Out of Stock
+                {t('detail.outOfStock')}
               </span>
             )}
 
             {/* Description */}
             {product.description && (
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Description</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('detail.description')}</p>
                 <p className="text-sm text-gray-600 leading-relaxed">{product.description}</p>
               </div>
             )}
@@ -394,7 +396,7 @@ const ProductDetail = () => {
             {/* Specifications */}
             {product.specifications && Object.values(product.specifications).some(Boolean) && (
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Specifications</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('detail.specifications')}</p>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                   {Object.entries(product.specifications).map(([key, value]) =>
                     value ? (
@@ -420,7 +422,7 @@ const ProductDetail = () => {
             <div className="space-y-3 pt-2 border-t border-gray-100">
               {activeStock > 0 && (!hasVariants || selectedVariant) && (
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-gray-700">Qty</span>
+                  <span className="text-sm font-medium text-gray-700">{t('detail.qty')}</span>
                   <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden h-11 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-400 transition-colors">
                     <button
                       onClick={decrementQuantity}
@@ -455,14 +457,14 @@ const ProductDetail = () => {
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-primary-600 text-primary-700 rounded-xl text-sm font-semibold hover:bg-primary-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ShoppingCartIcon className="h-4 w-4" />
-                  {cartItem ? 'Add More' : 'Add to Cart'}
+                  {cartItem ? t('detail.addMore') : t('detail.addToCart')}
                 </button>
                 <button
                   onClick={handleBuyNow}
                   disabled={hasVariants && !selectedVariant}
                   className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Buy Now
+                  {t('detail.buyNow')}
                 </button>
               </div>
 
@@ -477,7 +479,7 @@ const ProductDetail = () => {
                     rel="noopener noreferrer"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] hover:bg-[#1ebe5b] text-white rounded-xl text-sm font-semibold transition-colors"
                   >
-                    Order on WhatsApp
+                    {t('detail.orderOnWhatsApp')}
                   </a>
                   <a
                     href={`tel:+${callNumber || waNumber}`}
@@ -485,14 +487,14 @@ const ProductDetail = () => {
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-[#25D366] text-[#1ebe5b] rounded-xl text-sm font-semibold hover:bg-green-50 transition-colors"
                   >
                     <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                    Call to Order
+                    {t('detail.callToOrder')}
                   </a>
                 </div>
               )}
 
               {hasVariants && !selectedVariant && (
                 <p className="text-xs text-center text-amber-600 font-medium">
-                  ↑ Select a size above to continue
+                  {t('detail.selectSizeHint')}
                 </p>
               )}
 
@@ -501,7 +503,7 @@ const ProductDetail = () => {
                   to="/cart"
                   className="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium"
                 >
-                  View Cart ({cartItem.quantity} in cart) →
+                  {t('detail.viewCart', { count: cartItem.quantity })}
                 </Link>
               )}
             </div>

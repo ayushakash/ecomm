@@ -8,6 +8,7 @@ import { colors, layout, palette, spacing } from '../../theme';
 import { CountBubble } from './Badge';
 import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
+import { useTranslation } from 'react-i18next';
 
 export interface HeaderAction {
   icon: IconName;
@@ -57,6 +58,7 @@ export function ScreenHeader({
   style,
 }: ScreenHeaderProps) {
   const navigation = useNavigation();
+  const { t } = useTranslation('common');
   const insets = useSafeAreaInsets();
   // Tab roots never get a back arrow (canGoBack is true there because of tab history).
   const showBack =
@@ -69,7 +71,7 @@ export function ScreenHeader({
       hitSlop={layout.hitSlop}
       style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
       accessibilityRole="button"
-      accessibilityLabel={backIcon === 'close' ? 'Close' : 'Go back'}
+      accessibilityLabel={backIcon === 'close' ? t('actions.close') : t('actions.goBack')}
     >
       <Icon name={backIcon === 'close' ? 'close' : 'arrow-back'} size={20} color="onPrimary" />
     </Pressable>

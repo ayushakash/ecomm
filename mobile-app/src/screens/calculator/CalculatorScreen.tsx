@@ -1,10 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { TFunction } from 'i18next';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card, Chip, Input, QuantityStepper, Screen, ScreenHeader, Text } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
@@ -44,33 +46,52 @@ const toPriceText = (p: MaterialPrices): PriceText => ({
   priceBricks: String(p.priceBricks),
 });
 
-const PRICE_FIELDS: { key: PriceKey; name: string; unit: string; wide?: boolean }[] = [
-  { key: 'priceCement', name: 'Cement', unit: 'bag' },
-  { key: 'priceSteel', name: 'Steel', unit: 'kg' },
-  { key: 'priceSand', name: 'Sand', unit: 'cu.ft' },
-  { key: 'priceAgg', name: 'Aggregate', unit: 'cu.ft' },
-  { key: 'priceBricks', name: 'Bricks', unit: '1000 nos', wide: true },
+const PRICE_FIELDS: { key: PriceKey; material: string; unit: string; wide?: boolean }[] = [
+  { key: 'priceCement', material: 'cement', unit: 'bag' },
+  { key: 'priceSteel', material: 'steel', unit: 'kg' },
+  { key: 'priceSand', material: 'sand', unit: 'cu.ft' },
+  { key: 'priceAgg', material: 'aggregate', unit: 'cu.ft' },
+  { key: 'priceBricks', material: 'bricks', unit: '1000 nos', wide: true },
 ];
 
 /** Rows shared by the structure and foundation sections (bricks only in structure). */
-function materialRows(m: FoundationMaterials & { bricks?: CalculationResult['bricks'] }, detailed: boolean): MaterialRow[] {
+function materialRows(
+  m: FoundationMaterials & { bricks?: CalculationResult['bricks'] },
+  detailed: boolean,
+  t: TFunction<'calculator'>,
+): MaterialRow[] {
   const rows: MaterialRow[] = [
-    { name: 'Cement', icon: 'sack', line: m.cement, unitLabel: 'bags (50kg)', priceUnit: 'bag' },
-    { name: detailed ? 'Steel (TMT Bars)' : 'Steel', icon: 'pillar', line: m.steel, unitLabel: 'kg', priceUnit: 'kg' },
-    { name: detailed ? 'Sand (M-Sand)' : 'Sand', icon: 'grain', line: m.sand, unitLabel: 'cu.ft', priceUnit: 'cu.ft' },
+    { key: 'cement', name: t('materials.cement'), icon: 'sack', line: m.cement, unitLabel: 'bags (50kg)', priceUnit: 'bag' },
     {
-      name: detailed ? 'Aggregate (20mm)' : 'Aggregate',
+      key: 'steel',
+      name: detailed ? t('materials.steelTmt') : t('materials.steel'),
+      icon: 'pillar', line: m.steel, unitLabel: 'kg', priceUnit: 'kg' },
+    {
+      key: 'sand',
+      name: detailed ? t('materials.sandMSand') : t('materials.sand'),
+      icon: 'grain', line: m.sand, unitLabel: 'cu.ft', priceUnit: 'cu.ft' },
+    {
+      key: 'aggregate',
+      name: detailed ? t('materials.aggregate20mm') : t('materials.aggregate'),
       icon: 'dots-hexagon',
       line: m.aggregate,
       unitLabel: 'cu.ft',
       priceUnit: 'cu.ft',
     },
   ];
-  if (m.bricks) rows.push({ name: 'Bricks', icon: 'wall', line: m.bricks, unitLabel: 'nos', priceUnit: 'brick' });
+  if (m.bricks) rows.push({
+      key: 'bricks',
+      name: t('materials.bricks'),
+      icon: 'wall',
+      line: m.bricks,
+      unitLabel: 'nos',
+      priceUnit: t('units.brick'),
+    });
   return rows;
 }
 
 export default function CalculatorScreen({ navigation }: RootStackScreenProps<'Calculator'>) {
+  const { t } = useTranslation('calculator');
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { currentCity } = useLocation();
@@ -118,11 +139,14 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
     toastedFor.current = key;
     const fallback = fallbackMaterials(cityPricesData.prices);
     if (fallback.length === Object.keys(cityPricesData.prices).length) {
-      toast.info(`No live prices found for ${selectedCity}`, 'Using standard rates.');
+      toast.info(t('toasts.noLivePrices', { city: selectedCity }), t('toasts.usingStandardRates'));
     } else if (fallback.length > 0) {
-      toast.info('Some prices use standard rates', `No local data: ${fallback.join(', ')}`);
+      toast.info(
+        t('toasts.someStandardRates'),
+        t('toasts.noLocalData', { materials: fallback.map((m) => t(`materials.${m}`)).join(', ') }),
+      );
     }
-  }, [pricingMode, cityPricesData, cityPricesQuery.dataUpdatedAt, selectedCity]);
+  }, [pricingMode, cityPricesData, cityPricesQuery.dataUpdatedAt, selectedCity, t]);
 
   const onCalculate = () => {
     const outcome = calculateMaterials({
@@ -166,21 +190,24 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
     try {
       await shareEstimatePdf({ name, phone, city: selectedCity, pricingMode, cityPrices, results });
       setLeadOpen(false);
-      toast.success('PDF report ready');
+      toast.success(t('toasts.pdfReady'));
     } catch (err) {
-      toast.error("Couldn't create the PDF", getErrorMessage(err, 'Please try again.'));
+      toast.error(t('toasts.pdfFailed'), getErrorMessage(err, t('toasts.tryAgain')));
     }
   };
 
-  const structureRows = useMemo(() => (results ? materialRows(results.structureMaterials, true) : []), [results]);
+  const structureRows = useMemo(
+    () => (results ? materialRows(results.structureMaterials, true, t) : []),
+    [results, t],
+  );
   const foundationRows = useMemo(
-    () => (results?.foundationMaterials ? materialRows(results.foundationMaterials, false) : []),
-    [results],
+    () => (results?.foundationMaterials ? materialRows(results.foundationMaterials, false, t) : []),
+    [results, t],
   );
 
   return (
     <Screen>
-      <ScreenHeader title="Material calculator" subtitle="Cement, steel, sand & bricks estimate" icon="calculator-outline" />
+      <ScreenHeader title={t('header.title')} subtitle={t('header.subtitle')} icon="calculator-outline" />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xxl }]}
@@ -192,7 +219,7 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
         <Card style={styles.pricingCard}>
           <View style={styles.pricingRow}>
             {citiesLoading || cities.length === 0 ? (
-              <Chip label={citiesLoading ? 'Detecting city…' : 'No cities'} icon="location-outline" />
+              <Chip label={citiesLoading ? t('pricing.detectingCity') : t('pricing.noCities')} icon="location-outline" />
             ) : (
               <Chip label={selectedCity} icon="location-outline" dropdown onPress={() => setCityPickerOpen(true)} />
             )}
@@ -201,7 +228,7 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : cityPrices ? (
                 <Badge
-                  label={hasLivePrices ? 'Live prices' : 'Est. prices'}
+                  label={hasLivePrices ? t('pricing.livePrices') : t('pricing.estPrices')}
                   tone={hasLivePrices ? 'success' : 'warning'}
                   icon={hasLivePrices ? 'pulse' : 'time-outline'}
                 />
@@ -222,7 +249,7 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
                   accessibilityState={{ selected: active }}
                 >
                   <Text variant="label" color={active ? 'onPrimary' : 'textSecondary'}>
-                    {mode === 'market' ? 'Market price' : 'Custom'}
+                    {mode === 'market' ? t('pricing.modeMarket') : t('pricing.modeCustom')}
                   </Text>
                 </Pressable>
               );
@@ -233,7 +260,7 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
               {PRICE_FIELDS.map((f) => (
                 <View key={f.key} style={styles.rate}>
                   <Text variant="micro" color="textMuted">
-                    {f.name}
+                    {t(`materials.${f.material}`)}
                   </Text>
                   <Text variant="label">
                     {formatRupees(Number(prices[f.key]) || 0)}
@@ -250,22 +277,22 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
         {/* Inputs */}
         <Card style={styles.formCard}>
           <Text variant="micro" color="textMuted" style={styles.overline}>
-            LENGTH & BREADTH
+            {t('form.lengthBreadth')}
           </Text>
           <View style={styles.twoCol}>
             <Input
-              label="Length (ft)"
+              label={t('form.length')}
               value={length}
               onChangeText={setLength}
-              placeholder="e.g. 40"
+              placeholder={t('form.examplePlaceholder', { value: 40 })}
               keyboardType="decimal-pad"
               containerStyle={styles.flex}
             />
             <Input
-              label="Breadth (ft)"
+              label={t('form.breadth')}
               value={breadth}
               onChangeText={setBreadth}
-              placeholder="e.g. 30"
+              placeholder={t('form.examplePlaceholder', { value: 30 })}
               keyboardType="decimal-pad"
               containerStyle={styles.flex}
             />
@@ -275,17 +302,17 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
             <View style={styles.orLine} />
             <View style={styles.orPill}>
               <Text variant="micro" color="textMuted">
-                OR
+                {t('form.or')}
               </Text>
             </View>
             <View style={styles.orLine} />
           </View>
 
           <Input
-            label="Total built-up area (sq.ft)"
+            label={t('form.area')}
             value={area}
             onChangeText={setArea}
-            placeholder="e.g. 1200"
+            placeholder={t('form.examplePlaceholder', { value: 1200 })}
             keyboardType="decimal-pad"
           />
 
@@ -293,9 +320,9 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
 
           <View style={styles.optionRow}>
             <View style={styles.flex}>
-              <Text variant="title">Number of floors</Text>
+              <Text variant="title">{t('form.floors')}</Text>
               <Text variant="caption" color="textSecondary">
-                Up to 10
+                {t('form.floorsHint')}
               </Text>
             </View>
             <QuantityStepper
@@ -309,9 +336,9 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
           </View>
           <View style={styles.optionRow}>
             <View style={styles.flex}>
-              <Text variant="title">Include footing</Text>
+              <Text variant="title">{t('form.includeFooting')}</Text>
               <Text variant="caption" color="textSecondary">
-                Adds foundation materials per column
+                {t('form.includeFootingHint')}
               </Text>
             </View>
             <Switch
@@ -319,7 +346,7 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
               onValueChange={setIncludeFooting}
               trackColor={{ true: colors.primary, false: colors.borderStrong }}
               thumbColor={colors.surface}
-              accessibilityLabel="Include footing"
+              accessibilityLabel={t('form.includeFooting')}
             />
           </View>
 
@@ -327,15 +354,15 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
             <Animated.View entering={FadeInDown.duration(220)}>
               <View style={styles.divider} />
               <Text variant="micro" color="textMuted" style={styles.overline}>
-                MATERIAL PRICES
+                {t('form.materialPrices')}
               </Text>
               <View style={styles.priceGrid}>
                 {PRICE_FIELDS.map((f) => (
                   <Input
                     key={f.key}
-                    label={`${f.name} (₹/${f.unit})`}
+                    label={t('form.priceLabel', { name: t(`materials.${f.material}`), unit: f.unit })}
                     value={prices[f.key]}
-                    onChangeText={(t) => setPrices((p) => ({ ...p, [f.key]: t }))}
+                    onChangeText={(text) => setPrices((p) => ({ ...p, [f.key]: text }))}
                     placeholder={String(DEFAULT_PRICES[f.key])}
                     keyboardType="decimal-pad"
                     containerStyle={f.wide ? styles.priceWide : styles.priceHalf}
@@ -346,7 +373,7 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
           )}
 
           <Button
-            title={results ? 'Recalculate' : 'Calculate materials'}
+            title={results ? t('form.recalculate') : t('form.calculate')}
             leftIcon="calculator-outline"
             size="lg"
             fullWidth
@@ -367,23 +394,31 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
           >
             <Card>
               <Text variant="h3" style={styles.cardTitle}>
-                Layout visualization
+                {t('results.layoutTitle')}
               </Text>
               <LayoutGrid params={results.gridParams} />
             </Card>
 
             <Card>
               <Text variant="h3" style={styles.cardTitle}>
-                Material estimates
+                {t('results.estimatesTitle')}
               </Text>
               <View style={styles.stats}>
                 {[
-                  { label: 'Dimensions', value: `${results.length} × ${results.breadth} ft` },
-                  { label: 'Area', value: `${formatNumber(results.area)} sq.ft` },
-                  { label: 'Floors', value: String(results.floors) },
-                  { label: 'Columns', value: `${results.columns} (${results.colsX} × ${results.colsY})` },
+                  {
+                    key: 'dimensions',
+                    label: t('results.dimensions'),
+                    value: t('results.dimensionsValue', { length: results.length, breadth: results.breadth }),
+                  },
+                  { key: 'area', label: t('results.area'), value: t('results.areaValue', { area: formatNumber(results.area) }) },
+                  { key: 'floors', label: t('results.floors'), value: String(results.floors) },
+                  {
+                    key: 'columns',
+                    label: t('results.columns'),
+                    value: `${results.columns} (${results.colsX} × ${results.colsY})`,
+                  },
                 ].map((s) => (
-                  <View key={s.label} style={styles.stat}>
+                  <View key={s.key} style={styles.stat}>
                     <Text variant="micro" color="textMuted">
                       {s.label.toUpperCase()}
                     </Text>
@@ -395,30 +430,30 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
                 <View style={styles.assumed}>
                   <MaterialCommunityIcons name="information-outline" size={14} color={colors.primary} />
                   <Text variant="caption" color="primary">
-                    Square footprint assumed from area
+                    {t('results.assumedSquare')}
                   </Text>
                 </View>
               )}
 
               <View style={styles.sections}>
                 <MaterialSection
-                  title="Structure materials"
+                  title={t('results.structureTitle')}
                   tone="structure"
                   rows={structureRows}
-                  subtotalLabel="Structure subtotal"
+                  subtotalLabel={t('results.structureSubtotal')}
                   subtotal={results.structureMaterials.totalCost}
                 />
                 {results.foundationMaterials && (
                   <MaterialSection
-                    title="Foundation materials"
+                    title={t('results.foundationTitle')}
                     tone="foundation"
                     rows={foundationRows}
-                    subtotalLabel="Foundation subtotal"
+                    subtotalLabel={t('results.foundationSubtotal')}
                     subtotal={results.foundationMaterials.totalCost}
                   />
                 )}
                 <View style={styles.total}>
-                  <Text variant="h3">Total estimated cost</Text>
+                  <Text variant="h3">{t('results.totalCost')}</Text>
                   <Text variant="h1" color="successDark">
                     {formatRupees(results.totalCost)}
                   </Text>
@@ -426,7 +461,7 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
               </View>
 
               <Button
-                title="Download report"
+                title={t('results.downloadReport')}
                 variant="success"
                 leftIcon="download-outline"
                 fullWidth
@@ -436,10 +471,9 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
               <View style={styles.note}>
                 <Text variant="caption" color="primary">
                   <Text variant="caption" color="primary" weight="bold">
-                    Note:{' '}
+                    {t('results.noteLabel')}{' '}
                   </Text>
-                  These are approximate estimates. Actual requirements may vary based on design, wastage, and site
-                  conditions. Prices shown are indicative for the {selectedCity || 'local'} market.
+                  {t('results.noteBody', { city: selectedCity || t('results.localMarket') })}
                 </Text>
               </View>
             </Card>
@@ -455,15 +489,15 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
         >
           <MaterialCommunityIcons name="truck-delivery-outline" size={28} color={colors.secondary} />
           <Text variant="h2" color="onPrimary" align="center">
-            Ready to buy construction materials?
+            {t('cta.title')}
           </Text>
           <Text variant="bodySm" color="primarySoft" align="center">
-            Get quality materials delivered to your site{selectedCity ? ` in ${selectedCity}` : ''}
+            {selectedCity ? t('cta.subtitleCity', { city: selectedCity }) : t('cta.subtitle')}
           </Text>
           <View style={styles.ctaButtons}>
             {results && (
               <Button
-                title={ordering ? 'Adding to cart…' : 'Order these materials'}
+                title={ordering ? t('cta.ordering') : t('cta.order')}
                 variant="secondary"
                 leftIcon="cart-outline"
                 loading={ordering}
@@ -473,7 +507,7 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
               />
             )}
             <Button
-              title="Browse products"
+              title={t('cta.browse')}
               variant="outline"
               fullWidth
               onPress={() => navigation.navigate('MainTabs', { screen: 'ProductsTab', params: {} })}
@@ -481,7 +515,7 @@ export default function CalculatorScreen({ navigation }: RootStackScreenProps<'C
           </View>
           {results && (
             <Text variant="caption" color="primarySoft" align="center">
-              Quantities are estimates from your calculation — review them in the cart before checkout.
+              {t('cta.reviewHint')}
             </Text>
           )}
         </LinearGradient>

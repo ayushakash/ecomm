@@ -1,0 +1,45 @@
+{
+  "logoAlt": "Chardeevari logo",
+  "serviceAreas": "Currently delivering in:",
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "calculator": "Calculator",
+    "blog": "Blog",
+    "contact": "Contact",
+    "contactUs": "Contact Us",
+    "aboutUs": "About Us",
+    "cart": "Cart",
+    "profile": "Profile",
+    "myAddresses": "My Addresses",
+    "orders": "Orders"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout"
+  },
+  "menu": {
+    "quickLinks": "Quick Links",
+    "close": "Close menu"
+  },
+  "location": {
+    "deliveringTo": "Delivering to",
+    "shoppingIn": "Shopping in",
+    "select": "Select",
+    "location": "Location",
+    "yourAddresses": "Your Addresses",
+    "default": "Default",
+    "manageAddresses": "Manage Addresses",
+    "detecting": "Detecting location...",
+    "useCurrent": "Use my current location",
+    "orSelectCity": "Or select your city",
+    "searchCity": "Search city...",
+    "loadingCities": "Loading cities...",
+    "noCitiesMatch": "No cities match \"{{query}}\"",
+    "noCities": "No cities available yet",
+    "storeCount_one": "{{count}} store",
+    "storeCount_other": "{{count}} stores",
+    "registerToShop": "Register to Start Shopping"
+  }
+}

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Icon, Skeleton, Text } from '../../../components/ui';
@@ -68,6 +69,7 @@ function Row({ label, value, muted, valueColor, children }: {
 }
 
 function FreeDeliveryProgress({ info }: { info: FreeDeliveryInfo }) {
+  const { t } = useTranslation('cart');
   const width = useSharedValue(0);
   useEffect(() => {
     width.value = withTiming(info.progress ?? 0, { duration: 450 });
@@ -80,8 +82,8 @@ function FreeDeliveryProgress({ info }: { info: FreeDeliveryInfo }) {
         <Icon name={info.isFree ? 'checkmark-circle' : 'bicycle-outline'} size={16} color={info.isFree ? 'success' : 'primary'} />
         <Text variant="caption" color={info.isFree ? 'successDark' : 'primary'} weight="semibold" style={styles.flex}>
           {info.isFree
-            ? 'Yay! You get free delivery on this order'
-            : `Add ${formatPrice(info.remaining)} more for free delivery`}
+            ? t('bill.freeDeliveryUnlocked')
+            : t('bill.freeDeliveryRemaining', { amount: formatPrice(info.remaining) })}
         </Text>
       </View>
       <View style={styles.progressTrack}>
@@ -93,7 +95,8 @@ function FreeDeliveryProgress({ info }: { info: FreeDeliveryInfo }) {
 
 /** Port of the web Cart/Checkout "Order Summary" totals block. All payable numbers come from the server. */
 export function BillSummary({ totals, updating, fallbackSubtotal, itemCount, requireGSTBill = false }: BillSummaryProps) {
-  const itemsLabel = `Subtotal (${itemCount} item${itemCount !== 1 ? 's' : ''})`;
+  const { t } = useTranslation('cart');
+  const itemsLabel = t('bill.subtotalItems', { count: itemCount });
 
   if (!totals) {
     return (
@@ -105,10 +108,10 @@ export function BillSummary({ totals, updating, fallbackSubtotal, itemCount, req
         </View>
         <View style={styles.divider} />
         <View style={styles.totalRow}>
-          <Text variant="h3">Total</Text>
+          <Text variant="h3">{t('bill.total')}</Text>
           <View style={styles.totalRight}>
             <Text variant="h2">{formatPrice(fallbackSubtotal)}</Text>
-            <Text variant="micro" color="primary">Updating prices…</Text>
+            <Text variant="micro" color="primary">{t('bill.updating')}</Text>
           </View>
         </View>
       </View>
@@ -127,34 +130,34 @@ export function BillSummary({ totals, updating, fallbackSubtotal, itemCount, req
 
       {showGst && (
         <View style={styles.gstBlock}>
-          {!!totals.subtotalBeforeGST && <Row muted label="Base amount" value={formatPrice(totals.subtotalBeforeGST)} />}
-          <Row muted label={totals.gstBreakdown?.mode === 'exclusive' ? 'GST' : 'GST (included)'} value={formatPrice(totals.tax)} />
+          {!!totals.subtotalBeforeGST && <Row muted label={t('bill.baseAmount')} value={formatPrice(totals.subtotalBeforeGST)} />}
+          <Row muted label={totals.gstBreakdown?.mode === 'exclusive' ? t('bill.gst') : t('bill.gstIncluded')} value={formatPrice(totals.tax)} />
           <Row muted label="   CGST" value={`₹${halfGst.toFixed(2)}`} />
           <Row muted label="   SGST" value={`₹${halfGst.toFixed(2)}`} />
         </View>
       )}
 
       <Row
-        label="Delivery"
+        label={t('bill.delivery')}
         value={delivery.isFree ? '₹0' : formatPrice(totals.deliveryCharges)}
         valueColor={delivery.isFree ? colors.success : undefined}
       >
         {delivery.isFree && (
           <View style={styles.freeBadge}>
-            <Text variant="micro" color="successDark" weight="bold">FREE</Text>
+            <Text variant="micro" color="successDark" weight="bold">{t('bill.free')}</Text>
           </View>
         )}
       </Row>
       {delivery.progress !== null && delivery.threshold > 0 && <FreeDeliveryProgress info={delivery} />}
 
-      {totals.platformFee > 0 && <Row label="Platform fee" value={formatPrice(totals.platformFee)} />}
+      {totals.platformFee > 0 && <Row label={t('bill.platformFee')} value={formatPrice(totals.platformFee)} />}
 
       <View style={styles.divider} />
       <View style={styles.totalRow}>
-        <Text variant="h3">Total</Text>
+        <Text variant="h3">{t('bill.total')}</Text>
         <View style={styles.totalRight}>
           <Text variant="h2">{formatPrice(totals.totalAmount)}</Text>
-          {updating && <Text variant="micro" color="primary">Updating prices…</Text>}
+          {updating && <Text variant="micro" color="primary">{t('bill.updating')}</Text>}
         </View>
       </View>
 
@@ -162,7 +165,7 @@ export function BillSummary({ totals, updating, fallbackSubtotal, itemCount, req
         <View style={styles.hint}>
           <Icon name="information-circle-outline" size={14} color="textMuted" />
           <Text variant="caption" color="textMuted" style={styles.flex}>
-            Prices shown are final (GST included).
+            {t('bill.gstIncludedHint')}
           </Text>
         </View>
       )}

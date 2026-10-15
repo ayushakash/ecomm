@@ -7,12 +7,14 @@ import {
   PencilIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const ProductCard = ({
   product,
   onEdit,
   onDelete
 }) => {
+  const { t } = useTranslation('common');
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
       {/* Header with Image */}
@@ -30,7 +32,7 @@ const ProductCard = ({
                 : 'bg-red-100 text-red-800'
             }`}
           >
-            {product.enabled ? 'Enabled' : 'Disabled'}
+            {product.enabled ? t('status.enabled') : t('status.disabled')}
           </span>
         </div>
       </div>
@@ -40,7 +42,7 @@ const ProductCard = ({
         {/* Product Name & SKU */}
         <div>
           <h3 className="font-semibold text-gray-900 text-lg">{product.name}</h3>
-          <p className="text-sm text-gray-500">SKU: {product.sku}</p>
+          <p className="text-sm text-gray-500">{t('productCard.sku', { sku: product.sku })}</p>
         </div>
 
         {/* Category */}
@@ -54,7 +56,7 @@ const ProductCard = ({
           <CurrencyRupeeIcon className="w-4 h-4 text-gray-400" />
           <div>
             <span className="font-semibold text-gray-900">₹{product.price}</span>
-            <span className="text-sm text-gray-500 ml-1">per {product.unit}</span>
+            <span className="text-sm text-gray-500 ml-1">{t('productCard.perUnit', { unit: product.unit })}</span>
           </div>
         </div>
 
@@ -66,9 +68,9 @@ const ProductCard = ({
               product.stock > 10 ? 'text-green-600' :
               product.stock > 0 ? 'text-yellow-600' : 'text-red-600'
             }`}>
-              {product.stock} units
+              {t('productCard.units', { count: product.stock })}
             </span>
-            <span className="text-sm text-gray-500 ml-1">in stock</span>
+            <span className="text-sm text-gray-500 ml-1">{t('productCard.inStock')}</span>
           </div>
         </div>
 
@@ -88,7 +90,7 @@ const ProductCard = ({
             className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
           >
             <EyeIcon className="w-4 h-4 mr-1" />
-            View
+            {t('actions.view')}
           </button>
 
           <div className="flex space-x-2">
@@ -97,7 +99,7 @@ const ProductCard = ({
               className="inline-flex items-center px-3 py-1.5 border border-blue-300 text-xs font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
               <PencilIcon className="w-4 h-4 mr-1" />
-              Edit
+              {t('actions.edit')}
             </button>
 
             <button
@@ -105,7 +107,7 @@ const ProductCard = ({
               className="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
             >
               <TrashIcon className="w-4 h-4 mr-1" />
-              Delete
+              {t('actions.delete')}
             </button>
           </div>
         </div>

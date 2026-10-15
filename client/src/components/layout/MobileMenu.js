@@ -2,9 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
   const { logout } = useAuth();
+  const { t } = useTranslation('layout');
 
   const handleLogout = async () => {
     await logout();
@@ -26,6 +28,7 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
           </div>
           <button
             onClick={() => setOpen(false)}
+            aria-label={t('menu.close')}
             className="p-2 text-gray-400 hover:text-gray-600"
           >
             <XMarkIcon className="h-6 w-6" />
@@ -35,7 +38,7 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
         <div className="flex-1 overflow-y-auto">
           {/* Quick Links */}
           <nav className="px-6 py-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Links</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('menu.quickLinks')}</p>
             <div className="space-y-2">
               {/* Calculator */}
               <Link
@@ -46,7 +49,7 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
                 <svg className="h-5 w-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
-                Calculator
+                {t('nav.calculator')}
               </Link>
               {/* Blog */}
               <Link
@@ -57,7 +60,7 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
                 <svg className="h-5 w-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                 </svg>
-                Blog
+                {t('nav.blog')}
               </Link>
               {/* About */}
               <Link
@@ -68,7 +71,7 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
                 <svg className="h-5 w-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                About Us
+                {t('nav.aboutUs')}
               </Link>
               {/* Contact */}
               <Link
@@ -79,7 +82,7 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
                 <svg className="h-5 w-5 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                Contact Us
+                {t('nav.contactUs')}
               </Link>
             </div>
           </nav>
@@ -106,20 +109,20 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
                     onClick={() => setOpen(false)}
                     className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md"
                   >
-                    Profile
+                    {t('nav.profile')}
                   </Link>
                   <Link
                     to="/profile/orders"
                     onClick={() => setOpen(false)}
                     className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md"
                   >
-                    Orders
+                    {t('nav.orders')}
                   </Link>
                   <button
                     onClick={handleLogout}
                     className="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md"
                   >
-                    Logout
+                    {t('auth.logout')}
                   </button>
                 </div>
               </div>
@@ -130,14 +133,14 @@ const MobileMenu = ({ open, setOpen, navigation, user, isAuthenticated }) => {
                   onClick={() => setOpen(false)}
                   className="block w-full px-4 py-2 text-center text-base font-medium text-primary-600 border border-primary-600 rounded-md hover:bg-primary-50"
                 >
-                  Login
+                  {t('auth.login')}
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setOpen(false)}
                   className="block w-full px-4 py-2 text-center text-base font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
                 >
-                  Register
+                  {t('auth.register')}
                 </Link>
               </div>
             )}

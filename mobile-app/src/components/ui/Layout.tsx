@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, SCREEN_PADDING, shadows, spacing } from '../../theme';
 import { Icon } from './Icon';
 import { Text } from './Text';
+import { useTranslation } from 'react-i18next';
+
 
 export interface ScreenProps {
   children: React.ReactNode;
@@ -61,7 +63,8 @@ export interface SectionHeaderProps {
 }
 
 /** "Shop by category        See all ›" row; horizontal padding = screen gutter. */
-export function SectionHeader({ title, subtitle, actionLabel = 'See all', onAction, style }: SectionHeaderProps) {
+export function SectionHeader({ title, subtitle, actionLabel, onAction, style }: SectionHeaderProps) {
+  const { t } = useTranslation('common');
   return (
     <View style={[styles.section, style]}>
       <View style={styles.flex}>
@@ -75,7 +78,7 @@ export function SectionHeader({ title, subtitle, actionLabel = 'See all', onActi
       {onAction && (
         <Pressable onPress={onAction} hitSlop={10} style={styles.action} accessibilityRole="button">
           <Text variant="label" color="secondaryDark" weight="bold">
-            {actionLabel}
+            {actionLabel ?? t('actions.seeAll')}
           </Text>
           <Icon name="chevron-forward" size={14} color="secondaryDark" />
         </Pressable>

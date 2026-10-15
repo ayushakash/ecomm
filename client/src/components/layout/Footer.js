@@ -12,15 +12,17 @@ import {
   CalculatorIcon as CalculatorIconFilled,
   UserIcon as UserIconFilled
 } from '@heroicons/react/24/solid';
+import { useTranslation } from 'react-i18next';
 
 const Footer = ({ cartCount = 0 }) => {
   const location = useLocation();
+  const { t } = useTranslation('layout');
 
   const navItems = [
-    { name: 'Home', href: '/', icon: HomeIcon, iconFilled: HomeIconFilled },
-    { name: 'Calculator', href: '/calculator', icon: CalculatorIcon, iconFilled: CalculatorIconFilled },
-    { name: 'Cart', href: '/cart', icon: ShoppingCartIcon, iconFilled: ShoppingCartIconFilled },
-    { name: 'Profile', href: '/profile', icon: UserIcon, iconFilled: UserIconFilled }
+    { id: 'home', name: t('nav.home'), href: '/', icon: HomeIcon, iconFilled: HomeIconFilled },
+    { id: 'calculator', name: t('nav.calculator'), href: '/calculator', icon: CalculatorIcon, iconFilled: CalculatorIconFilled },
+    { id: 'cart', name: t('nav.cart'), href: '/cart', icon: ShoppingCartIcon, iconFilled: ShoppingCartIconFilled },
+    { id: 'profile', name: t('nav.profile'), href: '/profile', icon: UserIcon, iconFilled: UserIconFilled }
   ];
 
   const isActive = (href) => {
@@ -48,7 +50,7 @@ const Footer = ({ cartCount = 0 }) => {
 
           return (
             <Link
-              key={item.name}
+              key={item.id}
               to={item.href}
               className={`flex flex-col items-center justify-center flex-1 h-full transition-colors relative ${
                 active
@@ -58,7 +60,7 @@ const Footer = ({ cartCount = 0 }) => {
             >
               <div className="relative">
                 <IconComponent className="h-6 w-6" />
-                {item.name === 'Cart' && cartCount > 0 && (
+                {item.id === 'cart' && cartCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium border-2 border-white">
                     {cartCount > 99 ? '99+' : cartCount}
                   </span>

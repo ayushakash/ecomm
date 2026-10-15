@@ -1,0 +1,214 @@
+{
+  "close": "Close",
+  "cancel": "Cancel",
+  "loginOrRegisterConfirm": "Please login or register to place your order.\n\nClick OK to login, or Cancel to register.",
+  "header": {
+    "title": "Checkout",
+    "subtitle": "Complete your order"
+  },
+  "toast": {
+    "loginToOrder": "Please login to place order",
+    "orderFailed": "Failed to place order. Please try again!",
+    "currentLocationDetected": "Current location detected successfully!",
+    "locationDetected": "Location detected successfully!",
+    "selectAddress": "Please select a delivery address",
+    "cityMismatch": "Cart contains items from {{cartCity}} but delivery address is in {{addressCity}}. Please clear your cart or select a {{cartCity}} address.",
+    "undeliverable_one": "{{count}} item in your cart cannot be delivered to the selected address",
+    "undeliverable_other": "{{count}} items in your cart cannot be delivered to the selected address"
+  },
+  "deliveryHours": {
+    "title": "We're accepting your order, but it's currently outside delivery hours",
+    "label": "Delivery hours"
+  },
+  "unavailable": {
+    "title": "Some items cannot be delivered to your address",
+    "message_one": "{{count}} item in your cart is from a merchant not available in <b>{{place}}</b>",
+    "message_other": "{{count}} items in your cart are from merchants not available in <b>{{place}}</b>",
+    "hint": "Please remove these items or select a different delivery address to continue."
+  },
+  "deliveryDetails": "Delivery Details",
+  "cityMismatch": {
+    "title": "City Mismatch",
+    "message": "Your cart contains items from <b>{{cartCity}}</b>, but you're trying to deliver to <b>{{addressCity}}</b>.",
+    "clearCart": "Clear Cart & Start Fresh",
+    "switched": "Switched to {{city}} address",
+    "noAddress": "No address found in {{city}}. Please add one or clear cart.",
+    "switch": "Switch to {{city}} Address"
+  },
+  "phone": {
+    "requiredTitle": "Phone number required",
+    "requiredMessage": "Please verify your phone number before checkout — this helps us confirm your delivery.",
+    "verifyButton": "Verify Phone Number",
+    "modalTitle": "Verify Your Phone Number",
+    "modalSubtitle": "A verified phone number is required to place orders so we can contact you about your delivery.",
+    "mobileNumber": "Mobile Number",
+    "invalidNumber": "Please enter a valid 10-digit mobile number",
+    "invalidOtp": "Please enter a valid OTP",
+    "otpSent": "OTP sent to {{phone}}",
+    "sending": "Sending...",
+    "sendOtp": "Send OTP",
+    "enterOtpSent": "Enter the OTP sent to <b>{{phone}}</b> via WhatsApp.",
+    "enterOtp": "Enter OTP",
+    "changeNumber": "Change Number",
+    "resendOtp": "Resend OTP",
+    "verifying": "Verifying...",
+    "verifyContinue": "Verify & Continue"
+  },
+  "addresses": {
+    "selectTitle": "Select Delivery Address",
+    "addNew": "Add New",
+    "default": "Default",
+    "none": "No saved addresses found",
+    "addFirst": "Add your first address",
+    "addNewAddress": "Add New Address"
+  },
+  "form": {
+    "instructions": "Delivery Instructions (Optional)",
+    "instructionsPlaceholder": "Any special instructions for delivery...",
+    "paymentMethod": "Payment Method",
+    "cod": "Cash on Delivery",
+    "onlineSoon": "Online Payment (Coming Soon)",
+    "selectAddressToContinue": "Select an Address to Continue",
+    "removeUnavailable": "Remove Unavailable Items",
+    "placeOrder": "Place Order"
+  },
+  "summary": {
+    "title": "Order Summary",
+    "perUnit": "per {{unit}}",
+    "subtotal_one": "Subtotal ({{count}} item)",
+    "subtotal_other": "Subtotal ({{count}} items)",
+    "baseAmount": "Base Amount",
+    "delivery": "Delivery",
+    "free": "Free",
+    "addForFreeDelivery": "Add ₹{{amount}} more for free delivery",
+    "platformFee": "Platform Fee",
+    "total": "Total",
+    "updatingPrices": "Updating prices...",
+    "gstIncludedHint": "Prices shown are final (GST included). Check \"I need a GST Invoice\" to see the breakdown."
+  },
+  "gst": {
+    "needInvoice": "I need a GST Invoice",
+    "needInvoiceHint": "Check this to see a detailed GST breakdown and generate a sample invoice.",
+    "previewSample": "Preview Sample Invoice"
+  },
+  "sample": {
+    "title": "TAX INVOICE",
+    "subtitle": "Sample Invoice - For Preview Only",
+    "from": "From",
+    "companyName": "Your Company Name",
+    "customerName": "Customer Name",
+    "addressLine1": "Address Line 1",
+    "area": "Area",
+    "city": "City",
+    "invoiceNumber": "Invoice Number",
+    "rate": "Rate",
+    "amount": "Amount",
+    "base": "Base",
+    "gstAmount": "GST Amount",
+    "totalAmount": "Total Amount",
+    "noteLabel": "Note",
+    "note": "This is a sample invoice for preview purposes only. The actual invoice will be generated after order confirmation and will include additional details like invoice number, authorized signature, and official seal."
+  },
+  "invoice": {
+    "title": "GST Tax Invoice",
+    "close": "Close",
+    "tagline": "E-Commerce Platform for Building Materials",
+    "addressLabel": "Address",
+    "emailLabel": "Email",
+    "phoneLabel": "Phone",
+    "taxInvoice": "TAX INVOICE",
+    "details": "Invoice Details",
+    "number": "Invoice No",
+    "date": "Invoice Date",
+    "paymentMethod": "Payment Method",
+    "paymentStatus": "Payment Status",
+    "payOnDelivery": "PAY ON DELIVERY",
+    "billTo": "Bill To",
+    "landmark": "Landmark",
+    "table": {
+      "sno": "S.No",
+      "description": "Item Description",
+      "qty": "Qty",
+      "unit": "Unit",
+      "rate": "Rate (₹)",
+      "amount": "Amount (₹)"
+    },
+    "taxableAmount": "Taxable Amount (Base)",
+    "subtotalIncGst": "Subtotal (Inc. GST)",
+    "deliveryCharges": "Delivery Charges",
+    "platformFee": "Platform Fee",
+    "grandTotal": "Grand Total",
+    "amountInWords": "Total Amount (In Words)",
+    "terms": "Terms & Conditions",
+    "customerSignature": "Customer Signature",
+    "forCompany": "For CharDeevaari",
+    "authorizedSignatory": "Authorized Signatory",
+    "footer": "This is a computer-generated invoice. For any queries, please contact our support team.",
+    "generatedOn": "Generated on",
+    "download": "Download / Print Invoice"
+  },
+  "address": {
+    "addTitle": "Add New Address",
+    "editTitle": "Edit Address",
+    "close": "Close",
+    "detecting": "Detecting...",
+    "useGps": "Use GPS",
+    "selectOnMap": "Select on Map",
+    "locationSet": "Location set",
+    "types": {
+      "home": "Home",
+      "office": "Office",
+      "other": "Other"
+    },
+    "fields": {
+      "type": "Address Type",
+      "phone": "Phone Number",
+      "line1": "Full Address",
+      "line2": "Address Line 2 (Optional)",
+      "area": "Area/Locality",
+      "city": "City",
+      "pincode": "Pincode",
+      "state": "State",
+      "landmark": "Landmark (Optional)"
+    },
+    "placeholders": {
+      "phone": "10-digit mobile number",
+      "line1": "House/Flat number, Street name",
+      "line2": "Apartment, suite, etc.",
+      "area": "e.g. Koramangala",
+      "city": "e.g. Bangalore",
+      "pincode": "6-digit pincode",
+      "state": "Select State",
+      "landmark": "Near a landmark"
+    },
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "update": "Update Address",
+    "save": "Save Address",
+    "toast": {
+      "added": "Address added successfully!",
+      "addFailed": "Failed to add address",
+      "updated": "Address updated successfully!",
+      "updateFailed": "Failed to update address",
+      "locationSelected": "Location selected! Please verify the prefilled fields."
+    }
+  },
+  "success": {
+    "title": "Order Placed Successfully!",
+    "message": "Thank you for your order. We'll prepare your items and deliver them soon.",
+    "orderNumber": "Order Number",
+    "generating": "Generating...",
+    "totalAmount": "Total Amount",
+    "deliveryTo": "Delivery To",
+    "selectedAddress": "Your selected address",
+    "freeDelivery": "Free Delivery",
+    "noExtraCharges": "No additional charges",
+    "viewOrders": "View My Orders",
+    "continueShopping": "Continue Shopping",
+    "updatesInfo": "You will receive order updates via SMS and email. For any queries, contact our support team."
+  },
+  "deliveryWindow": {
+    "early": "We accept orders 24×7, but deliveries run {{window}}. Your order will be delivered today after 8 AM.",
+    "late": "We accept orders 24×7, but deliveries run {{window}}. Since it's past delivery hours, your order will be delivered tomorrow from 8 AM."
+  }
+}

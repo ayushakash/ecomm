@@ -1,4 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Text } from '../../../components/ui';
 import { colors, fonts, radii, spacing } from '../../../theme';
@@ -29,6 +30,7 @@ export const OtpInput = forwardRef<OtpInputHandle, OtpInputProps>(function OtpIn
   { value, onChange, onComplete, error, autoFocus, disabled },
   ref,
 ) {
+  const { t } = useTranslation('auth');
   const inputRef = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
 
@@ -94,8 +96,8 @@ export const OtpInput = forwardRef<OtpInputHandle, OtpInputProps>(function OtpIn
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={styles.hiddenInput}
-        accessibilityLabel="One-time password"
-        accessibilityHint={`Enter the ${OTP_LENGTH}-digit code`}
+        accessibilityLabel={t('otp.a11yLabel')}
+        accessibilityHint={t('otp.a11yHint', { count: OTP_LENGTH })}
         testID="otp-input"
       />
       {error ? (

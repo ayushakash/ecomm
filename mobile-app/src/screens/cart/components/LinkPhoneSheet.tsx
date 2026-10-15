@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { BottomSheet, Button, Input, Text } from '../../../components/ui';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -15,6 +16,7 @@ export interface LinkPhoneSheetProps {
 
 /** Web Checkout "Verify Your Phone Number" modal for Google-auth users without a phone. */
 export function LinkPhoneSheet({ visible, onClose }: LinkPhoneSheetProps) {
+  const { t } = useTranslation('checkout');
   const { sendLinkPhoneOtp, linkPhone } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
   const [phone, setPhone] = useState('');
@@ -25,7 +27,7 @@ export function LinkPhoneSheet({ visible, onClose }: LinkPhoneSheetProps) {
 
   const sendOtp = async () => {
     if (!PHONE_RE.test(phone.trim())) {
-      setError('Please enter a valid 10-digit mobile number');
+      setError(t('linkPhone.invalidPhone'));
       return;
     }
     setError('');
@@ -34,7 +36,7 @@ export function LinkPhoneSheet({ visible, onClose }: LinkPhoneSheetProps) {
     setLoading(false);
     if (!result.success) return;
     setStep(2);
-    toast.success('OTP sent to your WhatsApp', `+91 ${phone.trim()}`);
+    toast.success(t('linkPhone.otpSent'), `+91 ${phone.trim()}`);
     if (result.devOtp) {
       setDevOtp(result.devOtp);
       toast.info(`OTP: ${result.devOtp}`);
@@ -43,7 +45,7 @@ export function LinkPhoneSheet({ visible, onClose }: LinkPhoneSheetProps) {
 
   const verifyOtp = async () => {
     if (!OTP_RE.test(otp.trim())) {
-      setError('Please enter a valid OTP');
+      setError(t('linkPhone.invalidOtp'));
       return;
     }
     setError('');
@@ -62,11 +64,11 @@ export function LinkPhoneSheet({ visible, onClose }: LinkPhoneSheetProps) {
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Verify your phone number"
-      subtitle="A verified phone number is required to place orders so we can contact you about your delivery."
+      title={t('linkPhone.title')}
+      subtitle={t('linkPhone.subtitle')}
       footer={
         <Button
-          title={step === 1 ? 'Send OTP' : 'Verify & continue'}
+          title={step === 1 ? t('linkPhone.sendOtp') : t('linkPhone.verify')}
           variant="secondary"
           size="lg"
           fullWidth
@@ -77,7 +79,7 @@ export function LinkPhoneSheet({ visible, onClose }: LinkPhoneSheetProps) {
     >
       {step === 1 ? (
         <Input
-          label="Mobile number"
+          label={t('linkPhone.mobileLabel')}
           prefix="+91"
           value={phone}
           onChangeText={(text) => {
@@ -87,14 +89,19 @@ export function LinkPhoneSheet({ visible, onClose }: LinkPhoneSheetProps) {
           maxLength={10}
           keyboardType="phone-pad"
           autoComplete="tel"
-          placeholder="10-digit mobile number"
+          placeholder={t('linkPhone.mobilePlaceholder')}
           error={error || null}
           autoFocus
         />
       ) : (
         <View style={styles.otpStep}>
           <Text variant="bodySm" color="textSecondary">
-            Enter the OTP sent to <Text variant="bodySm" weight="bold">+91 {phone}</Text> on WhatsApp.
+            <Trans
+              t={t}
+              i18nKey="linkPhone.otpPrompt"
+              values={{ phone: `+91 ${phone}` }}
+              components={{ bold: <Text variant="bodySm" weight="bold" /> }}
+            />
           </Text>
           {!!devOtp && (
             <View style={styles.devOtp}>
@@ -114,7 +121,7 @@ export function LinkPhoneSheet({ visible, onClose }: LinkPhoneSheetProps) {
             keyboardType="number-pad"
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
-            placeholder="Enter OTP"
+            placeholder={t('linkPhone.otpPlaceholder')}
             error={error || null}
             autoFocus
           />
@@ -128,10 +135,10 @@ export function LinkPhoneSheet({ visible, onClose }: LinkPhoneSheetProps) {
                 setError('');
               }}
             >
-              <Text variant="label" color="primary" weight="semibold">Change number</Text>
+              <Text variant="label" color="primary" weight="semibold">{t('linkPhone.changeNumber')}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" hitSlop={8} disabled={loading} onPress={sendOtp}>
-              <Text variant="label" color="primary" weight="semibold">Resend OTP</Text>
+              <Text variant="label" color="primary" weight="semibold">{t('linkPhone.resendOtp')}</Text>
             </Pressable>
           </View>
         </View>

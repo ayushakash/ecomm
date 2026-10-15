@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, fonts, radii } from '../../theme';
 import { Icon } from './Icon';
+import { useTranslation } from 'react-i18next';
+
 
 export interface QuantityStepperProps {
   value: number;
@@ -31,6 +33,7 @@ export function QuantityStepper({
   tone = 'filled',
   style,
 }: QuantityStepperProps) {
+  const { t } = useTranslation('common');
   const [draft, setDraft] = useState(String(value));
   useEffect(() => setDraft(String(value)), [value]);
 
@@ -66,7 +69,7 @@ export function QuantityStepper({
       ]}
     >
       <Pressable
-        accessibilityLabel={min === 0 && value <= 1 ? 'Remove' : 'Decrease quantity'}
+        accessibilityLabel={min === 0 && value <= 1 ? t('actions.remove') : t('quantity.decrease')}
         hitSlop={6}
         disabled={atMin}
         onPress={() => step(value - 1)}
@@ -76,7 +79,7 @@ export function QuantityStepper({
       </Pressable>
       <TextInput
         value={draft}
-        onChangeText={(t) => setDraft(t.replace(/[^0-9]/g, ''))}
+        onChangeText={(text) => setDraft(text.replace(/[^0-9]/g, ''))}
         onEndEditing={commit}
         onSubmitEditing={commit}
         editable={editable}
@@ -84,11 +87,11 @@ export function QuantityStepper({
         returnKeyType="done"
         selectTextOnFocus
         maxLength={5}
-        accessibilityLabel="Quantity"
+        accessibilityLabel={t('quantity.label')}
         style={[styles.input, { color: fg, fontSize: size === 'sm' ? 14 : 16 }]}
       />
       <Pressable
-        accessibilityLabel="Increase quantity"
+        accessibilityLabel={t('quantity.increase')}
         hitSlop={6}
         disabled={atMax}
         onPress={() => step(value + 1)}

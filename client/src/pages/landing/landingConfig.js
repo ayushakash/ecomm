@@ -3,9 +3,12 @@
 // against the live category list to pull real products; null = show everything.
 // Keep slugs in sync with the routes in App.js, reactSnap.include (package.json),
 // and STATIC_PATHS in routes/sitemap.js.
+// h1/intro/faqs here are the English SEO copy (meta + FAQ schema); the visible
+// on-page copy comes from the `landing` i18n namespace under pages.<key>.
 
 export const LANDING_CONFIGS = {
   cement: {
+    key: 'cement',
     slug: 'cement-price-ranchi',
     category: 'Cement',
     h1: 'Cement Price in Ranchi — Buy Cement Online',
@@ -27,6 +30,7 @@ export const LANDING_CONFIGS = {
   },
 
   steel: {
+    key: 'steel',
     slug: 'tmt-steel-price-ranchi',
     category: 'Steel',
     h1: 'TMT Steel Price in Ranchi — Buy Sariya Online',
@@ -48,6 +52,7 @@ export const LANDING_CONFIGS = {
   },
 
   bricks: {
+    key: 'bricks',
     slug: 'bricks-supplier-ranchi',
     category: 'Bricks',
     h1: 'Bricks Supplier in Ranchi — Order Bricks Online',
@@ -69,6 +74,7 @@ export const LANDING_CONFIGS = {
   },
 
   sand: {
+    key: 'sand',
     slug: 'sand-supplier-ranchi',
     category: 'Sand',
     h1: 'Sand Supplier in Ranchi — Buy River & M-Sand',
@@ -90,6 +96,7 @@ export const LANDING_CONFIGS = {
   },
 
   all: {
+    key: 'all',
     slug: 'construction-materials-ranchi',
     category: null,
     h1: 'Construction Materials in Ranchi — Cement, Steel, Sand & Bricks',

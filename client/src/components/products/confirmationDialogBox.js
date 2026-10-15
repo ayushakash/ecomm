@@ -1,7 +1,8 @@
-import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from 'react-i18next';
 
 function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
+  const { t } = useTranslation('common');
   if (!isOpen) return null;
 
   return createPortal(
@@ -14,13 +15,13 @@ function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
             onClick={onCancel}
             className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
           >
-            Cancel
+            {t('actions.cancel')}
           </button>
           <button
             onClick={onConfirm}
             className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
           >
-            Yes, Delete
+            {t('actions.yesDelete')}
           </button>
         </div>
       </div>

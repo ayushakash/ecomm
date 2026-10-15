@@ -1,12 +1,14 @@
 import { useState } from "react";
 import ConfirmDialog from "./confirmationDialogBox";
+import { useTranslation } from 'react-i18next';
 
 function ConfirmDeleteButton({ 
-  title = "Are you sure?", 
-  message = "This action cannot be undone.", 
+  title, 
+  message, 
   onConfirm, 
   loading = false 
 }) {
+  const { t } = useTranslation('common');
   const [open, setOpen] = useState(false);
 
   return (
@@ -16,13 +18,13 @@ function ConfirmDeleteButton({
         disabled={loading}
         className="text-red-600 hover:text-red-900"
       >
-        {loading ? "Deleting..." : "Delete"}
+        {loading ? t('status.deleting') : t('actions.delete')}
       </button>
 
       <ConfirmDialog
         isOpen={open}
-        title={title}
-        message={message}
+        title={title ?? t('confirm.title')}
+        message={message ?? t('confirm.irreversible')}
         onCancel={() => setOpen(false)}
         onConfirm={() => {
           onConfirm?.();

@@ -5,6 +5,7 @@
 import { Linking } from 'react-native';
 import type { CartItem, Product } from '../types/models';
 import { toast } from './toast';
+import i18n from '../i18n';
 
 type LinkProduct = Pick<Product, 'name' | 'sku' | 'unit'>;
 
@@ -46,17 +47,18 @@ export const buildCartOrderLink = (number: string, cartItems: CartItem[], totalA
 };
 
 /** Open any external URL (wa.me, tel:, https:), toasting on failure. */
-export async function openExternal(url: string | null | undefined, failMessage = 'Could not open link'): Promise<void> {
+export async function openExternal(url: string | null | undefined, failMessage?: string): Promise<void> {
+  const message = failMessage ?? i18n.t('common:external.openFailed');
   if (!url) {
-    toast.error(failMessage);
+    toast.error(message);
     return;
   }
   try {
     await Linking.openURL(url);
   } catch {
-    toast.error(failMessage);
+    toast.error(message);
   }
 }
 
 /** Start a phone call; `number` may include the 91 prefix. */
-export const callPhone = (number: string) => openExternal(`tel:+${number.replace(/^\+/, '')}`, 'Could not start call');
+export const callPhone = (number: string) => openExternal(`tel:+${number.replace(/^\+/, '')}`, i18n.t('common:external.callFailed'));

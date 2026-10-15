@@ -1,0 +1,146 @@
+{
+  "header": {
+    "title": "Material calculator",
+    "subtitle": "Cement, steel, sand & bricks estimate"
+  },
+  "materials": {
+    "cement": "Cement",
+    "steel": "Steel",
+    "steelTmt": "Steel (TMT Bars)",
+    "steelOrder": "Steel/TMT",
+    "sand": "Sand",
+    "sandMSand": "Sand (M-Sand)",
+    "aggregate": "Aggregate",
+    "aggregate20mm": "Aggregate (20mm)",
+    "bricks": "Bricks"
+  },
+  "units": {
+    "brick": "brick"
+  },
+  "pricing": {
+    "detectingCity": "Detecting city…",
+    "noCities": "No cities",
+    "livePrices": "Live prices",
+    "estPrices": "Est. prices",
+    "modeMarket": "Market price",
+    "modeCustom": "Custom"
+  },
+  "form": {
+    "lengthBreadth": "LENGTH & BREADTH",
+    "length": "Length (ft)",
+    "breadth": "Breadth (ft)",
+    "examplePlaceholder": "e.g. {{value}}",
+    "or": "OR",
+    "area": "Total built-up area (sq.ft)",
+    "floors": "Number of floors",
+    "floorsHint": "Up to 10",
+    "includeFooting": "Include footing",
+    "includeFootingHint": "Adds foundation materials per column",
+    "materialPrices": "MATERIAL PRICES",
+    "priceLabel": "{{name}} (₹/{{unit}})",
+    "calculate": "Calculate materials",
+    "recalculate": "Recalculate"
+  },
+  "results": {
+    "layoutTitle": "Layout visualization",
+    "estimatesTitle": "Material estimates",
+    "dimensions": "Dimensions",
+    "area": "Area",
+    "floors": "Floors",
+    "columns": "Columns",
+    "dimensionsValue": "{{length}} × {{breadth}} ft",
+    "areaValue": "{{area}} sq.ft",
+    "assumedSquare": "Square footprint assumed from area",
+    "structureTitle": "Structure materials",
+    "structureSubtotal": "Structure subtotal",
+    "foundationTitle": "Foundation materials",
+    "foundationSubtotal": "Foundation subtotal",
+    "totalCost": "Total estimated cost",
+    "downloadReport": "Download report",
+    "noteLabel": "Note:",
+    "noteBody": "These are approximate estimates. Actual requirements may vary based on design, wastage, and site conditions. Prices shown are indicative for the {{city}} market.",
+    "localMarket": "local"
+  },
+  "cta": {
+    "title": "Ready to buy construction materials?",
+    "subtitle": "Get quality materials delivered to your site",
+    "subtitleCity": "Get quality materials delivered to your site in {{city}}",
+    "ordering": "Adding to cart…",
+    "order": "Order these materials",
+    "browse": "Browse products",
+    "reviewHint": "Quantities are estimates from your calculation — review them in the cart before checkout."
+  },
+  "toasts": {
+    "noLivePrices": "No live prices found for {{city}}",
+    "usingStandardRates": "Using standard rates.",
+    "someStandardRates": "Some prices use standard rates",
+    "noLocalData": "No local data: {{materials}}",
+    "pdfReady": "PDF report ready",
+    "pdfFailed": "Couldn't create the PDF",
+    "tryAgain": "Please try again."
+  },
+  "errors": {
+    "dimensionsRequired": "Please enter either Length & Breadth OR Area."
+  },
+  "cityPicker": {
+    "title": "Pricing city",
+    "subtitle": "Market prices come from merchants in this city",
+    "merchantCount_one": "{{count}} merchant",
+    "merchantCount_other": "{{count}} merchants"
+  },
+  "grid": {
+    "a11yLabel": "Column layout: {{colsX}} by {{colsY}} grid on a {{length}} by {{breadth}} foot plan",
+    "feet": "{{value}} ft",
+    "legend": "Grid: {{colsX}} × {{colsY}} (spacing {{spacing}} ft)",
+    "assumedSquare": "Square footprint assumed"
+  },
+  "lead": {
+    "title": "Download your estimate",
+    "subtitle": "Enter your details to get the PDF report",
+    "cancel": "Cancel",
+    "download": "Download",
+    "nameLabel": "Your name *",
+    "namePlaceholder": "Enter your name",
+    "phoneLabel": "Phone number *",
+    "phonePlaceholder": "10-digit mobile number",
+    "nameAndPhoneRequired": "Please enter your name and phone number",
+    "invalidPhone": "Please enter a valid 10-digit phone number"
+  },
+  "order": {
+    "replaceTitle": "Replace cart?",
+    "replaceBody": "Your cart contains items from {{cartCity}}. Adding items from {{currentCity}} will clear your current cart.",
+    "cancel": "Cancel",
+    "clearAndAdd": "Clear & add",
+    "noMatchTitle": "Couldn't auto-match products",
+    "noMatchBody": "Browse the catalog to add items.",
+    "added_one": "Added {{count}} material to cart",
+    "added_other": "Added {{count}} materials to cart",
+    "review": "Please review quantities before checkout.",
+    "notAvailable": "Not available yet: {{materials}}. Add manually if needed."
+  },
+  "pdf": {
+    "subtitle": "Construction Material Estimate",
+    "email": "Email: {{value}}",
+    "phone": "Phone: {{value}}",
+    "customerDetails": "Customer Details",
+    "name": "Name: {{value}}",
+    "date": "Date: {{value}}",
+    "projectDetails": "Project Details",
+    "location": "Location: {{value}}",
+    "dimensions": "Dimensions: {{length}} ft × {{breadth}} ft",
+    "builtUpArea": "Built-up Area: {{value}} sq.ft",
+    "floors": "Number of Floors: {{value}}",
+    "columns": "Columns Required: {{columns}} ({{colsX}} × {{colsY}} grid)",
+    "materialsHeading": "Material Requirements & Cost",
+    "structureHeading": "STRUCTURE MATERIALS",
+    "foundationHeading": "FOUNDATION MATERIALS",
+    "structureSubtotal": "Structure Subtotal:",
+    "foundationSubtotal": "Foundation Subtotal:",
+    "total": "TOTAL ESTIMATED COST",
+    "standardPricing": "(using standard pricing)",
+    "priceNoteMarket": "* Prices based on {{count}} verified merchants in {{city}}",
+    "priceNoteStandard": "* Prices are standard estimates and may vary based on market conditions",
+    "disclaimerVariance": "* Actual requirements may vary based on design, wastage, and site conditions",
+    "disclaimerPreliminary": "* This is a preliminary estimate. Final quantities should be verified by a civil engineer."
+  }
+}

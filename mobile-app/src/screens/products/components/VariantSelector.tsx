@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text } from '../../../components/ui';
 import { colors, radii, spacing } from '../../../theme';
 import type { ProductVariant } from '../../../types/models';
@@ -14,16 +15,17 @@ interface VariantSelectorProps {
 
 /** Web "Select Size": each chip carries its own price; out-of-stock sizes are struck and disabled. */
 export function VariantSelector({ variants, selectedLabel, unit, onSelect }: VariantSelectorProps) {
+  const { t } = useTranslation('products');
   const selected = variants.find((v) => v.label === selectedLabel);
   return (
     <View>
       <View style={styles.titleRow}>
         <Text variant="title" weight="bold">
-          Select Size
+          {t('variant.title')}
         </Text>
         {!selected && (
           <Text variant="caption" color="danger" weight="semibold">
-            (required)
+            {t('variant.required')}
           </Text>
         )}
       </View>
@@ -38,7 +40,7 @@ export function VariantSelector({ variants, selectedLabel, unit, onSelect }: Var
               disabled={soldOut}
               accessibilityRole="radio"
               accessibilityState={{ selected: isSelected, disabled: soldOut }}
-              accessibilityLabel={`${variant.label}, ${soldOut ? 'out of stock' : formatPrice(variant.price)}`}
+              accessibilityLabel={`${variant.label}, ${soldOut ? t('stock.outOfStockLower') : formatPrice(variant.price)}`}
               style={({ pressed }) => [
                 styles.chip,
                 isSelected && styles.chipSelected,
@@ -50,7 +52,7 @@ export function VariantSelector({ variants, selectedLabel, unit, onSelect }: Var
                 {variant.label}
               </Text>
               <Text variant="caption" weight="semibold" color={soldOut ? 'danger' : isSelected ? 'primary' : 'textSecondary'}>
-                {soldOut ? 'Out of stock' : formatPrice(variant.price)}
+                {soldOut ? t('stock.outOfStockLower') : formatPrice(variant.price)}
               </Text>
             </Pressable>
           );
@@ -58,7 +60,7 @@ export function VariantSelector({ variants, selectedLabel, unit, onSelect }: Var
       </View>
       {selected && (
         <Text variant="caption" color="textSecondary" style={styles.stock}>
-          Stock: {selected.stock} {unit} available
+          {t('variant.stock', { count: selected.stock, unit: unit ?? '' })}
         </Text>
       )}
     </View>

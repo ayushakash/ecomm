@@ -5,6 +5,9 @@ import { useCart } from '../../contexts/CartContext';
 import Header from './Header';
 import Footer from './Footer';
 import MobileMenu from './MobileMenu';
+import LanguagePrompt from '../../i18n/LanguagePrompt';
+import LanguageSync from '../../i18n/LanguageSync';
+import { useTranslation } from 'react-i18next';
 
 const PageLoader = () => (
   <div className="min-h-[60vh] flex items-center justify-center">
@@ -14,14 +17,15 @@ const PageLoader = () => (
 const Layout = () => {
   const { user, isAuthenticated } = useAuth();
   const { getCartCount } = useCart();
+  const { t } = useTranslation('layout');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigation = [
-    { name: 'Home', href: '/' },
-    { name: 'Products', href: '/products' },
-    { name: 'Calculator', href: '/calculator' },
-    { name: 'Blog', href: '/blog' },
-    { name: 'Contact', href: '/contact' },
+    { id: 'home', name: t('nav.home'), href: '/' },
+    { id: 'products', name: t('nav.products'), href: '/products' },
+    { id: 'calculator', name: t('nav.calculator'), href: '/calculator' },
+    { id: 'blog', name: t('nav.blog'), href: '/blog' },
+    { id: 'contact', name: t('nav.contact'), href: '/contact' },
   ];
 
   return (
@@ -54,6 +58,8 @@ const Layout = () => {
       {/* Footer */}
       <Footer cartCount={getCartCount()} />
 
+      <LanguagePrompt />
+      <LanguageSync />
     </div>
   );
 };

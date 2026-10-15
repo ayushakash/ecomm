@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { BottomSheet, Button, Icon, Input, Text } from '../../../components/ui';
 import { colors, radii, spacing } from '../../../theme';
-import { EMPTY_PRICE_RANGE, PRICE_PRESETS, SORT_LABELS, type PriceRange, type SortOption } from './productFilters';
+import { useTranslation } from 'react-i18next';
+import { EMPTY_PRICE_RANGE, PRICE_PRESETS, priceRangeLabel, sortLabel, type PriceRange, type SortOption } from './productFilters';
 
 export interface FilterSheetProps {
   visible: boolean;
@@ -17,6 +18,7 @@ export interface FilterSheetProps {
 
 /** Sort + price-range bottom sheet (web Home price popover + ProductList sort select). */
 export function FilterSheet({ visible, onClose, sortOptions, sortBy, priceRange, onApply }: FilterSheetProps) {
+  const { t } = useTranslation('products');
   const [draftSort, setDraftSort] = useState(sortBy);
   const [draftRange, setDraftRange] = useState(priceRange);
 
@@ -37,21 +39,21 @@ export function FilterSheet({ visible, onClose, sortOptions, sortBy, priceRange,
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Sort & filter"
+      title={t('filter.title')}
       footer={
         <View style={styles.footer}>
           <Button
-            title="Clear"
+            title={t('filter.clear')}
             variant="outline"
             style={styles.flex}
             onPress={() => apply(sortOptions[0], EMPTY_PRICE_RANGE)}
           />
-          <Button title="Apply" style={styles.flex} onPress={() => apply(draftSort, draftRange)} />
+          <Button title={t('filter.apply')} style={styles.flex} onPress={() => apply(draftSort, draftRange)} />
         </View>
       }
     >
       <Text variant="label" color="textSecondary" style={styles.sectionLabel}>
-        SORT BY
+        {t('filter.sortBy')}
       </Text>
       <View style={styles.sortList}>
         {sortOptions.map((option) => {
@@ -65,7 +67,7 @@ export function FilterSheet({ visible, onClose, sortOptions, sortBy, priceRange,
               style={({ pressed }) => [styles.sortRow, pressed && styles.pressed]}
             >
               <Text variant="body" weight={selected ? 'bold' : 'medium'}>
-                {SORT_LABELS[option]}
+                {sortLabel(option)}
               </Text>
               <Icon
                 name={selected ? 'radio-button-on' : 'radio-button-off'}
@@ -78,21 +80,21 @@ export function FilterSheet({ visible, onClose, sortOptions, sortBy, priceRange,
       </View>
 
       <Text variant="label" color="textSecondary" style={styles.sectionLabel}>
-        PRICE RANGE
+        {t('filter.priceRange')}
       </Text>
       <View style={styles.presets}>
         {PRICE_PRESETS.map((preset) => {
           const selected = draftRange.min === preset.min && draftRange.max === preset.max;
           return (
             <Pressable
-              key={preset.label}
+              key={`${preset.min}-${preset.max}`}
               onPress={() => setDraftRange({ min: preset.min, max: preset.max })}
               accessibilityRole="button"
               accessibilityState={{ selected }}
               style={[styles.preset, selected && styles.presetSelected]}
             >
               <Text variant="label" color={selected ? 'primary' : 'text'} weight={selected ? 'bold' : 'semibold'}>
-                {preset.label}
+                {priceRangeLabel(preset)}
               </Text>
             </Pressable>
           );
@@ -100,7 +102,7 @@ export function FilterSheet({ visible, onClose, sortOptions, sortBy, priceRange,
       </View>
       <View style={styles.rangeRow}>
         <Input
-          label="Min"
+          label={t('filter.min')}
           placeholder="0"
           prefix="₹"
           keyboardType="number-pad"
@@ -112,7 +114,7 @@ export function FilterSheet({ visible, onClose, sortOptions, sortBy, priceRange,
           –
         </Text>
         <Input
-          label="Max"
+          label={t('filter.max')}
           placeholder="∞"
           prefix="₹"
           keyboardType="number-pad"

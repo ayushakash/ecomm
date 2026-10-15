@@ -1,13 +1,15 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Icon, Text } from '../../../components/ui';
 import { colors, radii, spacing } from '../../../theme';
 import type { Order } from '../../../types/models';
-import { formatDateTime, getStepIndex, getStepTime, ORDER_STEPS } from './orderUtils';
+import { formatDateTime, getStepIndex, getStepTime, ORDER_STEPS, orderStatusLabel } from './orderUtils';
 
 /** Vertical Placed → Delivered tracker driven by orderStatus + statusHistory timestamps. */
 export function OrderProgress({ order }: { order: Order }) {
+  const { t } = useTranslation('orders');
   if (order.orderStatus === 'cancelled') {
     const cancelledAt = [...(order.statusHistory ?? [])].reverse().find((h) => h.status === 'cancelled')?.timestamp;
     return (
@@ -17,10 +19,10 @@ export function OrderProgress({ order }: { order: Order }) {
         </View>
         <View style={styles.flex}>
           <Text variant="title" weight="bold" color="dangerDark">
-            Order cancelled
+            {t('progress.cancelled')}
           </Text>
           <Text variant="caption" color="textSecondary">
-            {cancelledAt ? `Cancelled on ${formatDateTime(cancelledAt)}` : 'This order was cancelled.'}
+            {cancelledAt ? t('progress.cancelledOn', { date: formatDateTime(cancelledAt) }) : t('progress.cancelledNoDate')}
           </Text>
         </View>
       </View>
@@ -36,7 +38,7 @@ export function OrderProgress({ order }: { order: Order }) {
         const time = done ? getStepTime(order, index) : undefined;
         const last = index === ORDER_STEPS.length - 1;
         return (
-          <Animated.View key={step.label} entering={FadeIn.delay(index * 60)} style={styles.row}>
+          <Animated.View key={step.status} entering={FadeIn.delay(index * 60)} style={styles.row}>
             <View style={styles.rail}>
               <View style={[styles.dot, done && styles.dotDone, active && styles.dotActive]}>
                 <Icon name={done && !active ? 'checkmark' : step.icon} size={14} color={done ? 'textInverse' : 'textMuted'} />
@@ -45,7 +47,7 @@ export function OrderProgress({ order }: { order: Order }) {
             </View>
             <View style={[styles.stepText, !last && styles.stepGap]}>
               <Text variant="label" weight={active ? 'bold' : 'semibold'} color={done ? 'text' : 'textMuted'}>
-                {step.label}
+                {orderStatusLabel(step.status)}
               </Text>
               {time ? (
                 <Text variant="caption" color="textSecondary">

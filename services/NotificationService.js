@@ -3,12 +3,20 @@ const notificationConfig = require('../config/notifications');
 const OrderLog = require('../models/OrderLog');
 const { smartMerchantSelection } = require('../utils/geoUtils');
 
-// Customer app push copy per order event (orderNumber → body).
+// Customer app push copy per order event and language (orderNumber → body).
 const CUSTOMER_ORDER_PUSH = {
-  order_accepted: { title: '✅ Order confirmed', body: n => `Your order ${n} has been confirmed and is being prepared.` },
-  order_shipped: { title: '🚚 Out for delivery', body: n => `Your order ${n} is on the way to your site.` },
-  order_delivered: { title: '📦 Order delivered', body: n => `Your order ${n} has been delivered. Thank you for choosing Chardeevari!` },
-  order_cancelled: { title: 'Order cancelled', body: n => `Your order ${n} was cancelled. Tap to see details or contact us for help.` }
+  en: {
+    order_accepted: { title: '✅ Order confirmed', body: n => `Your order ${n} has been confirmed and is being prepared.` },
+    order_shipped: { title: '🚚 Out for delivery', body: n => `Your order ${n} is on the way to your site.` },
+    order_delivered: { title: '📦 Order delivered', body: n => `Your order ${n} has been delivered. Thank you for choosing Chardeevari!` },
+    order_cancelled: { title: 'Order cancelled', body: n => `Your order ${n} was cancelled. Tap to see details or contact us for help.` }
+  },
+  hi: {
+    order_accepted: { title: '✅ ऑर्डर कन्फर्म हुआ', body: n => `आपका ऑर्डर ${n} कन्फर्म हो गया है और तैयार किया जा रहा है।` },
+    order_shipped: { title: '🚚 डिलीवरी के लिए निकल चुका है', body: n => `आपका ऑर्डर ${n} आपकी साइट के लिए रास्ते में है।` },
+    order_delivered: { title: '📦 ऑर्डर डिलीवर हो गया', body: n => `आपका ऑर्डर ${n} डिलीवर हो गया है। Chardeevari चुनने के लिए धन्यवाद!` },
+    order_cancelled: { title: 'ऑर्डर रद्द हुआ', body: n => `आपका ऑर्डर ${n} रद्द कर दिया गया। जानकारी देखने या मदद के लिए टैप करें।` }
+  }
 };
 
 class NotificationService {
@@ -457,9 +465,11 @@ class NotificationService {
     const order = eventData.orderData || {};
     const results = [];
     try {
-      const message = CUSTOMER_ORDER_PUSH[eventType];
       const cancelledByCustomer = eventType === 'order_cancelled' && eventData.triggeredBy?.userType === 'customer';
-      if (message && order.customerId && !cancelledByCustomer) {
+      if (CUSTOMER_ORDER_PUSH.en[eventType] && order.customerId && !cancelledByCustomer) {
+        const User = require('../models/User');
+        const customer = await User.findById(order.customerId).select('language').lean();
+        const message = (CUSTOMER_ORDER_PUSH[customer?.language] || CUSTOMER_ORDER_PUSH.en)[eventType];
         const result = await ExpoPushService.sendToUsers([order.customerId], {
           title: message.title,
           body: message.body(order.orderNumber || ''),

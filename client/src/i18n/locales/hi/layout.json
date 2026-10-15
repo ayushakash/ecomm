@@ -1,0 +1,45 @@
+{
+  "logoAlt": "Chardeevari लोगो",
+  "serviceAreas": "अभी यहाँ डिलीवरी हो रही है:",
+  "nav": {
+    "home": "होम",
+    "products": "प्रोडक्ट्स",
+    "calculator": "कैलकुलेटर",
+    "blog": "ब्लॉग",
+    "contact": "संपर्क",
+    "contactUs": "संपर्क करें",
+    "aboutUs": "हमारे बारे में",
+    "cart": "कार्ट",
+    "profile": "प्रोफ़ाइल",
+    "myAddresses": "मेरे पते",
+    "orders": "ऑर्डर"
+  },
+  "auth": {
+    "login": "लॉग इन",
+    "register": "रजिस्टर करें",
+    "logout": "लॉग आउट"
+  },
+  "menu": {
+    "quickLinks": "ज़रूरी लिंक",
+    "close": "मेन्यू बंद करें"
+  },
+  "location": {
+    "deliveringTo": "डिलीवरी यहाँ",
+    "shoppingIn": "खरीदारी यहाँ",
+    "select": "चुनें",
+    "location": "लोकेशन",
+    "yourAddresses": "आपके पते",
+    "default": "डिफ़ॉल्ट",
+    "manageAddresses": "पते संभालें",
+    "detecting": "लोकेशन पता कर रहे हैं...",
+    "useCurrent": "मेरी अभी की लोकेशन लें",
+    "orSelectCity": "या अपना शहर चुनें",
+    "searchCity": "शहर खोजें...",
+    "loadingCities": "शहर लोड हो रहे हैं...",
+    "noCitiesMatch": "\"{{query}}\" से कोई शहर नहीं मिला",
+    "noCities": "अभी कोई शहर उपलब्ध नहीं है",
+    "storeCount_one": "{{count}} दुकान",
+    "storeCount_other": "{{count}} दुकानें",
+    "registerToShop": "खरीदारी शुरू करने के लिए रजिस्टर करें"
+  }
+}

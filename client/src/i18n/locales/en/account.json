@@ -1,0 +1,33 @@
+{
+  "deletePage": {
+    "title": "Delete your Chardeevari account",
+    "intro": "You can permanently delete your account from the Chardeevari app (Account → Delete account) or right here.",
+    "whatHappens": "What happens when you delete",
+    "items": {
+      "personal": "Your name, phone number, email and Google sign-in link are erased immediately.",
+      "saved": "Your saved addresses, cart and reviews are deleted.",
+      "invoices": "Invoices for past orders are retained as required by Indian GST law, but are no longer linked to any account.",
+      "activeOrders": "If an order is still being delivered, please wait for it to be delivered or cancel it first."
+    },
+    "notCustomer": "Merchant and admin accounts can't be deleted here. Please contact support at {{phone}}.",
+    "loginPrompt": "Log in with your registered phone number to continue.",
+    "loginButton": "Log in to delete account",
+    "help": "Need help? Call or WhatsApp {{phone}}."
+  },
+  "deletePanel": {
+    "title": "Delete account",
+    "subtitle": "Permanently delete your Chardeevari account and personal data.",
+    "open": "Delete my account",
+    "warning": "This cannot be undone. You will be logged out.",
+    "items": {
+      "personal": "Your name, phone number, email and Google sign-in link are erased",
+      "saved": "Saved addresses, cart and reviews are deleted",
+      "invoices": "Past order invoices are kept as required by GST law, but are no longer linked to an account"
+    },
+    "typeToConfirm": "Type {{word}} to confirm",
+    "cancel": "Cancel",
+    "deleting": "Deleting…",
+    "confirm": "Delete permanently",
+    "success": "Your account and personal data have been deleted."
+  }
+}

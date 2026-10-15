@@ -6,6 +6,8 @@ import { colors, radii, spacing } from '../../../theme';
 import { formatNumber, formatRupees, type MaterialLine } from '../calculatorMath';
 
 export interface MaterialRow {
+  /** Stable React key (material id). */
+  key: string;
   name: string;
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   line: MaterialLine;
@@ -44,7 +46,7 @@ export function MaterialSection({ title, tone, rows, subtotalLabel, subtotal }: 
         </Text>
       </View>
       {rows.map((row, idx) => (
-        <View key={row.name} style={[styles.row, idx < rows.length - 1 && styles.rowDivider]}>
+        <View key={row.key} style={[styles.row, idx < rows.length - 1 && styles.rowDivider]}>
           <View style={[styles.icon, { backgroundColor: t.iconBg }]}>
             <MaterialCommunityIcons name={row.icon} size={18} color={t.accent} />
           </View>

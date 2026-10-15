@@ -1,5 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Chip, EmptyState, Screen, ScreenHeader } from '../../components/ui';
 import { useInfiniteOrders } from '../../hooks/queries';
@@ -11,6 +12,7 @@ import { ORDER_FILTERS } from './components/orderUtils';
 
 /** Port of client/src/pages/orders/OrderHistory.js: paginated history with status filters. */
 export default function OrdersScreen({ navigation }: MainTabScreenProps<'OrdersTab'>) {
+  const { t } = useTranslation('orders');
   const [status, setStatus] = useState<OrderStatus | undefined>(undefined);
   const query = useInfiniteOrders({ status });
   const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = query;
@@ -41,17 +43,17 @@ export default function OrdersScreen({ navigation }: MainTabScreenProps<'OrdersT
     [navigation],
   );
 
-  const filterLabel = ORDER_FILTERS.find((f) => f.value === status)?.label;
+  const filterKey = ORDER_FILTERS.find((f) => f.value === status)?.key;
 
   return (
     <Screen>
-      <ScreenHeader title="My Orders" subtitle="Track all your orders in one place" back={false} icon="receipt-outline" />
+      <ScreenHeader title={t('list.title')} subtitle={t('list.subtitle')} back={false} icon="receipt-outline" />
       <View style={styles.filtersWrap}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
           {ORDER_FILTERS.map((filter) => (
             <Chip
-              key={filter.label}
-              label={filter.label}
+              key={filter.key}
+              label={t(`filters.${filter.key}`)}
               selected={filter.value === status}
               onPress={() => setStatus(filter.value)}
             />
@@ -68,9 +70,9 @@ export default function OrdersScreen({ navigation }: MainTabScreenProps<'OrdersT
       ) : isError && orders.length === 0 ? (
         <EmptyState
           icon="cloud-offline-outline"
-          title="Couldn't load your orders"
-          message="Check your connection and try again."
-          actionLabel="Retry"
+          title={t('list.errorTitle')}
+          message={t('list.errorMessage')}
+          actionLabel={t('retry')}
           onAction={() => refetch()}
         />
       ) : (
@@ -90,18 +92,18 @@ export default function OrdersScreen({ navigation }: MainTabScreenProps<'OrdersT
             status ? (
               <EmptyState
                 icon="filter-outline"
-                title={`No ${filterLabel?.toLowerCase()} orders`}
-                message="Try another filter to see the rest of your orders."
-                actionLabel="Show all orders"
+                title={t('list.emptyFiltered', { status: filterKey ? t(`filters.${filterKey}`) : '' })}
+                message={t('list.emptyFilteredMessage')}
+                actionLabel={t('list.showAll')}
                 actionVariant="outline"
                 onAction={() => setStatus(undefined)}
               />
             ) : (
               <EmptyState
                 icon="receipt-outline"
-                title="No orders yet"
-                message="Start shopping to see your orders here!"
-                actionLabel="Browse Products"
+                title={t('list.emptyTitle')}
+                message={t('list.emptyMessage')}
+                actionLabel={t('list.browse')}
                 onAction={() => navigation.navigate('ProductsTab')}
               />
             )

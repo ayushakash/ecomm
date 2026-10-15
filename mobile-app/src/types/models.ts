@@ -21,6 +21,8 @@ export interface User {
   isPhoneVerified?: boolean;
   authProvider?: 'local' | 'google' | string;
   googleId?: string;
+  /** Preferred language; drives order notification language (routes/users.js). */
+  language?: 'en' | 'hi';
   createdAt?: string;
 }
 

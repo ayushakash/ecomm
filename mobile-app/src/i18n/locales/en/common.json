@@ -1,0 +1,125 @@
+{
+  "language": {
+    "label": "Language",
+    "title": "Choose your language",
+    "subtitle": "You can change this anytime in Account."
+  },
+  "tabs": {
+    "home": "Home",
+    "categories": "Categories",
+    "cart": "Cart",
+    "orders": "Orders",
+    "account": "Account",
+    "myOrders": "My Orders"
+  },
+  "actions": {
+    "close": "Close",
+    "goBack": "Go back",
+    "seeAll": "See all",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "login": "Login",
+    "change": "Change",
+    "add": "ADD",
+    "options": "Options",
+    "remove": "Remove"
+  },
+  "auth": {
+    "loginTitle": "Login to continue",
+    "loginMessage": "Log in with your mobile number to view your orders and addresses.",
+    "customerRequired": "Customer account required",
+    "customerOnly": "This app is for customers. Merchants and admins please use chardeevari.in.",
+    "sendOtpFailed": "Failed to send OTP",
+    "accountCreated": "Account created!",
+    "nowLoggedIn": "You are now logged in.",
+    "loginSuccess": "Login successful!",
+    "otpFailed": "OTP verification failed",
+    "googleSuccess": "Logged in with Google!",
+    "googleFailed": "Google login failed",
+    "phoneLinked": "Phone number verified and linked!",
+    "phoneFailed": "Phone verification failed",
+    "sendCodeFailed": "Failed to send verification code",
+    "emailUpdated": "Email updated successfully!",
+    "emailFailed": "Email verification failed",
+    "profileUpdated": "Profile updated successfully!",
+    "profileFailed": "Profile update failed",
+    "deleteFailed": "Could not delete account. Please try again."
+  },
+  "location": {
+    "deliveringTo": "Delivering to",
+    "chipA11y": "Delivery location: {{label}}. Change",
+    "selectLocation": "Select location",
+    "exactUnavailable": "Exact location not available",
+    "exactUnavailableBody": "Showing all city merchants. Delivery availability will be confirmed by merchant.",
+    "noMerchantsArea": "No merchants available in your area yet",
+    "loadAreaFailed": "Failed to load merchants in your area",
+    "foundInCity": "Found {{count}} merchants in {{city}}!",
+    "noneInCity": "No merchants currently serving {{city}}",
+    "expandingCities": "We're expanding to new cities soon!",
+    "loadFailed": "Failed to load merchants",
+    "foundNear": "Found {{count}} merchants near you!",
+    "noneNear": "No merchants deliver to your location yet",
+    "expanding": "We're expanding soon!",
+    "loadNearFailed": "Failed to load merchants near you",
+    "permissionDenied": "Location permission denied",
+    "enableInSettings": "You can enable it in Settings.",
+    "getting": "Getting your location…",
+    "cityUnknown": "Could not determine your city",
+    "selectManually": "Please select manually.",
+    "unavailable": "Unable to get location",
+    "servicesOn": "Make sure location services are on."
+  },
+  "cart": {
+    "replaceTitle": "Replace cart?",
+    "replaceMessage": "Your cart contains items from {{cartCity}}. Adding items from {{city}} will clear your current cart.",
+    "clearAndAdd": "Clear & add",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "payOnDelivery": "{{total}} · Pay on delivery",
+    "viewCart": "View cart",
+    "viewCartA11y": "View cart, {{count}} items, {{total}}"
+  },
+  "external": {
+    "openFailed": "Could not open link",
+    "callFailed": "Could not start call",
+    "whatsappUnavailable": "WhatsApp ordering is not available right now",
+    "callUnavailable": "Call ordering is not available right now"
+  },
+  "orderStatus": {
+    "pending": "Placed",
+    "confirmed": "Confirmed",
+    "processing": "Packing",
+    "shipped": "Out for delivery",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "product": {
+    "off": "{{discount}}% OFF",
+    "onlyLeft": "Only {{count}} left",
+    "outOfStockBadge": "OUT OF STOCK",
+    "outOfStock": "Out of stock",
+    "sizes_one": "{{count}} size available",
+    "sizes_other": "{{count}} sizes available",
+    "perUnit": "Per {{unit}}",
+    "from": "From",
+    "bulk": "Bulk? {{qty}}+ {{unit}}"
+  },
+  "quantity": {
+    "label": "Quantity",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity"
+  },
+  "search": {
+    "searchFor": "Search for ",
+    "a11y": "Search products",
+    "clear": "Clear search",
+    "hints": {
+      "cement": "cement",
+      "tmt": "TMT steel bars",
+      "bricks": "red bricks",
+      "sand": "river sand",
+      "chips": "stone chips",
+      "tiles": "tiles"
+    }
+  }
+}

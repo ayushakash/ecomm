@@ -1,0 +1,119 @@
+{
+  "materials": {
+    "cement": "Cement",
+    "steel": "Steel",
+    "steelTmt": "Steel/TMT",
+    "steelTmtBars": "Steel (TMT Bars)",
+    "sand": "Sand",
+    "sandMSand": "Sand (M-Sand)",
+    "aggregate": "Aggregate",
+    "aggregate20mm": "Aggregate (20mm)",
+    "bricks": "Bricks"
+  },
+  "toasts": {
+    "noLivePrices": "No live prices found for {{city}} — using standard rates",
+    "somePricesStandard": "Some prices use standard rates (no local data): {{materials}}",
+    "pdfDownloaded": "PDF Report downloaded successfully!",
+    "noMatch": "Couldn't auto-match products. Browse the catalog to add items.",
+    "addedToCart_one": "Added {{count}} material to cart — please review quantities before checkout.",
+    "addedToCart_other": "Added {{count}} materials to cart — please review quantities before checkout.",
+    "notAvailable": "Not available yet: {{materials}}. Add manually if needed."
+  },
+  "errors": {
+    "enterDimensions": "Please enter either Length & Breadth OR Area.",
+    "calculateFirst": "Please calculate materials first",
+    "nameAndPhone": "Please enter your name and phone number",
+    "validPhone": "Please enter a valid 10-digit phone number"
+  },
+  "canvas": {
+    "grid": "Grid: {{colsX}} × {{colsY}} (spacing {{spacing}} ft)",
+    "squareAssumed": "(Square footprint assumed)"
+  },
+  "pdf": {
+    "subtitle": "Construction Material Estimate",
+    "email": "Email: {{email}}",
+    "phone": "Phone: {{phone}}",
+    "customerDetails": "Customer Details",
+    "name": "Name: {{name}}",
+    "date": "Date: {{date}}",
+    "projectDetails": "Project Details",
+    "location": "Location: {{city}}",
+    "dimensions": "Dimensions: {{length}} ft × {{breadth}} ft",
+    "builtUpArea": "Built-up Area: {{area}} sq.ft",
+    "floors": "Number of Floors: {{floors}}",
+    "columns": "Columns Required: {{columns}} ({{colsX}} × {{colsY}} grid)",
+    "materialRequirements": "Material Requirements & Cost",
+    "standardPricing": "(using standard pricing)",
+    "structureMaterials": "STRUCTURE MATERIALS",
+    "foundationMaterials": "FOUNDATION MATERIALS",
+    "totalEstimatedCost": "TOTAL ESTIMATED COST",
+    "pricesBasedOn_one": "* Prices based on {{count}} verified merchant in {{city}}",
+    "pricesBasedOn_other": "* Prices based on {{count}} verified merchants in {{city}}",
+    "standardEstimates": "* Prices are standard estimates and may vary based on market conditions",
+    "actualMayVary": "* Actual requirements may vary based on design, wastage, and site conditions",
+    "preliminary": "* This is a preliminary estimate. Final quantities should be verified by a civil engineer."
+  },
+  "header": {
+    "title": "Construction Material Calculator",
+    "subtitle": "Estimate cement, steel, sand & bricks for your project",
+    "detectingCity": "Detecting city...",
+    "live": "● live",
+    "estimated": "○ est",
+    "marketPrice": "Market Price",
+    "custom": "Custom"
+  },
+  "form": {
+    "lengthBreadth": "Length & Breadth",
+    "length": "Length (ft)",
+    "breadth": "Breadth (ft)",
+    "examplePlaceholder": "e.g. {{value}}",
+    "or": "OR",
+    "area": "Total Built-up Area (sq.ft)",
+    "floors": "Number of Floors",
+    "includeFooting": "Include footing",
+    "materialPrices": "Material Prices",
+    "priceCement": "Cement (₹/bag)",
+    "priceSteel": "Steel (₹/kg)",
+    "priceSand": "Sand (₹/cu.ft)",
+    "priceAgg": "Aggregate (₹/cu.ft)",
+    "priceBricks": "Bricks (₹/1000 nos)",
+    "calculated": "Calculated ✓",
+    "calculate": "Calculate Materials"
+  },
+  "results": {
+    "layout": "Layout Visualization",
+    "title": "Material Estimates",
+    "overview": "Project Overview",
+    "dimensions": "Dimensions:",
+    "area": "Area:",
+    "floors": "Floors:",
+    "columns": "Columns:",
+    "squareAssumed": "Square footprint assumed from area",
+    "structureMaterials": "Structure Materials",
+    "foundationMaterials": "Foundation Materials",
+    "structureSubtotal": "Structure Subtotal:",
+    "foundationSubtotal": "Foundation Subtotal:",
+    "totalEstimatedCost": "Total Estimated Cost",
+    "downloadReport": "Download Report",
+    "noteLabel": "Note:",
+    "note": "These are approximate estimates. Actual requirements may vary based on design, wastage, and site conditions. Prices shown are indicative for Ranchi, Jharkhand market."
+  },
+  "cta": {
+    "title": "Ready to Buy Construction Materials?",
+    "subtitle": "Get quality materials delivered to your site in Ranchi",
+    "adding": "Adding to cart…",
+    "order": "Order These Materials",
+    "browse": "Browse Products",
+    "reviewNote": "Quantities are estimates from your calculation — review them in the cart before checkout."
+  },
+  "lead": {
+    "title": "Download Your Estimate",
+    "subtitle": "Enter your details to download the report",
+    "name": "Your Name",
+    "phone": "Phone Number",
+    "namePlaceholder": "Enter your name",
+    "phonePlaceholder": "10-digit mobile number",
+    "cancel": "Cancel",
+    "download": "Download"
+  }
+}

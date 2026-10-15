@@ -6,8 +6,10 @@ import {
   ShoppingBagIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const LocationEducationModal = ({ isOpen, onClose, onAllowLocation, onManualEntry }) => {
+  const { t } = useTranslation('location');
   if (!isOpen) return null;
 
   return (
@@ -17,7 +19,7 @@ const LocationEducationModal = ({ isOpen, onClose, onAllowLocation, onManualEntr
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-          aria-label="Close"
+          aria-label={t('close')}
         >
           <XMarkIcon className="w-6 h-6" />
         </button>
@@ -30,10 +32,10 @@ const LocationEducationModal = ({ isOpen, onClose, onAllowLocation, onManualEntr
             </div>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
-            Why We Need Your Location
+            {t('education.title')}
           </h2>
           <p className="text-gray-600 text-center text-sm">
-            Help us provide you with the best shopping experience
+            {t('education.subtitle')}
           </p>
         </div>
 
@@ -44,9 +46,9 @@ const LocationEducationModal = ({ isOpen, onClose, onAllowLocation, onManualEntr
               <ShoppingBagIcon className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 text-sm">See Available Products</h3>
+              <h3 className="font-semibold text-gray-900 text-sm">{t('education.availableProducts.title')}</h3>
               <p className="text-gray-600 text-xs mt-1">
-                Only view products from merchants in your city
+                {t('education.availableProducts.text')}
               </p>
             </div>
           </div>
@@ -56,9 +58,9 @@ const LocationEducationModal = ({ isOpen, onClose, onAllowLocation, onManualEntr
               <TruckIcon className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 text-sm">Faster Delivery</h3>
+              <h3 className="font-semibold text-gray-900 text-sm">{t('education.fasterDelivery.title')}</h3>
               <p className="text-gray-600 text-xs mt-1">
-                Get deliveries from nearby merchants for quicker service
+                {t('education.fasterDelivery.text')}
               </p>
             </div>
           </div>
@@ -68,9 +70,9 @@ const LocationEducationModal = ({ isOpen, onClose, onAllowLocation, onManualEntr
               <ClockIcon className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 text-sm">Accurate Delivery Times</h3>
+              <h3 className="font-semibold text-gray-900 text-sm">{t('education.accurateTimes.title')}</h3>
               <p className="text-gray-600 text-xs mt-1">
-                Know exactly when your order will arrive based on distance
+                {t('education.accurateTimes.text')}
               </p>
             </div>
           </div>
@@ -80,9 +82,9 @@ const LocationEducationModal = ({ isOpen, onClose, onAllowLocation, onManualEntr
               <MapPinIcon className="w-5 h-5 text-orange-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 text-sm">Support Local Merchants</h3>
+              <h3 className="font-semibold text-gray-900 text-sm">{t('education.supportLocal.title')}</h3>
               <p className="text-gray-600 text-xs mt-1">
-                Discover and support businesses in your neighborhood
+                {t('education.supportLocal.text')}
               </p>
             </div>
           </div>
@@ -95,21 +97,21 @@ const LocationEducationModal = ({ isOpen, onClose, onAllowLocation, onManualEntr
             className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
           >
             <MapPinIcon className="w-5 h-5 mr-2" />
-            Use My Current Location
+            {t('useMyCurrentLocation')}
           </button>
 
           <button
             onClick={onManualEntry}
             className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors"
           >
-            Enter Address Manually
+            {t('enterManually')}
           </button>
         </div>
 
         {/* Privacy note */}
         <div className="px-6 pb-6">
           <p className="text-xs text-gray-500 text-center">
-            🔒 Your location is only used to show nearby merchants. We respect your privacy and never share your data.
+            🔒 {t('education.privacy')}
           </p>
         </div>
       </div>

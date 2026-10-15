@@ -1,0 +1,85 @@
+{
+  "close": "Close",
+  "cancel": "Cancel",
+  "enterManually": "Enter Address Manually",
+  "useMyCurrentLocation": "Use My Current Location",
+  "gettingLocation": "Getting Location...",
+  "errors": {
+    "notSupported": "Geolocation is not supported by this browser",
+    "unableToGet": "Unable to get your location.",
+    "denied": "Location access was denied. Please enable location permissions and try again.",
+    "unavailable": "Location information is unavailable.",
+    "timeout": "Location request timed out.",
+    "unknown": "An unknown error occurred."
+  },
+  "confirmation": {
+    "title": "Delivery Location",
+    "subtitle": "Using your current location helps us find the nearest merchants for faster delivery!",
+    "useCurrent": "Use Current Location",
+    "addressLabel": "Delivery Address",
+    "addressPlaceholder": "Enter your complete delivery address...",
+    "useCurrentRecommended": "Use Current Location (Recommended)",
+    "confirmAddress": "Confirm Address",
+    "enterAddressAlert": "Please enter a delivery address",
+    "benefitsTitle": "Benefits of accurate location:",
+    "benefits": {
+      "fasterAssignment": "Faster merchant assignment",
+      "accurateEstimates": "More accurate delivery estimates",
+      "betterCompletion": "Better order completion rates",
+      "lowerCharges": "Reduced delivery charges"
+    }
+  },
+  "education": {
+    "title": "Why We Need Your Location",
+    "subtitle": "Help us provide you with the best shopping experience",
+    "availableProducts": {
+      "title": "See Available Products",
+      "text": "Only view products from merchants in your city"
+    },
+    "fasterDelivery": {
+      "title": "Faster Delivery",
+      "text": "Get deliveries from nearby merchants for quicker service"
+    },
+    "accurateTimes": {
+      "title": "Accurate Delivery Times",
+      "text": "Know exactly when your order will arrive based on distance"
+    },
+    "supportLocal": {
+      "title": "Support Local Merchants",
+      "text": "Discover and support businesses in your neighborhood"
+    },
+    "privacy": "Your location is only used to show nearby merchants. We respect your privacy and never share your data."
+  },
+  "permission": {
+    "title": "Enable Location Access",
+    "subtitle": "We need your location to show nearby merchants and provide accurate delivery estimates",
+    "nearby": {
+      "title": "Find Nearby Merchants",
+      "text": "Get construction materials from stores near you"
+    },
+    "faster": {
+      "title": "Faster Delivery",
+      "text": "Quick delivery to your exact location"
+    },
+    "better": {
+      "title": "Better Experience",
+      "text": "Personalized recommendations based on your area"
+    },
+    "enable": "Enable Location",
+    "skip": "Skip for Now",
+    "privacy": "Your location data is secure and only used to improve your shopping experience"
+  },
+  "map": {
+    "goToCurrent": "Go to my current location",
+    "title": "Select Location on Map",
+    "subtitle": "Click on the map or drag the pin to set your location",
+    "fetchingAddress": "Fetching address...",
+    "locationSelected": "Location selected",
+    "locateFailed": "Could not get your location. Tap on the map instead.",
+    "locating": "Locating…",
+    "selectedLocation": "Selected Location",
+    "tapToDrop": "Tap anywhere on the map to drop a pin",
+    "processing": "Processing...",
+    "confirm": "Confirm Location"
+  }
+}

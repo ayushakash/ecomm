@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { BottomSheet, Button, Input, Text } from '../../../components/ui';
 import { spacing } from '../../../theme';
@@ -19,6 +20,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Two-step "enter value → enter OTP" sheet used to link a phone or change email (web Profile.js OTP flow). */
 export function VerifyChangeSheet({ kind, initialValue = '', onClose, sendOtp, verify }: Props) {
+  const { t } = useTranslation('account');
   const [value, setValue] = useState('');
   const [otp, setOtp] = useState('');
   const [pending, setPending] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function VerifyChangeSheet({ kind, initialValue = '', onClose, sendOtp, v
 
   const handleSend = async (target = value.trim()) => {
     if (isPhone ? !PHONE_RE.test(target) : !EMAIL_RE.test(target)) {
-      setError(isPhone ? 'Enter a valid 10-digit mobile number' : 'Enter a valid email address');
+      setError(isPhone ? 'verify.phoneInvalid' : 'verify.emailInvalid');
       return;
     }
     setError(null);
@@ -48,7 +50,7 @@ export function VerifyChangeSheet({ kind, initialValue = '', onClose, sendOtp, v
     if (res.success) {
       setPending(target);
       setOtp('');
-      if (res.devOtp) toast.info('OTP: ' + res.devOtp);
+      if (res.devOtp) toast.info(t('verify.devOtp', { otp: res.devOtp }));
     }
   };
 
@@ -60,60 +62,62 @@ export function VerifyChangeSheet({ kind, initialValue = '', onClose, sendOtp, v
     if (res.success) onClose();
   };
 
-  const title = isPhone ? 'Link phone number' : 'Change email';
+  const title = isPhone ? t('verify.linkPhoneTitle') : t('verify.changeEmailTitle');
   const subtitle = pending
-    ? `We sent a 6-digit code to ${isPhone ? 'your WhatsApp on +91 ' + pending : pending}`
+    ? isPhone
+      ? t('verify.sentPhone', { phone: pending })
+      : t('verify.sentEmail', { email: pending })
     : isPhone
-      ? 'We will verify it with an OTP on WhatsApp'
-      : 'We will send a verification code to the new email';
+      ? t('verify.phoneSub')
+      : t('verify.emailSub');
 
   return (
     <BottomSheet
       visible={kind !== null}
       onClose={onClose}
-      title={pending ? (isPhone ? 'Verify phone number' : 'Verify email address') : title}
+      title={pending ? (isPhone ? t('verify.verifyPhone') : t('verify.verifyEmail')) : title}
       subtitle={subtitle}
       footer={
         pending ? (
-          <Button title="Verify" fullWidth loading={busy} disabled={otp.length !== 6} onPress={handleVerify} />
+          <Button title={t('verify.verify')} fullWidth loading={busy} disabled={otp.length !== 6} onPress={handleVerify} />
         ) : (
-          <Button title="Send OTP" fullWidth loading={busy} onPress={() => handleSend()} />
+          <Button title={t('verify.sendOtp')} fullWidth loading={busy} onPress={() => handleSend()} />
         )
       }
     >
       {pending ? (
         <View style={styles.gap}>
           <Input
-            label="Verification code"
+            label={t('verify.code')}
             value={otp}
-            onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
+            onChangeText={(text) => setOtp(text.replace(/\D/g, '').slice(0, 6))}
             keyboardType="number-pad"
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
             maxLength={6}
-            placeholder="Enter 6-digit code"
+            placeholder={t('verify.codePlaceholder')}
             autoFocus
           />
           <View style={styles.row}>
-            <Button title="Change" variant="ghost" size="sm" onPress={() => setPending(null)} />
-            <Button title="Resend code" variant="ghost" size="sm" disabled={busy} onPress={() => handleSend(pending)} />
+            <Button title={t('profile.change')} variant="ghost" size="sm" onPress={() => setPending(null)} />
+            <Button title={t('verify.resend')} variant="ghost" size="sm" disabled={busy} onPress={() => handleSend(pending)} />
           </View>
         </View>
       ) : (
         <View style={styles.gap}>
           <Input
-            label={isPhone ? 'Mobile number' : 'Email address'}
+            label={isPhone ? t('verify.mobileLabel') : t('verify.emailLabel')}
             value={value}
-            onChangeText={(t) => setValue(isPhone ? t.replace(/\D/g, '').slice(0, 10) : t)}
+            onChangeText={(text) => setValue(isPhone ? text.replace(/\D/g, '').slice(0, 10) : text)}
             prefix={isPhone ? '+91' : undefined}
             keyboardType={isPhone ? 'phone-pad' : 'email-address'}
             autoCapitalize="none"
             autoComplete={isPhone ? 'tel' : 'email'}
-            error={error}
+            error={error && t(error)}
             autoFocus
           />
           <Text variant="caption" color="textMuted">
-            {isPhone ? 'Required for placing orders and delivery updates.' : 'Used for order receipts.'}
+            {isPhone ? t('verify.phoneNote') : t('verify.emailNote')}
           </Text>
         </View>
       )}

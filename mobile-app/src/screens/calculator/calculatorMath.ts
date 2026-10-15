@@ -3,6 +3,7 @@
  * client/src/pages/Calculator.js (calculateMaterials + MATERIAL_ORDER_CONFIG);
  * keep the two in sync when either changes.
  */
+import i18n from '../../i18n';
 import type { CityPriceMaterial, CityPricesResponse } from '../../types/models';
 
 export const CUFT_TO_M3 = 0.0283168;
@@ -141,7 +142,7 @@ export function calculateMaterials(input: CalculatorInput): CalculationOutcome {
     length = breadth = Math.sqrt(areaNum);
     assumedSquare = true;
   } else if (!length || !breadth) {
-    return { ok: false, error: 'Please enter either Length & Breadth OR Area.' };
+    return { ok: false, error: i18n.t('calculator:errors.dimensionsRequired') };
   }
 
   const builtArea = length * breadth;
@@ -257,7 +258,8 @@ export function calculateMaterials(input: CalculatorInput): CalculationOutcome {
 export type OrderMaterialKey = 'cement' | 'steel' | 'bricks' | 'sand' | 'aggregate';
 
 export interface MaterialOrderConfig {
-  label: string;
+  /** `calculator:materials.*` key for the user-visible name. */
+  labelKey: string;
   /** Catalog search keyword. */
   keyword: string;
   /** Calculator quantity (bags / kg / nos / cu.ft) → cart quantity in the product's unit. */
@@ -270,15 +272,15 @@ export interface MaterialOrderConfig {
  * Iteration order matches the web (cement, steel, bricks, sand, aggregate).
  */
 export const MATERIAL_ORDER_CONFIG: Record<OrderMaterialKey, MaterialOrderConfig> = {
-  cement: { label: 'Cement', keyword: 'cement', toQty: (qty) => Math.max(1, Math.ceil(qty)) }, // bags ≈ 'bag'
+  cement: { labelKey: 'materials.cement', keyword: 'cement', toQty: (qty) => Math.max(1, Math.ceil(qty)) }, // bags ≈ 'bag'
   steel: {
-    label: 'Steel/TMT',
+    labelKey: 'materials.steelOrder',
     keyword: 'tmt steel',
     toQty: (qty, unit) => (unit === 'ton' ? Math.max(1, Math.ceil(qty / 1000)) : Math.max(1, Math.ceil(qty))),
   },
-  bricks: { label: 'Bricks', keyword: 'brick', toQty: (qty) => Math.max(1, Math.ceil(qty)) }, // nos ≈ 'piece'
+  bricks: { labelKey: 'materials.bricks', keyword: 'brick', toQty: (qty) => Math.max(1, Math.ceil(qty)) }, // nos ≈ 'piece'
   sand: {
-    label: 'Sand',
+    labelKey: 'materials.sand',
     keyword: 'sand',
     toQty: (qty, unit) => {
       const m3 = qty * CUFT_TO_M3;
@@ -288,7 +290,7 @@ export const MATERIAL_ORDER_CONFIG: Record<OrderMaterialKey, MaterialOrderConfig
     },
   },
   aggregate: {
-    label: 'Aggregate',
+    labelKey: 'materials.aggregate',
     keyword: 'aggregate',
     toQty: (qty, unit) => {
       const m3 = qty * CUFT_TO_M3;

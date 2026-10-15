@@ -1,5 +1,6 @@
 import React from 'react';
 import { XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { useTranslation } from 'react-i18next';
 
 const ConfirmationModal = ({
   isOpen,
@@ -7,11 +8,12 @@ const ConfirmationModal = ({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   confirmButtonClass = 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800',
   isLoading = false
 }) => {
+  const { t } = useTranslation('common');
   if (!isOpen) return null;
 
   return (
@@ -21,6 +23,7 @@ const ConfirmationModal = ({
         <div className="relative p-6 pb-4">
           <button
             onClick={onClose}
+            aria-label={t('actions.close')}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
           >
             <XMarkIcon className="w-6 h-6" />
@@ -49,7 +52,7 @@ const ConfirmationModal = ({
             disabled={isLoading}
             className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {cancelText}
+            {cancelText ?? t('actions.cancel')}
           </button>
           <button
             onClick={onConfirm}
@@ -59,10 +62,10 @@ const ConfirmationModal = ({
             {isLoading ? (
               <span className="flex items-center justify-center">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Processing...
+                {t('status.processing')}
               </span>
             ) : (
-              confirmText
+              confirmText ?? t('actions.confirm')
             )}
           </button>
         </div>

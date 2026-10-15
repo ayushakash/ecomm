@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { CategoryTile, Skeleton, Text } from '../../../components/ui';
 import { colors, radii, SCREEN_PADDING, spacing } from '../../../theme';
 import type { Category } from '../../../types/models';
@@ -18,6 +19,7 @@ export interface CategoryRailProps {
 
 /** Horizontal "All + category" tile rail; keeps the selected tile scrolled into view. */
 export function CategoryRail({ categories, loading, selectedId, onSelect }: CategoryRailProps) {
+  const { t } = useTranslation('products');
   const scrollRef = useRef<ScrollView>(null);
   const offsets = useRef<Record<string, number>>({});
 
@@ -48,7 +50,7 @@ export function CategoryRail({ categories, loading, selectedId, onSelect }: Cate
         }}
         accessibilityRole="button"
         accessibilityState={{ selected: allSelected }}
-        accessibilityLabel="All products"
+        accessibilityLabel={t('rail.allA11y')}
         style={({ pressed }) => [styles.allWrap, pressed && styles.pressed]}
       >
         <View style={[styles.allSquare, allSelected && styles.allSquareSelected]}>
@@ -59,7 +61,7 @@ export function CategoryRail({ categories, loading, selectedId, onSelect }: Cate
           />
         </View>
         <Text variant="caption" weight={allSelected ? 'extrabold' : 'semibold'} align="center" numberOfLines={2}>
-          All
+          {t('rail.all')}
         </Text>
       </Pressable>
       {loading && !categories

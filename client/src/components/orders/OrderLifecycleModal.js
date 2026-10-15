@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { orderAPI } from '../../services/api';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
+  const { t } = useTranslation('orders');
   const [lifecycle, setLifecycle] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,11 +17,11 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
       const response = await orderAPI.getOrderLifecycle(orderId);
       setLifecycle(response.order?.lifecycle || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch order lifecycle');
+      setError(err.response?.data?.message || t('lifecycle.fetchFailed'));
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, t]);
 
   useEffect(() => {
     if (show && orderId) {
@@ -64,10 +66,11 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
   };
 
   const formatEventType = (eventType) => {
-    return eventType
+    const fallback = eventType
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+    return t(`lifecycle.events.${eventType}`, { defaultValue: fallback });
   };
 
   if (!show) return null;
@@ -87,13 +90,13 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Order Lifecycle - {orderNumber}
+                {t('lifecycle.title', { number: orderNumber })}
               </h3>
               <button
                 onClick={onHide}
                 className="bg-white rounded-md text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <span className="sr-only">Close</span>
+                <span className="sr-only">{t('close')}</span>
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -105,7 +108,7 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
               {loading && (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                  <p className="mt-2 text-gray-600">Loading order lifecycle...</p>
+                  <p className="mt-2 text-gray-600">{t('lifecycle.loading')}</p>
                 </div>
               )}
 
@@ -133,7 +136,7 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
                       </svg>
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm text-blue-800">No lifecycle events found for this order.</p>
+                      <p className="text-sm text-blue-800">{t('lifecycle.empty')}</p>
                     </div>
                   </div>
                 </div>
@@ -164,7 +167,7 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
                           {event.triggeredBy && (
                             <div className="mb-2">
                               <span className="text-xs text-gray-500">
-                                Triggered by: <strong className="text-gray-700">{event.triggeredBy.userName}</strong>
+                                {t('lifecycle.triggeredBy')} <strong className="text-gray-700">{event.triggeredBy.userName}</strong>
                                 {event.triggeredBy.userPhone && (
                                   <span className="ml-1 text-gray-600">({event.triggeredBy.userPhone})</span>
                                 )}
@@ -179,15 +182,15 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
                           {event.notificationSent?.n8n && (
                             <div className="mb-2">
                               <span className="text-xs text-gray-500">
-                                n8n Notification: {' '}
+                                {t('lifecycle.notification')}{' '}
                                 {event.notificationSent.n8n.sent ? (
-                                  <span className="text-green-600 font-medium">✅ Sent</span>
+                                  <span className="text-green-600 font-medium">✅ {t('lifecycle.sent')}</span>
                                 ) : (
-                                  <span className="text-red-600 font-medium">❌ Failed</span>
+                                  <span className="text-red-600 font-medium">❌ {t('lifecycle.failed')}</span>
                                 )}
                                 {event.notificationSent.n8n.sentAt && (
                                   <span className="ml-2 text-gray-400">
-                                    at {format(new Date(event.notificationSent.n8n.sentAt), 'HH:mm')}
+                                    {t('lifecycle.at')} {format(new Date(event.notificationSent.n8n.sentAt), 'HH:mm')}
                                   </span>
                                 )}
                               </span>
@@ -198,7 +201,7 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
                           {event.metadata && Object.keys(event.metadata).length > 0 && (
                             <details className="mt-2">
                               <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
-                                View Details
+                                {t('lifecycle.viewDetails')}
                               </summary>
                               <div className="mt-2 p-2 bg-white rounded border">
                                 <pre className="text-xs text-gray-600 whitespace-pre-wrap">
@@ -228,14 +231,14 @@ const OrderLifecycleModal = ({ show, onHide, orderId, orderNumber }) => {
                   : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
               }`}
             >
-              {loading ? 'Refreshing...' : 'Refresh'}
+              {loading ? t('lifecycle.refreshing') : t('lifecycle.refresh')}
             </button>
             <button
               type="button"
               onClick={onHide}
               className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
             >
-              Close
+              {t('close')}
             </button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { colors, radii, spacing } from '../../theme';
 import type { OrderStatus } from '../../types/models';
 import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
+import i18n from '../../i18n';
 
 export type BadgeTone = 'neutral' | 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'brand';
 
@@ -48,15 +49,15 @@ export function Badge({ label, tone = 'neutral', solid = false, icon, size = 'sm
   );
 }
 
-/** Order/item status → badge label + tone (customer wording). */
+/** Order/item status → badge label + tone (customer wording). `label` is a getter so it follows the current language. */
 export const ORDER_STATUS_BADGE: Record<OrderStatus, { label: string; tone: BadgeTone }> = {
-  pending: { label: 'Placed', tone: 'warning' },
-  approved: { label: 'Confirmed', tone: 'info' },
-  assigned: { label: 'Confirmed', tone: 'info' },
-  processing: { label: 'Packing', tone: 'info' },
-  shipped: { label: 'Out for delivery', tone: 'primary' },
-  delivered: { label: 'Delivered', tone: 'success' },
-  cancelled: { label: 'Cancelled', tone: 'danger' },
+  pending: { get label() { return i18n.t('common:orderStatus.pending'); }, tone: 'warning' },
+  approved: { get label() { return i18n.t('common:orderStatus.confirmed'); }, tone: 'info' },
+  assigned: { get label() { return i18n.t('common:orderStatus.confirmed'); }, tone: 'info' },
+  processing: { get label() { return i18n.t('common:orderStatus.processing'); }, tone: 'info' },
+  shipped: { get label() { return i18n.t('common:orderStatus.shipped'); }, tone: 'primary' },
+  delivered: { get label() { return i18n.t('common:orderStatus.delivered'); }, tone: 'success' },
+  cancelled: { get label() { return i18n.t('common:orderStatus.cancelled'); }, tone: 'danger' },
 };
 
 /** Small count bubble (tab icons, cart button). Hidden when count <= 0. */

@@ -62,6 +62,12 @@ const userSchema = new mongoose.Schema({
   deletedAt: {
     type: Date
   },
+  // Preferred UI/notification language chosen in the app or on the website.
+  language: {
+    type: String,
+    enum: ['en', 'hi'],
+    default: 'en'
+  },
   // Expo push tokens of the customer's signed-in devices (routes/pushTokens.js).
   pushTokens: [{
     _id: false,

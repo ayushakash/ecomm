@@ -1,0 +1,184 @@
+{
+  "sort": {
+    "name": "Name (A–Z)",
+    "latest": "Latest",
+    "priceLow": "Price: Low to High",
+    "priceHigh": "Price: High to Low"
+  },
+  "price": {
+    "under": "Under ₹{{amount}}",
+    "above": "Above ₹{{amount}}",
+    "label": "Price"
+  },
+  "filter": {
+    "title": "Sort & filter",
+    "clear": "Clear",
+    "apply": "Apply",
+    "sortBy": "SORT BY",
+    "priceRange": "PRICE RANGE",
+    "min": "Min",
+    "max": "Max"
+  },
+  "rail": {
+    "all": "All",
+    "allA11y": "All products"
+  },
+  "gallery": {
+    "slideA11y": "{{name}} image {{index}} of {{total}}, open full screen",
+    "imageA11y": "{{name}} - Image {{index}}",
+    "tapToZoom": "Tap to zoom",
+    "closeViewer": "Close image viewer",
+    "showImage": "Show image {{index}}",
+    "previous": "Previous image",
+    "next": "Next image"
+  },
+  "stock": {
+    "outOfStock": "Out of Stock",
+    "outOfStockLower": "Out of stock",
+    "inStock": "In stock",
+    "sizesAvailable_one": "{{count}} size available",
+    "sizesAvailable_other": "{{count}} sizes available",
+    "onlyLeft_one": "Only {{count}} left!",
+    "onlyLeft_other": "Only {{count}} left!"
+  },
+  "variant": {
+    "title": "Select Size",
+    "required": "(required)",
+    "stock_one": "Stock: {{count}} {{unit}} available",
+    "stock_other": "Stock: {{count}} {{unit}} available"
+  },
+  "list": {
+    "title": "Categories",
+    "subtitle": "Cement, steel, sand & more",
+    "searchA11y": "Search products",
+    "findingMerchants": "Finding merchants near you...",
+    "allMaterials": "Construction Materials",
+    "productCount_one": "{{count}} product",
+    "productCount_other": "{{count}} products"
+  },
+  "gate": {
+    "city": {
+      "title": "Where should we deliver?",
+      "message": "Select your city to see products and merchants available in your area.",
+      "orPick": "or pick a city",
+      "loginAction": "Login",
+      "loginRest": "for a fully personalised experience"
+    },
+    "useMyLocation": "Use my current location",
+    "address": {
+      "title": "Set your delivery location",
+      "message": "Add an address for precise delivery, or use your current location to browse products near you.",
+      "add": "Add delivery address",
+      "useLocation": "Use current location to browse"
+    },
+    "detecting": "Detecting location..."
+  },
+  "noMerchants": {
+    "areaTitle": "No merchants in your area yet",
+    "areaMessage": "We don't have merchants serving {{place}} yet. We're expanding to new areas soon — try a different address.",
+    "changeAddress": "Change address",
+    "cityTitle": "No merchants in {{city}} yet",
+    "cityMessage": "We're expanding to new areas soon. Try a different location or check back later.",
+    "changeLocation": "Change location"
+  },
+  "banner": {
+    "addAddressA11y": "Add address",
+    "browsingPrefix": "Browsing in ",
+    "browsingSuffix": ". Add an address for accurate delivery options.",
+    "add": "Add",
+    "changeLocationA11y": "Change delivery location",
+    "deliveringTo": "Delivering to {{place}}",
+    "showingIn": "Showing products in {{city}}",
+    "merchants_one": "{{count}} merchant",
+    "merchants_other": "{{count}} merchants",
+    "withinKm": "within {{km}}km",
+    "expanded": "(expanded search)",
+    "merchantsAvailable_one": "{{count}} merchant available",
+    "merchantsAvailable_other": "{{count}} merchants available",
+    "loginHint": "Login for precise delivery",
+    "change": "Change",
+    "changeCity": "Change city"
+  },
+  "empty": {
+    "loadErrorTitle": "Couldn't load products",
+    "loadErrorMessage": "Check your connection and try again.",
+    "retry": "Retry",
+    "noProductsTitle": "No products found",
+    "noProductsMessage": "Try adjusting your search or filter criteria.",
+    "clearFilters": "Clear filters"
+  },
+  "search": {
+    "browseA11y": "Browse {{name}}",
+    "categoryTag": "Category",
+    "resultsFor": "Results for “{{term}}”",
+    "products": "Products",
+    "inScope": "in {{name}}",
+    "found_one": "{{count}} product found",
+    "found_other": "{{count}} products found",
+    "noMatchCategory": "Nothing matches in this category. Try searching all categories.",
+    "noMatchHint": "Try a different word, like “cement” or “bricks”.",
+    "searchAll": "Search all categories",
+    "goBack": "Go back",
+    "recent": "Recent searches",
+    "clearRecentA11y": "Clear recent searches",
+    "clearAll": "Clear all",
+    "searchTermA11y": "Search {{term}}",
+    "removeRecentA11y": "Remove {{term}} from recent searches",
+    "popular": "Popular searches",
+    "browseCategories": "Browse categories"
+  },
+  "detail": {
+    "toast": {
+      "selectSize": "Please select a size first",
+      "outOfStock": "Product is out of stock",
+      "added_one": "Added {{count}} item to cart",
+      "added_other": "Added {{count}} items to cart",
+      "shareFailed": "Could not share this product"
+    },
+    "shareMessage": "{{name}} on Chardeevari",
+    "whatsappUnavailable": "WhatsApp ordering is not available right now",
+    "shareA11y": "Share product",
+    "openCartA11y": "Open cart",
+    "headerTitle": "Product",
+    "notAvailable": {
+      "title": "Product not available",
+      "loadError": "This product could not be loaded.",
+      "notFound": "Product not found",
+      "browse": "Browse products",
+      "retry": "Try again"
+    },
+    "from": "From",
+    "taxNote": "GST bill available · taxes shown in the bill at checkout",
+    "trust": {
+      "delivery": "Delivery in 60 min — {{city}}",
+      "payOnDelivery": "Pay on Delivery",
+      "genuine": "100% genuine · GST billing"
+    },
+    "quantity": "Quantity",
+    "qtyTotal": "{{price}} for {{quantity}} {{unit}}",
+    "selectSizeHint": "Select a size above to continue",
+    "inCart": {
+      "a11y_one": "View cart, {{count}} in cart",
+      "a11y_other": "View cart, {{count}} in cart",
+      "units_one": "{{count}} unit in your cart",
+      "units_other": "{{count}} units in your cart",
+      "view": "View cart"
+    },
+    "bulk": {
+      "a11y": "Bulk order {{qty}} plus {{unit}} on WhatsApp",
+      "title": "Buying {{qty}}+ {{unit}}?",
+      "subtitle": "Get special bulk pricing on WhatsApp"
+    },
+    "orderWhatsApp": "Order on WhatsApp",
+    "callToOrder": "Call to Order",
+    "description": "Description",
+    "showLess": "Show less",
+    "readMore": "Read more",
+    "specifications": "Specifications",
+    "addMore": "Add More",
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now",
+    "decreaseQty": "Decrease quantity",
+    "increaseQty": "Increase quantity"
+  }
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { BottomSheet, Icon, Text } from '../../../components/ui';
 import { colors, radii, spacing } from '../../../theme';
@@ -14,8 +15,14 @@ interface Props {
 
 /** Pricing-city picker (web header <select> of available cities). */
 export function CityPickerSheet({ visible, onClose, cities, selected, onSelect }: Props) {
+  const { t } = useTranslation('calculator');
   return (
-    <BottomSheet visible={visible} onClose={onClose} title="Pricing city" subtitle="Market prices come from merchants in this city">
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      title={t('cityPicker.title')}
+      subtitle={t('cityPicker.subtitle')}
+    >
       <View style={styles.list}>
         {cities.map((c) => {
           const active = c.city === selected;
@@ -35,7 +42,7 @@ export function CityPickerSheet({ visible, onClose, cities, selected, onSelect }
               <View style={styles.flex}>
                 <Text variant="title">{c.city}</Text>
                 <Text variant="caption" color="textSecondary">
-                  {c.state} · {c.merchantCount} {c.merchantCount === 1 ? 'merchant' : 'merchants'}
+                  {c.state} · {t('cityPicker.merchantCount', { count: c.merchantCount })}
                 </Text>
               </View>
               {active && <Icon name="checkmark-circle" size={20} color="success" />}

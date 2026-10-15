@@ -5,6 +5,7 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { WEBSITE_URL } from '../../config';
+import i18n from '../../i18n';
 import type { CityPriceMaterial, CityPricesResponse } from '../../types/models';
 import { formatNumber, type CalculationResult, type MaterialLine } from './calculatorMath';
 
@@ -37,7 +38,7 @@ function materialRow(
   { pricingMode, cityPrices }: Pick<EstimatePdfInput, 'pricingMode' | 'cityPrices'>,
 ): string {
   const brands = pricingMode === 'market' ? cityPrices?.prices?.[key]?.brands : undefined;
-  const note = brands && brands.length > 0 ? `(${brands.join(', ')})` : '(using standard pricing)';
+  const note = brands && brands.length > 0 ? `(${brands.join(', ')})` : i18n.t('calculator:pdf.standardPricing');
   return `
     <tr>
       <td><b>${esc(name)}</b><div class="note">${esc(note)}</div></td>
@@ -62,8 +63,10 @@ export function buildEstimateHtml(input: EstimatePdfInput): string {
     .join('');
   const priceNote =
     pricingMode === 'market' && cityPrices
-      ? `* Prices based on ${esc(cityPrices.merchantCount)} verified merchants in ${esc(city)}`
-      : '* Prices are standard estimates and may vary based on market conditions';
+      ? esc(i18n.t('calculator:pdf.priceNoteMarket', { count: cityPrices.merchantCount, city }))
+      : esc(i18n.t('calculator:pdf.priceNoteStandard'));
+  const tr = (key: string, opts?: Record<string, unknown>): string => esc(i18n.t(`calculator:${key}`, opts));
+  const mat = (key: string): string => i18n.t(`calculator:materials.${key}`);
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8" />
@@ -96,55 +99,55 @@ export function buildEstimateHtml(input: EstimatePdfInput): string {
 <body>
   <div class="top">
     <img src="${WEBSITE_URL}/logo.webp" onerror="this.style.display='none'" />
-    <div><div class="brand">CHARDEEVARI</div><div class="sub">Construction Material Estimate</div></div>
+    <div><div class="brand">CHARDEEVARI</div><div class="sub">${tr('pdf.subtitle')}</div></div>
   </div>
   <div class="contact">
     <div>
-      <div><a href="mailto:${SOCIAL_MEDIA_LINKS.email}">Email: ${SOCIAL_MEDIA_LINKS.email}</a></div>
-      <div><a href="tel:${CONTACT_PHONE.replace(/\s/g, '')}">Phone: ${CONTACT_PHONE}</a></div>
+      <div><a href="mailto:${SOCIAL_MEDIA_LINKS.email}">${tr('pdf.email', { value: SOCIAL_MEDIA_LINKS.email })}</a></div>
+      <div><a href="tel:${CONTACT_PHONE.replace(/\s/g, '')}">${tr('pdf.phone', { value: CONTACT_PHONE })}</a></div>
     </div>
     <div>${social}</div>
   </div>
   <div class="wrap">
-    <h2>Customer Details</h2>
-    <p class="kv">Name: ${esc(name)}</p>
-    <p class="kv">Phone: ${esc(phone)}</p>
-    <p class="kv">Date: ${esc(new Date().toLocaleDateString('en-IN'))}</p>
+    <h2>${tr('pdf.customerDetails')}</h2>
+    <p class="kv">${tr('pdf.name', { value: name })}</p>
+    <p class="kv">${tr('pdf.phone', { value: phone })}</p>
+    <p class="kv">${tr('pdf.date', { value: new Date().toLocaleDateString('en-IN') })}</p>
 
-    <h2>Project Details</h2>
-    <p class="kv">Location: ${esc(city)}</p>
-    <p class="kv">Dimensions: ${esc(results.length)} ft × ${esc(results.breadth)} ft</p>
-    <p class="kv">Built-up Area: ${esc(results.area)} sq.ft</p>
-    <p class="kv">Number of Floors: ${esc(results.floors)}</p>
-    <p class="kv">Columns Required: ${esc(results.columns)} (${esc(results.colsX)} × ${esc(results.colsY)} grid)</p>
+    <h2>${tr('pdf.projectDetails')}</h2>
+    <p class="kv">${tr('pdf.location', { value: city })}</p>
+    <p class="kv">${tr('pdf.dimensions', { length: results.length, breadth: results.breadth })}</p>
+    <p class="kv">${tr('pdf.builtUpArea', { value: results.area })}</p>
+    <p class="kv">${tr('pdf.floors', { value: results.floors })}</p>
+    <p class="kv">${tr('pdf.columns', { columns: results.columns, colsX: results.colsX, colsY: results.colsY })}</p>
 
-    <h2>Material Requirements &amp; Cost</h2>
-    <h3>STRUCTURE MATERIALS</h3>
+    <h2>${tr('pdf.materialsHeading')}</h2>
+    <h3>${tr('pdf.structureHeading')}</h3>
     <table>
-      ${materialRow('Cement', s.cement, 'bags (50kg)', 'cement', ctx)}
-      ${materialRow('Steel (TMT Bars)', s.steel, 'kg', 'steel', ctx)}
-      ${materialRow('Sand (M-Sand)', s.sand, 'cu.ft', 'sand', ctx)}
-      ${materialRow('Aggregate (20mm)', s.aggregate, 'cu.ft', 'aggregate', ctx)}
-      ${materialRow('Bricks', s.bricks, 'nos', 'bricks', ctx)}
-      <tr class="sub-total"><td></td><td></td><td>Structure Subtotal:</td><td class="r">Rs ${esc(formatNumber(s.totalCost))}</td></tr>
+      ${materialRow(mat('cement'), s.cement, 'bags (50kg)', 'cement', ctx)}
+      ${materialRow(mat('steelTmt'), s.steel, 'kg', 'steel', ctx)}
+      ${materialRow(mat('sandMSand'), s.sand, 'cu.ft', 'sand', ctx)}
+      ${materialRow(mat('aggregate20mm'), s.aggregate, 'cu.ft', 'aggregate', ctx)}
+      ${materialRow(mat('bricks'), s.bricks, 'nos', 'bricks', ctx)}
+      <tr class="sub-total"><td></td><td></td><td>${tr('pdf.structureSubtotal')}</td><td class="r">Rs ${esc(formatNumber(s.totalCost))}</td></tr>
     </table>
     ${
       f
-        ? `<h3>FOUNDATION MATERIALS</h3>
+        ? `<h3>${tr('pdf.foundationHeading')}</h3>
     <table>
-      ${materialRow('Cement', f.cement, 'bags (50kg)', 'cement', ctx)}
-      ${materialRow('Steel', f.steel, 'kg', 'steel', ctx)}
-      ${materialRow('Sand', f.sand, 'cu.ft', 'sand', ctx)}
-      ${materialRow('Aggregate', f.aggregate, 'cu.ft', 'aggregate', ctx)}
-      <tr class="sub-total"><td></td><td></td><td>Foundation Subtotal:</td><td class="r">Rs ${esc(formatNumber(f.totalCost))}</td></tr>
+      ${materialRow(mat('cement'), f.cement, 'bags (50kg)', 'cement', ctx)}
+      ${materialRow(mat('steel'), f.steel, 'kg', 'steel', ctx)}
+      ${materialRow(mat('sand'), f.sand, 'cu.ft', 'sand', ctx)}
+      ${materialRow(mat('aggregate'), f.aggregate, 'cu.ft', 'aggregate', ctx)}
+      <tr class="sub-total"><td></td><td></td><td>${tr('pdf.foundationSubtotal')}</td><td class="r">Rs ${esc(formatNumber(f.totalCost))}</td></tr>
     </table>`
         : ''
     }
-    <div class="total"><span>TOTAL ESTIMATED COST</span><span class="amt">Rs ${esc(formatNumber(results.totalCost))}</span></div>
+    <div class="total"><span>${tr('pdf.total')}</span><span class="amt">Rs ${esc(formatNumber(results.totalCost))}</span></div>
     <div class="disc">
       ${priceNote}<br />
-      * Actual requirements may vary based on design, wastage, and site conditions<br />
-      * This is a preliminary estimate. Final quantities should be verified by a civil engineer.
+      ${tr('pdf.disclaimerVariance')}<br />
+      ${tr('pdf.disclaimerPreliminary')}
     </div>
   </div>
 </body></html>`;

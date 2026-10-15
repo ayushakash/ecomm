@@ -1,0 +1,167 @@
+{
+  "orderNumber": "Order #{{number}}",
+  "close": "Close",
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "assigned": "Assigned",
+    "processing": "Processing",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled",
+    "confirmed": "Confirmed",
+    "accepted": "Accepted",
+    "rejected": "Rejected"
+  },
+  "history": {
+    "title": "Order History",
+    "subtitle": "Track all your orders in one place",
+    "refreshing": "Refreshing orders...",
+    "loadError": "Error loading orders: {{message}}",
+    "empty": {
+      "title": "No orders yet",
+      "subtitle": "Start shopping to see your orders here!",
+      "browse": "Browse Products"
+    },
+    "showDetails": "Show Details",
+    "hideDetails": "Hide Details",
+    "toast": {
+      "cancelled": "Order cancelled successfully",
+      "cancelFailed": "Failed to cancel order"
+    }
+  },
+  "eta": {
+    "arrivingInMins_one": "Arriving in {{count}} min",
+    "arrivingInMins_other": "Arriving in {{count}} mins",
+    "expected": "Expected: {{time}}",
+    "hoursMins": "{{hours}}h {{mins}}m",
+    "mins_one": "{{count}} min",
+    "mins_other": "{{count}} mins",
+    "delayed": "Delayed",
+    "expectedDelivery": "Expected Delivery"
+  },
+  "items": {
+    "title": "Order Items",
+    "product": "Product",
+    "unknownProduct": "Unknown Product",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "status": "Status",
+    "merchant": "Seller",
+    "unit": "unit",
+    "unassigned": "Unassigned"
+  },
+  "price": {
+    "title": "Price Breakdown",
+    "taxable": "Taxable Amount (Base)",
+    "gst": "GST (18%)",
+    "subtotalIncGst": "Subtotal (Inc. GST)",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "deliveryCharge": "Delivery Charge",
+    "free": "Free",
+    "platformFee": "Platform Fee",
+    "totalAmount": "Total Amount",
+    "total": "Total"
+  },
+  "address": {
+    "title": "Delivery Address",
+    "near": "Near {{landmark}}",
+    "landmark": "Landmark: {{landmark}}"
+  },
+  "payment": {
+    "methodLabel": "Payment Method:",
+    "method": "Payment Method",
+    "statusLabel": "Status:",
+    "statusTitle": "Payment Status",
+    "cod": "Cash on Delivery",
+    "online": "Online Payment",
+    "payOnDelivery": "Pay on Delivery",
+    "status": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    }
+  },
+  "cancel": {
+    "button": "Cancel Order",
+    "cancelling": "Cancelling...",
+    "note": "Note: Orders that have been delivered cannot be cancelled",
+    "title": "Cancel Order",
+    "message": "Are you sure you want to cancel order #{{number}}? This action cannot be undone and the order will be permanently cancelled.",
+    "confirm": "Yes, Cancel Order",
+    "keep": "No, Keep Order"
+  },
+  "detail": {
+    "loadError": "Error loading order: {{message}}",
+    "notFound": "Order not found",
+    "placedOn": "Placed on {{date}}",
+    "itemLine": "{{quantity}} x ₹{{price}} per {{unit}}",
+    "summary": "Order Summary",
+    "shipping": "Shipping Information",
+    "name": "Name",
+    "phone": "Phone",
+    "deliverTo": "Deliver To",
+    "statusHistory": "Status History"
+  },
+  "modal": {
+    "title": "Order Details",
+    "orderStatus": "Order Status",
+    "orderDate": "Order Date",
+    "customerInfo": "Customer Information",
+    "email": "Email",
+    "na": "N/A",
+    "instructions": "Instructions:",
+    "itemsCount": "Order Items ({{count}})",
+    "gst": {
+      "enterEmail": "Please enter email address",
+      "enterWhatsapp": "Please enter WhatsApp number",
+      "sentEmail": "GST invoice sent to {{email}}",
+      "sentWhatsapp": "GST invoice sent to WhatsApp: {{number}}",
+      "sendFailed": "Failed to send GST invoice",
+      "requested": "Customer requested GST invoice",
+      "actions": "GST Invoice Actions",
+      "preview": "Preview GST Invoice",
+      "sendManually": "Send GST Invoice Manually",
+      "viaEmail": "Send via Email",
+      "viaWhatsapp": "Send via WhatsApp",
+      "sending": "Sending...",
+      "send": "Send",
+      "default": "Default: {{value}}",
+      "noEmail": "No email",
+      "noPhone": "No phone",
+      "noteLabel": "Note:",
+      "note": "This is a manual send feature. The GST invoice will be generated and sent to the specified email or WhatsApp number. Make sure the contact details are correct before sending."
+    }
+  },
+  "lifecycle": {
+    "title": "Order Lifecycle - {{number}}",
+    "fetchFailed": "Failed to fetch order lifecycle",
+    "loading": "Loading order lifecycle...",
+    "empty": "No lifecycle events found for this order.",
+    "triggeredBy": "Triggered by:",
+    "notification": "n8n Notification:",
+    "sent": "Sent",
+    "failed": "Failed",
+    "at": "at",
+    "viewDetails": "View Details",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing...",
+    "events": {
+      "order_created": "Order Created",
+      "order_assigned": "Order Assigned",
+      "order_accepted": "Order Accepted",
+      "order_rejected": "Order Rejected",
+      "order_shipped": "Order Shipped",
+      "order_delivered": "Order Delivered",
+      "order_cancelled": "Order Cancelled",
+      "payment_confirmed": "Payment Confirmed",
+      "payment_failed": "Payment Failed",
+      "stock_updated": "Stock Updated",
+      "refund_initiated": "Refund Initiated",
+      "refund_completed": "Refund Completed"
+    }
+  }
+}

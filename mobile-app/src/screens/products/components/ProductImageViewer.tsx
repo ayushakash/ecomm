@@ -14,6 +14,7 @@ import {
 import { FlatList, Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Icon, Image, Text } from '../../../components/ui';
 import { colors, layout, radii, spacing } from '../../../theme';
 
@@ -31,6 +32,7 @@ interface ProductImageViewerProps {
 
 /** Full-screen lightbox (web isFullscreen): swipe between images, pinch / double-tap to zoom, pan while zoomed, thumbnail strip. */
 export function ProductImageViewer({ visible, images, name, initialIndex, onClose }: ProductImageViewerProps) {
+  const { t } = useTranslation('products');
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<string>>(null);
@@ -67,9 +69,9 @@ export function ProductImageViewer({ visible, images, name, initialIndex, onClos
 
   const renderItem = useCallback<ListRenderItem<string>>(
     ({ item, index: i }) => (
-      <ZoomableImage uri={item} width={width} height={pageHeight} active={i === index} onZoomChange={setZoomed} label={`${name} - Image ${i + 1}`} />
+      <ZoomableImage uri={item} width={width} height={pageHeight} active={i === index} onZoomChange={setZoomed} label={t('gallery.imageA11y', { name, index: i + 1 })} />
     ),
-    [index, name, pageHeight, width],
+    [index, name, pageHeight, width, t],
   );
 
   return (
@@ -90,7 +92,7 @@ export function ProductImageViewer({ visible, images, name, initialIndex, onClos
             hitSlop={layout.hitSlop}
             style={styles.closeBtn}
             accessibilityRole="button"
-            accessibilityLabel="Close image viewer"
+            accessibilityLabel={t('gallery.closeViewer')}
           >
             <Icon name="close" size={26} color="textInverse" />
           </Pressable>
@@ -135,7 +137,7 @@ export function ProductImageViewer({ visible, images, name, initialIndex, onClos
                 onPress={() => goTo(i)}
                 style={[styles.thumb, i === index && styles.thumbActive]}
                 accessibilityRole="button"
-                accessibilityLabel={`Show image ${i + 1}`}
+                accessibilityLabel={t('gallery.showImage', { index: i + 1 })}
                 accessibilityState={{ selected: i === index }}
               >
                 <Image uri={uri} style={styles.thumbImg} recyclingKey={uri} />
@@ -149,12 +151,13 @@ export function ProductImageViewer({ visible, images, name, initialIndex, onClos
 }
 
 function ArrowButton({ side, onPress }: { side: 'left' | 'right'; onPress(): void }) {
+  const { t } = useTranslation('products');
   return (
     <Pressable
       onPress={onPress}
       style={[styles.arrow, side === 'left' ? styles.arrowLeft : styles.arrowRight]}
       accessibilityRole="button"
-      accessibilityLabel={side === 'left' ? 'Previous image' : 'Next image'}
+      accessibilityLabel={side === 'left' ? t('gallery.previous') : t('gallery.next')}
     >
       <Icon name={side === 'left' ? 'chevron-back' : 'chevron-forward'} size={24} color="textInverse" />
     </Pressable>

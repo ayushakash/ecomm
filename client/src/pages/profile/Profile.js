@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { addressAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import AddressFormModal from '../../components/modals/AddressFormModal';
 import DeleteAccountPanel from '../../components/account/DeleteAccountPanel';
 import {
@@ -16,6 +17,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Profile = () => {
+  const { t } = useTranslation('profile');
   const { user, updateProfile, sendLinkPhoneOTP, linkPhone, sendChangeEmailOTP, verifyChangeEmail } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -44,11 +46,11 @@ const Profile = () => {
   const deleteAddressMutation = useMutation({
     mutationFn: (id) => addressAPI.deleteAddress(id),
     onSuccess: () => {
-      toast.success('Address deleted successfully!');
+      toast.success(t('addresses.toast.deleted'));
       refetch();
     },
     onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to delete address');
+      toast.error(err.response?.data?.message || t('addresses.toast.deleteFailed'));
     }
   });
 
@@ -56,11 +58,11 @@ const Profile = () => {
   const setDefaultMutation = useMutation({
     mutationFn: (addressId) => addressAPI.setDefaultAddress(addressId),
     onSuccess: () => {
-      toast.success('Default address updated!');
+      toast.success(t('addresses.toast.defaultUpdated'));
       refetch();
     },
     onError: (err) => {
-      toast.error(err.response?.data?.message || 'Failed to set default address');
+      toast.error(err.response?.data?.message || t('addresses.toast.defaultFailed'));
     }
   });
 
@@ -171,7 +173,7 @@ const Profile = () => {
   };
 
   const handleDelete = (address) => {
-    if (window.confirm('Are you sure you want to delete this address?')) {
+    if (window.confirm(t('addresses.confirmDelete'))) {
       deleteAddressMutation.mutate(address._id);
     }
   };
@@ -219,8 +221,8 @@ const Profile = () => {
                 }`}
               >
                 {isEditing
-                  ? <><XMarkIcon className="w-3.5 h-3.5" /> Cancel</>
-                  : <><PencilIcon className="w-3.5 h-3.5" /> Edit</>
+                  ? <><XMarkIcon className="w-3.5 h-3.5" /> {t('cancel')}</>
+                  : <><PencilIcon className="w-3.5 h-3.5" /> {t('edit')}</>
                 }
               </button>
             </div>
@@ -230,13 +232,13 @@ const Profile = () => {
               <div className="mt-5 pt-5 border-t border-gray-100">
                 <div className="bg-primary-50 border border-primary-200 rounded-xl p-4">
                   <p className="text-sm font-semibold text-primary-900 mb-1">
-                    {otpStep === 'phone' ? 'Verify new phone number' : 'Verify new email address'}
+                    {otpStep === 'phone' ? t('otp.verifyPhone') : t('otp.verifyEmail')}
                   </p>
                   <p className="text-xs text-primary-700 mb-4">
-                    We sent a 6-digit code to{' '}
+                    {t('otp.sentTo')}{' '}
                     <span className="font-semibold">
                       {otpStep === 'phone' ? pendingPhone : pendingEmail}
-                    </span>. Enter it below to confirm.
+                    </span>{t('otp.enterBelow')}
                   </p>
                   <input
                     type="text"
@@ -244,7 +246,7 @@ const Profile = () => {
                     maxLength={6}
                     value={otpValue}
                     onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Enter 6-digit code"
+                    placeholder={t('otp.placeholder')}
                     className="w-full px-3 py-2 text-sm text-center tracking-widest font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none mb-3"
                   />
                   <div className="flex gap-2">
@@ -253,7 +255,7 @@ const Profile = () => {
                       onClick={() => { setOtpStep(null); setOtpValue(''); }}
                       className="flex-1 py-2 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      Cancel
+                      {t('cancel')}
                     </button>
                     <button
                       type="button"
@@ -261,7 +263,7 @@ const Profile = () => {
                       disabled={isSendingOtp}
                       className="px-3 py-2 text-xs font-semibold text-primary-700 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors disabled:opacity-50"
                     >
-                      Resend
+                      {t('otp.resend')}
                     </button>
                     <button
                       type="button"
@@ -269,7 +271,7 @@ const Profile = () => {
                       disabled={otpValue.length < 4}
                       className="flex-1 py-2 text-xs font-semibold text-white bg-primary-700 hover:bg-primary-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Verify
+                      {t('otp.verify')}
                     </button>
                   </div>
                 </div>
@@ -281,7 +283,7 @@ const Profile = () => {
               <form onSubmit={handleSubmit} className="mt-5 pt-5 border-t border-gray-100 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Full Name</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{t('form.fullName')}</label>
                     <input
                       type="text"
                       name="name"
@@ -292,9 +294,9 @@ const Profile = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Email
+                      {t('form.email')}
                       {formData.email !== user?.email && (
-                        <span className="ml-1 text-amber-600">(will be verified)</span>
+                        <span className="ml-1 text-amber-600">{t('form.willBeVerified')}</span>
                       )}
                     </label>
                     <input
@@ -307,9 +309,9 @@ const Profile = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Phone
+                      {t('form.phone')}
                       {formData.phone !== user?.phone && (
-                        <span className="ml-1 text-amber-600">(will be verified)</span>
+                        <span className="ml-1 text-amber-600">{t('form.willBeVerified')}</span>
                       )}
                     </label>
                     <input
@@ -328,14 +330,14 @@ const Profile = () => {
                     onClick={() => setIsEditing(false)}
                     className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={isSendingOtp}
                     className="px-4 py-2 text-xs font-semibold text-white bg-primary-700 hover:bg-primary-800 rounded-lg transition-colors disabled:opacity-60"
                   >
-                    {isSendingOtp ? 'Sending code...' : 'Save Changes'}
+                    {isSendingOtp ? t('form.sendingCode') : t('form.save')}
                   </button>
                 </div>
               </form>
@@ -347,15 +349,15 @@ const Profile = () => {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div>
-              <h2 className="text-sm font-bold text-gray-900">Saved Addresses</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Manage your delivery locations</p>
+              <h2 className="text-sm font-bold text-gray-900">{t('addresses.saved')}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{t('addresses.manageShort')}</p>
             </div>
             <button
               onClick={handleAddNew}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-primary-800 text-white rounded-lg text-xs font-semibold transition-colors"
             >
               <PlusIcon className="w-3.5 h-3.5" />
-              Add New
+              {t('addresses.addNewShort')}
             </button>
           </div>
 
@@ -377,9 +379,9 @@ const Profile = () => {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap min-w-0">
                             <span className="text-sm font-semibold text-gray-900 truncate">{address.title}</span>
-                            <span className="text-xs text-gray-400 capitalize">{address.addressType}</span>
+                            <span className="text-xs text-gray-400 capitalize">{t(`addresses.type.${address.addressType}`, { defaultValue: address.addressType })}</span>
                             {address.isDefault && (
-                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">Default</span>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">{t('addresses.default')}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -401,7 +403,7 @@ const Profile = () => {
                         <p className="text-xs text-gray-600 mt-1">{address.fullName} · {address.phoneNumber}</p>
                         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
                           {address.addressLine1}{address.addressLine2 && `, ${address.addressLine2}`}
-                          {address.landmark && ` · Near ${address.landmark}`}
+                          {address.landmark && ` · ${t('addresses.near', { landmark: address.landmark })}`}
                         </p>
                         <p className="text-xs text-gray-500">{address.area}, {address.city} - {address.pincode}</p>
                         {!address.isDefault && (
@@ -410,7 +412,7 @@ const Profile = () => {
                             disabled={setDefaultMutation.isLoading}
                             className="mt-2 text-xs text-primary-700 hover:text-primary-800 font-semibold transition-colors disabled:opacity-40"
                           >
-                            Set as default
+                            {t('addresses.setAsDefault')}
                           </button>
                         )}
                       </div>
@@ -424,14 +426,14 @@ const Profile = () => {
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <MapPinIcon className="w-6 h-6 text-gray-400" />
               </div>
-              <p className="text-sm font-semibold text-gray-700 mb-1">No addresses saved</p>
-              <p className="text-xs text-gray-400 mb-4">Add a delivery address to get started</p>
+              <p className="text-sm font-semibold text-gray-700 mb-1">{t('addresses.emptyShort.title')}</p>
+              <p className="text-xs text-gray-400 mb-4">{t('addresses.emptyShort.subtitle')}</p>
               <button
                 onClick={handleAddNew}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-700 hover:bg-primary-800 text-white rounded-lg text-sm font-semibold transition-colors"
               >
                 <PlusIcon className="w-4 h-4" />
-                Add Address
+                {t('addresses.add')}
               </button>
             </div>
           )}

@@ -1,0 +1,32 @@
+{
+  "header": {
+    "title": "Get in Touch",
+    "subtitle": "Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible."
+  },
+  "info": {
+    "title": "Contact Information",
+    "subtitle": "Reach out to us through any of the following channels. We're here to help!",
+    "phone": "Phone",
+    "hours": "Mon-Sat, 9AM - 6PM IST",
+    "headOffice": "Head Office",
+    "directions": "Get Directions",
+    "openMaps": "Open in Google Maps",
+    "followUs": "Follow Us"
+  },
+  "why": {
+    "title": "Why Choose Chardeevari?",
+    "text": "We are your trusted partner for construction materials. With quality products, reliable delivery, and exceptional customer service, we make building easier.",
+    "quality": {
+      "title": "Quality Products",
+      "text": "Premium construction materials from trusted brands"
+    },
+    "delivery": {
+      "title": "Fast Delivery",
+      "text": "Quick and reliable delivery to your doorstep"
+    },
+    "support": {
+      "title": "Customer Support",
+      "text": "Dedicated support team ready to help you"
+    }
+  }
+}

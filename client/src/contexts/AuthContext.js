@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import i18n from '../i18n';
 import api, { authAPI } from '../services/api';
 import analytics from '../services/analytics';
 
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }) => {
       // Track login in analytics
       analytics.trackLogin('email');
 
-      toast.success('Login successful!');
+      toast.success(i18n.t('common:toasts.auth.loginSuccess'));
 
       if (userData.role === 'admin') {
         navigate('/admin');
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.loginFailed');
       toast.error(message);
       return { success: false, error: message };
     }
@@ -101,7 +102,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.registrationFailed');
       toast.error(message);
       return { success: false, error: message };
     }
@@ -173,10 +174,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.put('/api/users/profile', profileData);
       setUser(response.data.user);
-      toast.success('Profile updated successfully!');
+      toast.success(i18n.t('common:toasts.auth.profileUpdated'));
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Profile update failed';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.profileUpdateFailed');
       toast.error(message);
       return { success: false, error: message };
     }
@@ -187,7 +188,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/api/auth/send-otp', { phone });
       return { success: true, ...response.data };
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to send OTP';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.otpSendFailed');
       toast.error(message);
       return { success: false, error: message };
     }
@@ -215,7 +216,7 @@ export const AuthProvider = ({ children }) => {
 
       analytics.trackLogin('google');
 
-      toast.success('Logged in with Google!');
+      toast.success(i18n.t('common:toasts.auth.googleSuccess'));
 
       if (userData.role === 'admin') {
         navigate('/admin');
@@ -229,7 +230,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, phoneRequired };
     } catch (error) {
-      const message = error.response?.data?.message || 'Google login failed';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.googleFailed');
       toast.error(message);
       return { success: false, error: message };
     }
@@ -239,10 +240,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/api/auth/link-phone/verify', { phone, otp });
       setUser(response.data.user);
-      toast.success('Phone number verified and linked!');
+      toast.success(i18n.t('common:toasts.auth.phoneVerified'));
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Phone verification failed';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.phoneVerifyFailed');
       toast.error(message);
       return { success: false, error: message };
     }
@@ -253,7 +254,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.sendChangeEmailOTP(email);
       return { success: true, ...response.data };
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to send verification code';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.codeSendFailed');
       toast.error(message);
       return { success: false, error: message };
     }
@@ -263,10 +264,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.verifyChangeEmail(email, otp);
       setUser(response.data.user);
-      toast.success('Email updated successfully!');
+      toast.success(i18n.t('common:toasts.auth.emailUpdated'));
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Email verification failed';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.emailVerifyFailed');
       toast.error(message);
       return { success: false, error: message };
     }
@@ -277,7 +278,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/api/auth/link-phone/send-otp', { phone });
       return { success: true, ...response.data };
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to send OTP';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.otpSendFailed');
       toast.error(message);
       return { success: false, error: message };
     }
@@ -296,7 +297,7 @@ export const AuthProvider = ({ children }) => {
       // Track OTP login in analytics
       analytics.trackLogin('otp');
 
-      toast.success('Login successful!');
+      toast.success(i18n.t('common:toasts.auth.loginSuccess'));
 
       // Redirect based on role
       if (userData.role === 'admin') {
@@ -309,7 +310,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'OTP verification failed';
+      const message = error.response?.data?.message || i18n.t('common:toasts.auth.otpVerifyFailed');
       toast.error(message);
       return { success: false, error: message };
     }

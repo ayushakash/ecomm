@@ -1,0 +1,97 @@
+{
+  "location": {
+    "detecting": "लोकेशन पता कर रहे हैं...",
+    "findingMerchants": "आपके पास के विक्रेता खोज रहे हैं...",
+    "noAddress": {
+      "title": "अपनी डिलीवरी लोकेशन सेट करें",
+      "subtitle": "सही डिलीवरी के लिए पता जोड़ें, या अपनी अभी की लोकेशन से पास के प्रोडक्ट्स देखें।",
+      "addAddress": "डिलीवरी पता जोड़ें",
+      "useCurrent": "अभी की लोकेशन से प्रोडक्ट्स देखें"
+    },
+    "citySelector": {
+      "title": "डिलीवरी कहाँ करनी है?",
+      "subtitle": "अपना शहर चुनें और अपने इलाके के प्रोडक्ट्स और विक्रेता देखें।",
+      "useMyLocation": "मेरी अभी की लोकेशन लें",
+      "orPickCity": "या शहर चुनें",
+      "searchPlaceholder": "शहर खोजें...",
+      "loadingCities": "शहर लोड हो रहे हैं...",
+      "noMatch": "\"{{query}}\" से कोई शहर नहीं मिला",
+      "noCities": "अभी कोई शहर उपलब्ध नहीं है",
+      "storeCount_one": "{{count}} दुकान",
+      "storeCount_other": "{{count}} दुकानें",
+      "registerPrompt": "पूरे पर्सनल अनुभव के लिए <reg>साइन अप</reg> या <login>लॉग इन</login> करें"
+    },
+    "noMerchants": {
+      "title": "आपके इलाके में अभी कोई विक्रेता नहीं है",
+      "body": "<b>{{area}}, {{city}}</b> में अभी हमारे विक्रेता डिलीवरी नहीं करते।",
+      "hint": "हम जल्द ही नए इलाकों में आ रहे हैं। कोई दूसरा पता आज़माएं।",
+      "changeAddress": "पता बदलें"
+    }
+  },
+  "list": {
+    "error": "प्रोडक्ट्स लोड नहीं हो पाए: {{message}}",
+    "browsingIn": "<b>{{city}}</b> के प्रोडक्ट्स देख रहे हैं। सही डिलीवरी के लिए पता जोड़ें।",
+    "addAddress": "पता जोड़ें",
+    "deliveringTo": "डिलीवरी: {{area}}, {{city}}",
+    "merchantsWithin_one": "{{count}} विक्रेता · {{radius}}km के अंदर",
+    "merchantsWithin_other": "{{count}} विक्रेता · {{radius}}km के अंदर",
+    "expandedSearch": "(दायरा बढ़ाकर खोजा)",
+    "showingIn": "{{city}} के प्रोडक्ट्स",
+    "merchantsAvailable_one": "{{count}} विक्रेता उपलब्ध · सही डिलीवरी के लिए <reg>साइन अप</reg> करें",
+    "merchantsAvailable_other": "{{count}} विक्रेता उपलब्ध · सही डिलीवरी के लिए <reg>साइन अप</reg> करें",
+    "change": "बदलें",
+    "changeCity": "शहर बदलें",
+    "title": "बिल्डिंग मटीरियल",
+    "subtitle": "अपने निर्माण के लिए सबसे अच्छी क्वालिटी का मटीरियल खोजें",
+    "searchPlaceholder": "प्रोडक्ट्स खोजें...",
+    "searchShort": "खोजें...",
+    "allCategories": "सभी कैटेगरी",
+    "categories": "कैटेगरी",
+    "min": "कम से कम",
+    "max": "ज़्यादा से ज़्यादा",
+    "sort": {
+      "latest": "नए",
+      "priceLowHigh": "कीमत: कम से ज़्यादा",
+      "priceHighLow": "कीमत: ज़्यादा से कम",
+      "lowPrice": "कम कीमत",
+      "highPrice": "ज़्यादा कीमत"
+    },
+    "empty": {
+      "title": "कोई प्रोडक्ट नहीं मिला",
+      "subtitle": "खोज या फ़िल्टर बदलकर देखें।"
+    }
+  },
+  "detail": {
+    "toast": {
+      "selectSize": "पहले साइज़ चुनें",
+      "outOfStock": "यह प्रोडक्ट स्टॉक में नहीं है",
+      "added_one": "{{count}} आइटम कार्ट में डाला गया",
+      "added_other": "{{count}} आइटम कार्ट में डाले गए"
+    },
+    "error": "प्रोडक्ट लोड नहीं हो पाया: {{message}}",
+    "notFound": "प्रोडक्ट नहीं मिला",
+    "outOfStock": "स्टॉक में नहीं",
+    "outOfStockLower": "स्टॉक में नहीं",
+    "from": "शुरुआत",
+    "percentOff": "{{percent}}% छूट",
+    "badges": {
+      "fastDelivery": "⚡ 60 मिनट में डिलीवरी — Ranchi",
+      "payOnDelivery": "💵 डिलीवरी पर भुगतान",
+      "genuine": "✓ 100% असली माल · GST बिल"
+    },
+    "selectSize": "साइज़ चुनें",
+    "required": "(ज़रूरी)",
+    "stockAvailable": "स्टॉक: {{stock}} {{unit}} उपलब्ध",
+    "description": "जानकारी",
+    "specifications": "स्पेसिफिकेशन",
+    "qty": "मात्रा",
+    "addMore": "और डालें",
+    "addToCart": "कार्ट में डालें",
+    "buyNow": "अभी खरीदें",
+    "orderOnWhatsApp": "WhatsApp पर ऑर्डर करें",
+    "callToOrder": "कॉल करके ऑर्डर करें",
+    "selectSizeHint": "↑ आगे बढ़ने के लिए ऊपर साइज़ चुनें",
+    "viewCart_one": "कार्ट देखें (कार्ट में {{count}}) →",
+    "viewCart_other": "कार्ट देखें (कार्ट में {{count}}) →"
+  }
+}

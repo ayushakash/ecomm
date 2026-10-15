@@ -8,6 +8,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { Badge, Image, Text } from '../../../components/ui';
 import { colors, radii, spacing } from '../../../theme';
 
@@ -26,6 +27,7 @@ interface ProductImageGalleryProps {
 /** Full-bleed square pager with animated dots, counter and the web's out-of-stock overlay. Tap opens the zoom viewer. */
 export const ProductImageGallery = forwardRef<ProductImageGalleryHandle, ProductImageGalleryProps>(
   function ProductImageGallery({ images, name, width, outOfStock, onOpen }, ref) {
+    const { t } = useTranslation('products');
     const listRef = useRef<FlatList<string>>(null);
     const [index, setIndex] = useState(0);
     const scrollX = useSharedValue(0);
@@ -55,18 +57,18 @@ export const ProductImageGallery = forwardRef<ProductImageGalleryHandle, Product
           onPress={() => onOpen(i)}
           disabled={!item}
           accessibilityRole="imagebutton"
-          accessibilityLabel={`${name} image ${i + 1} of ${slides.length}, open full screen`}
+          accessibilityLabel={t('gallery.slideA11y', { name, index: i + 1, total: slides.length })}
         >
           <Image
             uri={item}
             style={{ width, height: width }}
             contentFit="contain"
             priority={i === 0 ? 'high' : 'normal'}
-            accessibilityLabel={`${name} - Image ${i + 1}`}
+            accessibilityLabel={t('gallery.imageA11y', { name, index: i + 1 })}
           />
         </Pressable>
       ),
-      [name, onOpen, slides.length, width],
+      [name, onOpen, slides.length, width, t],
     );
 
     return (
@@ -89,7 +91,7 @@ export const ProductImageGallery = forwardRef<ProductImageGalleryHandle, Product
 
         {outOfStock && (
           <View style={styles.oos} pointerEvents="none">
-            <Badge label="Out of Stock" tone="danger" solid size="md" style={styles.oosBadge} />
+            <Badge label={t('stock.outOfStock')} tone="danger" solid size="md" style={styles.oosBadge} />
           </View>
         )}
 
@@ -111,7 +113,7 @@ export const ProductImageGallery = forwardRef<ProductImageGalleryHandle, Product
         {!!images.length && (
           <View style={styles.zoomHint} pointerEvents="none">
             <Text variant="micro" weight="semibold" color="textSecondary">
-              Tap to zoom
+              {t('gallery.tapToZoom')}
             </Text>
           </View>
         )}

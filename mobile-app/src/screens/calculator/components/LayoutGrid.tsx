@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Text } from '../../../components/ui';
 import { colors, radii, spacing } from '../../../theme';
@@ -12,6 +13,7 @@ const LABEL_W = 90;
 /** Column-grid plan view (port of the web canvas drawGrid) drawn with plain Views. */
 export function LayoutGrid({ params }: { params: GridParams }) {
   const { length, breadth, colsX, colsY, spacing: gridSpacing, assumedSquare } = params;
+  const { t } = useTranslation('calculator');
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
 
@@ -33,7 +35,7 @@ export function LayoutGrid({ params }: { params: GridParams }) {
       <View
         style={[styles.canvas, { height: height || 200 }]}
         onLayout={onLayout}
-        accessibilityLabel={`Column layout: ${colsX} by ${colsY} grid on a ${q(length)} by ${q(breadth)} foot plan`}
+        accessibilityLabel={t('grid.a11yLabel', { colsX, colsY, length: q(length), breadth: q(breadth) })}
       >
         {width > 0 && (
           <>
@@ -66,7 +68,7 @@ export function LayoutGrid({ params }: { params: GridParams }) {
               align="center"
               style={[styles.dimLabel, { left: originX + drawW / 2 - LABEL_W / 2, top: originY - DIM_OFFSET - 15 }]}
             >
-              {q(length)} ft
+              {t('grid.feet', { value: q(length) })}
             </Text>
             {/* Right dimension (breadth) */}
             <View
@@ -82,7 +84,7 @@ export function LayoutGrid({ params }: { params: GridParams }) {
                 { left: originX + drawW + DIM_OFFSET + 8 - LABEL_W / 2, top: originY + drawH / 2 - 7 },
               ]}
             >
-              {q(breadth)} ft
+              {t('grid.feet', { value: q(breadth) })}
             </Text>
           </>
         )}
@@ -91,12 +93,12 @@ export function LayoutGrid({ params }: { params: GridParams }) {
         <View style={styles.legendItem}>
           <View style={[styles.column, styles.legendDot]} />
           <Text variant="caption" color="textSecondary">
-            Grid: {colsX} × {colsY} (spacing {q(gridSpacing)} ft)
+            {t('grid.legend', { colsX, colsY, spacing: q(gridSpacing) })}
           </Text>
         </View>
         {assumedSquare && (
           <Text variant="caption" color="textMuted">
-            Square footprint assumed
+            {t('grid.assumedSquare')}
           </Text>
         )}
       </View>

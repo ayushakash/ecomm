@@ -1,0 +1,148 @@
+{
+  "title": "चेकआउट",
+  "subtitle": "डिलीवरी पर भुगतान",
+  "total": "कुल",
+  "toast": {
+    "orderFailed": "ऑर्डर नहीं हो पाया",
+    "switchedCity": "{{city}} वाला पता चुन लिया",
+    "noCityAddress": "{{city}} में कोई पता नहीं मिला",
+    "noCityAddressHint": "कृपया एक पता जोड़ें या कार्ट खाली करें।",
+    "selectAddress": "कृपया डिलीवरी का पता चुनें",
+    "cityMismatchTitle": "शहर अलग है",
+    "cityMismatchMessage": "कार्ट में {{cartCity}} के आइटम हैं, लेकिन डिलीवरी का पता {{addressCity}} में है। कार्ट खाली करें या {{cartCity}} का पता चुनें।",
+    "undeliverable_one": "आपके कार्ट का {{count}} आइटम चुने हुए पते पर डिलीवर नहीं हो सकता",
+    "undeliverable_other": "आपके कार्ट के {{count}} आइटम चुने हुए पते पर डिलीवर नहीं हो सकते"
+  },
+  "clearCart": {
+    "title": "कार्ट खाली करें?",
+    "message": "सारे आइटम हट जाएंगे ताकि आप नए सिरे से शुरू कर सकें।",
+    "cancel": "रहने दें",
+    "confirm": "कार्ट खाली करें"
+  },
+  "cta": {
+    "selectAddress": "पता चुनें",
+    "removeUnavailable": "जो आइटम नहीं मिल सकते उन्हें हटाएं",
+    "placeOrder": "ऑर्डर करें"
+  },
+  "deliveryHours": {
+    "title": "हम आपका ऑर्डर ले रहे हैं, लेकिन अभी डिलीवरी का समय नहीं है",
+    "window": "डिलीवरी का समय: <bold>{{window}}</bold>।"
+  },
+  "phoneRequired": {
+    "title": "फ़ोन नंबर ज़रूरी है",
+    "message": "चेकआउट से पहले अपना फ़ोन नंबर वेरिफाई करें — इससे हम आपकी डिलीवरी कन्फर्म कर पाएंगे।",
+    "action": "फ़ोन नंबर वेरिफाई करें"
+  },
+  "cityMismatch": {
+    "title": "शहर अलग है",
+    "message": "आपके कार्ट में <bold>{{cartCity}}</bold> के आइटम हैं, लेकिन आप <bold>{{addressCity}}</bold> में डिलीवरी करवाना चाहते हैं।",
+    "clearCart": "कार्ट खाली करें",
+    "useCity": "{{city}} का पता इस्तेमाल करें"
+  },
+  "unavailable": {
+    "title": "कुछ आइटम आपके पते पर डिलीवर नहीं हो सकते",
+    "message_one": "आपके कार्ट का {{count}} आइटम ऐसे विक्रेता का है जो <bold>{{place}}</bold> में उपलब्ध नहीं है",
+    "message_other": "आपके कार्ट के {{count}} आइटम ऐसे विक्रेताओं के हैं जो <bold>{{place}}</bold> में उपलब्ध नहीं हैं",
+    "hint": "आगे बढ़ने के लिए ये आइटम हटाएं या दूसरा पता चुनें।"
+  },
+  "address": {
+    "title": "डिलीवरी का पता",
+    "addNewShort": "नया जोड़ें",
+    "changeA11y": "डिलीवरी का पता बदलें",
+    "change": "बदलें",
+    "empty": "कोई सेव किया हुआ पता नहीं मिला",
+    "addFirst": "+ अपना पहला पता जोड़ें",
+    "default": "डिफ़ॉल्ट",
+    "selectTitle": "डिलीवरी का पता चुनें",
+    "addNew": "नया पता जोड़ें"
+  },
+  "summary": {
+    "title": "ऑर्डर की जानकारी",
+    "itemLine": "{{quantity}} × {{price}} प्रति {{unit}}",
+    "showLess": "कम दिखाएं",
+    "showAll": "सभी {{count}} आइटम दिखाएं"
+  },
+  "bill": {
+    "title": "बिल की जानकारी",
+    "gstToggle": "मुझे GST बिल चाहिए",
+    "gstToggleHint": "GST का पूरा हिसाब और सैंपल बिल देखें।",
+    "previewInvoice": "सैंपल बिल देखें"
+  },
+  "instructions": {
+    "label": "डिलीवरी के लिए निर्देश (ज़रूरी नहीं)",
+    "placeholder": "डिलीवरी के लिए कोई खास बात..."
+  },
+  "payment": {
+    "title": "भुगतान का तरीका",
+    "cod": "डिलीवरी पर भुगतान",
+    "codHint": "डिलीवरी पर कैश या UPI से भुगतान करें",
+    "online": "ऑनलाइन भुगतान",
+    "comingSoon": "जल्द आ रहा है"
+  },
+  "linkPhone": {
+    "invalidPhone": "कृपया सही 10 अंकों का मोबाइल नंबर डालें",
+    "otpSent": "OTP आपके WhatsApp पर भेजा गया",
+    "invalidOtp": "कृपया सही OTP डालें",
+    "title": "अपना फ़ोन नंबर वेरिफाई करें",
+    "subtitle": "ऑर्डर करने के लिए वेरिफाइड फ़ोन नंबर ज़रूरी है, ताकि डिलीवरी के बारे में हम आपसे बात कर सकें।",
+    "sendOtp": "OTP भेजें",
+    "verify": "वेरिफाई करके आगे बढ़ें",
+    "mobileLabel": "मोबाइल नंबर",
+    "mobilePlaceholder": "10 अंकों का मोबाइल नंबर",
+    "otpPrompt": "WhatsApp पर <bold>{{phone}}</bold> को भेजा गया OTP डालें।",
+    "otpPlaceholder": "OTP डालें",
+    "changeNumber": "नंबर बदलें",
+    "resendOtp": "OTP फिर से भेजें"
+  },
+  "invoice": {
+    "title": "टैक्स बिल",
+    "subtitle": "सैंपल बिल — सिर्फ देखने के लिए",
+    "close": "बंद करें",
+    "from": "किससे",
+    "sellerNote": "विक्रेता की जानकारी फाइनल बिल पर आएगी",
+    "billTo": "किसके नाम",
+    "placeholderName": "ग्राहक का नाम",
+    "placeholderAddress": "पता लाइन 1",
+    "placeholderArea": "इलाका",
+    "placeholderCity": "शहर",
+    "phone": "फ़ोन: {{phone}}",
+    "na": "उपलब्ध नहीं",
+    "number": "बिल नं.",
+    "date": "तारीख",
+    "payment": "भुगतान",
+    "cod": "डिलीवरी पर भुगतान",
+    "itemLine": "{{quantity}} {{unit}} × {{price}} (बेस {{base}}) · GST {{rate}}% {{gst}}",
+    "taxable": "टैक्स वाली रकम (बेस)",
+    "gstAmount": "GST रकम",
+    "subtotalIncGst": "सब-टोटल (GST सहित)",
+    "deliveryCharges": "डिलीवरी चार्ज",
+    "platformFee": "प्लेटफ़ॉर्म फीस",
+    "totalAmount": "कुल रकम",
+    "note": "नोट: यह सिर्फ देखने के लिए सैंपल बिल है। असली बिल ऑर्डर कन्फर्म होने के बाद बनेगा, जिसमें बिल नंबर, अधिकृत हस्ताक्षर और मुहर जैसी बाकी जानकारी होगी।"
+  },
+  "success": {
+    "title": "ऑर्डर हो गया!",
+    "message": "ऑर्डर के लिए धन्यवाद। हम आपका सामान तैयार करके जल्द डिलीवर करेंगे।",
+    "orderNumber": "ऑर्डर नंबर",
+    "generating": "बन रहा है…",
+    "totalAmount": "कुल रकम",
+    "deliveryTo": "डिलीवरी का पता",
+    "selectedAddress": "आपका चुना हुआ पता",
+    "sameDay": "उसी दिन डिलीवरी",
+    "scheduled": "तय समय पर डिलीवरी",
+    "deliveryHours": "डिलीवरी का समय: {{window}}",
+    "payOnDelivery": "डिलीवरी पर भुगतान",
+    "keepReady": "डिलीवरी के समय {{amount}} तैयार रखें",
+    "deliveryCharge": "डिलीवरी चार्ज {{amount}}",
+    "freeDelivery": "फ्री डिलीवरी",
+    "includedInTotal": "कुल रकम में शामिल",
+    "noExtraCharges": "कोई अलग चार्ज नहीं",
+    "footnote": "ऑर्डर की जानकारी आपको SMS और ईमेल पर मिलेगी। कोई सवाल हो तो हमारी सपोर्ट टीम से संपर्क करें।",
+    "viewOrder": "ऑर्डर देखें",
+    "continueShopping": "खरीदारी जारी रखें"
+  },
+  "deliveryWindow": {
+    "early": "हम 24×7 ऑर्डर लेते हैं, लेकिन डिलीवरी {{window}} के बीच होती है। आपका ऑर्डर आज सुबह 8 बजे के बाद डिलीवर होगा।",
+    "late": "हम 24×7 ऑर्डर लेते हैं, लेकिन डिलीवरी {{window}} के बीच होती है। डिलीवरी का समय निकल चुका है, इसलिए आपका ऑर्डर कल सुबह 8 बजे से डिलीवर होगा।"
+  }
+}

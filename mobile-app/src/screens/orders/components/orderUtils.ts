@@ -4,6 +4,7 @@
  * and components/modals/GSTInvoicePreview.js.
  */
 import type { BadgeTone, IconName } from '../../../components/ui';
+import i18n from '../../../i18n';
 import type {
   Order,
   OrderDeliveryAddress,
@@ -31,15 +32,19 @@ export const formatDateTime = (iso?: string | null): string =>
 export const canCancelOrder = (status: OrderStatus): boolean => status !== 'delivered' && status !== 'cancelled';
 
 /** Status filter chips. Values are backend item statuses (GET /orders?status filters items.itemStatus). */
-export const ORDER_FILTERS: { label: string; value?: OrderStatus }[] = [
-  { label: 'All' },
-  { label: 'Placed', value: 'pending' },
-  { label: 'Confirmed', value: 'assigned' },
-  { label: 'Packing', value: 'processing' },
-  { label: 'Out for delivery', value: 'shipped' },
-  { label: 'Delivered', value: 'delivered' },
-  { label: 'Cancelled', value: 'cancelled' },
+export const ORDER_FILTERS: { key: string; value?: OrderStatus }[] = [
+  { key: 'all' },
+  { key: 'pending', value: 'pending' },
+  { key: 'assigned', value: 'assigned' },
+  { key: 'processing', value: 'processing' },
+  { key: 'shipped', value: 'shipped' },
+  { key: 'delivered', value: 'delivered' },
+  { key: 'cancelled', value: 'cancelled' },
 ];
+
+/** Customer-facing order/item status label (translated at call time). */
+export const orderStatusLabel = (status: string): string =>
+  i18n.t(`orders:status.${status}`, { defaultValue: status });
 
 export const getDeliveryAddress = (order: Order): OrderDeliveryAddress | null =>
   order.deliveryAddressId && typeof order.deliveryAddressId === 'object' ? order.deliveryAddressId : null;
@@ -54,15 +59,15 @@ export const getItemProduct = (item: OrderItem): { id: string | null; image: str
 export const getItemLineTotal = (item: OrderItem): number => (item.unitPrice || 0) * (item.quantity || 0);
 
 export const paymentMethodLabel = (method: Order['paymentMethod'] | undefined): string =>
-  method === 'cod' || !method ? 'Cash on Delivery' : method === 'online' ? 'Online Payment' : 'Bank transfer';
+  i18n.t(method === 'cod' || !method ? 'orders:payment.cod' : method === 'online' ? 'orders:payment.online' : 'orders:payment.bank');
 
 /** Web OrderDetail payment-status pill. */
-export const PAYMENT_STATUS_BADGE: Record<PaymentStatus, { label: string; tone: BadgeTone }> = {
-  paid: { label: 'Paid', tone: 'success' },
-  refunded: { label: 'Refunded', tone: 'info' },
-  failed: { label: 'Failed', tone: 'danger' },
-  // Unpaid COD is the normal state, not a problem — never show "Pending" to customers.
-  pending: { label: 'Pay on Delivery', tone: 'info' },
+/** Label key: orders:paymentStatus.<status>. Unpaid COD is the normal state — never show "Pending" to customers. */
+export const PAYMENT_STATUS_BADGE: Record<PaymentStatus, { tone: BadgeTone }> = {
+  paid: { tone: 'success' },
+  refunded: { tone: 'info' },
+  failed: { tone: 'danger' },
+  pending: { tone: 'info' },
 };
 
 export type DeliveryEta = { label: string; tone: 'success' | 'info' | 'primary'; caption?: string };
@@ -73,13 +78,18 @@ const minutesUntil = (iso: string) => Math.round((new Date(iso).getTime() - Date
 export const getListEta = (order: Order): DeliveryEta | null => {
   if (!order.expectedDeliveryDate || (order.orderStatus !== 'processing' && order.orderStatus !== 'shipped')) return null;
   const mins = minutesUntil(order.expectedDeliveryDate);
-  if (mins > 0 && mins <= 120) return { label: `Arriving in ${mins} mins`, tone: 'success' };
+  if (mins > 0 && mins <= 120) return { label: i18n.t('orders:eta.arrivingMins', { count: mins }), tone: 'success' };
   if (mins > 0 && mins <= 1440) {
     const hours = Math.floor(mins / 60);
     const rest = mins % 60;
-    return { label: `Expected: ${hours > 0 ? `${hours}h ${rest}m` : `${rest} mins`}`, tone: 'info' };
+    return {
+      label: i18n.t('orders:eta.expected', {
+        time: hours > 0 ? i18n.t('orders:eta.hoursMins', { hours, mins: rest }) : i18n.t('orders:eta.mins', { count: rest }),
+      }),
+      tone: 'info',
+    };
   }
-  if (mins < 0) return { label: 'Delayed', tone: 'primary' };
+  if (mins < 0) return { label: i18n.t('orders:eta.delayed'), tone: 'primary' };
   return null;
 };
 
@@ -87,18 +97,19 @@ export const getListEta = (order: Order): DeliveryEta | null => {
 export const getDetailEta = (order: Order): DeliveryEta | null => {
   if (!order.expectedDeliveryDate || !canCancelOrder(order.orderStatus)) return null;
   const mins = minutesUntil(order.expectedDeliveryDate);
-  if (mins > 0 && mins <= 120) return { label: `Arriving in ${mins} minutes`, tone: 'success', caption: 'Expected delivery' };
-  if (mins > 0) return { label: formatDateTime(order.expectedDeliveryDate), tone: 'info', caption: 'Expected delivery' };
+  if (mins > 0 && mins <= 120) return { label: i18n.t('orders:eta.arrivingMinutes', { count: mins }), tone: 'success', caption: i18n.t('orders:eta.expectedDelivery') };
+  if (mins > 0) return { label: formatDateTime(order.expectedDeliveryDate), tone: 'info', caption: i18n.t('orders:eta.expectedDelivery') };
   return null;
 };
 
 /** Customer progress steps; index = how far the order has moved. */
-export const ORDER_STEPS: { label: string; statuses: OrderStatus[]; icon: IconName }[] = [
-  { label: 'Placed', statuses: ['pending'], icon: 'receipt-outline' },
-  { label: 'Confirmed', statuses: ['approved', 'assigned'], icon: 'checkmark-done-outline' },
-  { label: 'Packing', statuses: ['processing'], icon: 'cube-outline' },
-  { label: 'Out for delivery', statuses: ['shipped'], icon: 'bicycle-outline' },
-  { label: 'Delivered', statuses: ['delivered'], icon: 'home-outline' },
+/** `status` is the orders:status.<key> label key. */
+export const ORDER_STEPS: { status: OrderStatus; statuses: OrderStatus[]; icon: IconName }[] = [
+  { status: 'pending', statuses: ['pending'], icon: 'receipt-outline' },
+  { status: 'assigned', statuses: ['approved', 'assigned'], icon: 'checkmark-done-outline' },
+  { status: 'processing', statuses: ['processing'], icon: 'cube-outline' },
+  { status: 'shipped', statuses: ['shipped'], icon: 'bicycle-outline' },
+  { status: 'delivered', statuses: ['delivered'], icon: 'home-outline' },
 ];
 
 export const getStepIndex = (status: OrderStatus): number =>
@@ -138,37 +149,40 @@ export const getBillBreakdown = (order: Order): { lines: BillLine[]; total: numb
   const exclusive = isGstExclusive(order);
   const lines: BillLine[] = [];
   if (exclusive) {
-    lines.push({ label: 'Item total', value: subtotal });
+    lines.push({ label: i18n.t('orders:bill.itemTotal'), value: subtotal });
   } else {
-    lines.push({ label: 'Taxable amount', value: order.subtotalBeforeGST ?? subtotal - tax });
+    lines.push({ label: i18n.t('orders:bill.taxable'), value: order.subtotalBeforeGST ?? subtotal - tax });
   }
   if (tax > 0) {
     lines.push({ label: 'CGST', value: tax / 2 }, { label: 'SGST', value: tax / 2 });
   }
-  if (!exclusive) lines.push({ label: 'Subtotal (incl. GST)', value: subtotal, emphasis: true });
-  lines.push({ label: 'Delivery charge', value: delivery, free: true });
-  if (fee > 0) lines.push({ label: 'Platform fee', value: fee });
+  if (!exclusive) lines.push({ label: i18n.t('orders:bill.subtotalInclGst'), value: subtotal, emphasis: true });
+  lines.push({ label: i18n.t('orders:bill.delivery'), value: delivery, free: true });
+  if (fee > 0) lines.push({ label: i18n.t('orders:bill.platformFee'), value: fee });
   return { lines, total };
 };
 
-const LIFECYCLE_META: Record<string, { icon: IconName; tone: BadgeTone; title: string }> = {
-  order_created: { icon: 'receipt-outline', tone: 'info', title: 'Order placed' },
-  order_assigned: { icon: 'person-outline', tone: 'info', title: 'Seller assigned' },
-  order_accepted: { icon: 'checkmark-circle-outline', tone: 'success', title: 'Order accepted' },
-  order_rejected: { icon: 'close-circle-outline', tone: 'danger', title: 'Seller declined' },
-  order_shipped: { icon: 'bicycle-outline', tone: 'warning', title: 'Out for delivery' },
-  order_delivered: { icon: 'home-outline', tone: 'success', title: 'Delivered' },
-  order_cancelled: { icon: 'ban-outline', tone: 'danger', title: 'Order cancelled' },
-  payment_confirmed: { icon: 'card-outline', tone: 'success', title: 'Payment confirmed' },
-  payment_failed: { icon: 'alert-circle-outline', tone: 'danger', title: 'Payment failed' },
-  stock_updated: { icon: 'stats-chart-outline', tone: 'neutral', title: 'Stock updated' },
-  refund_initiated: { icon: 'cash-outline', tone: 'warning', title: 'Refund initiated' },
-  refund_completed: { icon: 'sparkles-outline', tone: 'success', title: 'Refund completed' },
+/** Title key: orders:lifecycle.<eventType>. */
+const LIFECYCLE_META: Record<string, { icon: IconName; tone: BadgeTone }> = {
+  order_created: { icon: 'receipt-outline', tone: 'info' },
+  order_assigned: { icon: 'person-outline', tone: 'info' },
+  order_accepted: { icon: 'checkmark-circle-outline', tone: 'success' },
+  order_rejected: { icon: 'close-circle-outline', tone: 'danger' },
+  order_shipped: { icon: 'bicycle-outline', tone: 'warning' },
+  order_delivered: { icon: 'home-outline', tone: 'success' },
+  order_cancelled: { icon: 'ban-outline', tone: 'danger' },
+  payment_confirmed: { icon: 'card-outline', tone: 'success' },
+  payment_failed: { icon: 'alert-circle-outline', tone: 'danger' },
+  stock_updated: { icon: 'stats-chart-outline', tone: 'neutral' },
+  refund_initiated: { icon: 'cash-outline', tone: 'warning' },
+  refund_completed: { icon: 'sparkles-outline', tone: 'success' },
 };
 
 /** Unknown event types fall back to web formatEventType: "order_status_updated" → "Order Status Updated". */
-export const getLifecycleMeta = (event: OrderLifecycleEvent) =>
-  LIFECYCLE_META[event.eventType] ?? {
+export const getLifecycleMeta = (event: OrderLifecycleEvent): { icon: IconName; tone: BadgeTone; title: string } => {
+  const known = LIFECYCLE_META[event.eventType];
+  if (known) return { ...known, title: i18n.t(`orders:lifecycle.${event.eventType}`) };
+  return {
     icon: 'document-text-outline' as IconName,
     tone: 'neutral' as BadgeTone,
     title: event.eventType
@@ -176,6 +190,7 @@ export const getLifecycleMeta = (event: OrderLifecycleEvent) =>
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' '),
   };
+};
 
 /** Indian-system number to words (GSTInvoicePreview numberToWords). */
 export const numberToWords = (num: number): string => {

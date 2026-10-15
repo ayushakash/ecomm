@@ -1,0 +1,184 @@
+{
+  "sort": {
+    "name": "नाम (A–Z)",
+    "latest": "नया पहले",
+    "priceLow": "कीमत: कम से ज़्यादा",
+    "priceHigh": "कीमत: ज़्यादा से कम"
+  },
+  "price": {
+    "under": "₹{{amount}} से कम",
+    "above": "₹{{amount}} से ज़्यादा",
+    "label": "कीमत"
+  },
+  "filter": {
+    "title": "सॉर्ट और फ़िल्टर",
+    "clear": "हटाएं",
+    "apply": "लागू करें",
+    "sortBy": "सॉर्ट करें",
+    "priceRange": "कीमत की रेंज",
+    "min": "कम से कम",
+    "max": "ज़्यादा से ज़्यादा"
+  },
+  "rail": {
+    "all": "सभी",
+    "allA11y": "सभी प्रोडक्ट्स"
+  },
+  "gallery": {
+    "slideA11y": "{{name}} फ़ोटो {{index}} / {{total}}, फुल स्क्रीन खोलें",
+    "imageA11y": "{{name}} - फ़ोटो {{index}}",
+    "tapToZoom": "ज़ूम के लिए टैप करें",
+    "closeViewer": "फ़ोटो बंद करें",
+    "showImage": "फ़ोटो {{index}} दिखाएं",
+    "previous": "पिछली फ़ोटो",
+    "next": "अगली फ़ोटो"
+  },
+  "stock": {
+    "outOfStock": "स्टॉक में नहीं",
+    "outOfStockLower": "स्टॉक में नहीं",
+    "inStock": "स्टॉक में है",
+    "sizesAvailable_one": "{{count}} साइज़ उपलब्ध",
+    "sizesAvailable_other": "{{count}} साइज़ उपलब्ध",
+    "onlyLeft_one": "सिर्फ़ {{count}} बचा है!",
+    "onlyLeft_other": "सिर्फ़ {{count}} बचे हैं!"
+  },
+  "variant": {
+    "title": "साइज़ चुनें",
+    "required": "(ज़रूरी)",
+    "stock_one": "स्टॉक: {{count}} {{unit}} उपलब्ध",
+    "stock_other": "स्टॉक: {{count}} {{unit}} उपलब्ध"
+  },
+  "list": {
+    "title": "कैटेगरी",
+    "subtitle": "सीमेंट, सरिया, बालू और भी बहुत कुछ",
+    "searchA11y": "प्रोडक्ट्स खोजें",
+    "findingMerchants": "आपके पास के विक्रेता ढूंढ रहे हैं…",
+    "allMaterials": "बिल्डिंग मटीरियल",
+    "productCount_one": "{{count}} प्रोडक्ट",
+    "productCount_other": "{{count}} प्रोडक्ट्स"
+  },
+  "gate": {
+    "city": {
+      "title": "डिलीवरी कहाँ करनी है?",
+      "message": "अपने इलाके के प्रोडक्ट्स और विक्रेता देखने के लिए अपना शहर चुनें।",
+      "orPick": "या शहर चुनें",
+      "loginAction": "लॉग इन",
+      "loginRest": "करें, अपने हिसाब का पूरा अनुभव पाएं"
+    },
+    "useMyLocation": "मेरी अभी की लोकेशन लें",
+    "address": {
+      "title": "डिलीवरी की लोकेशन सेट करें",
+      "message": "सही डिलीवरी के लिए पता जोड़ें, या अपनी अभी की लोकेशन से आस-पास के प्रोडक्ट्स देखें।",
+      "add": "डिलीवरी का पता जोड़ें",
+      "useLocation": "अभी की लोकेशन से देखें"
+    },
+    "detecting": "लोकेशन पता कर रहे हैं…"
+  },
+  "noMerchants": {
+    "areaTitle": "आपके इलाके में अभी कोई विक्रेता नहीं",
+    "areaMessage": "{{place}} में अभी हमारे विक्रेता नहीं हैं। हम जल्द ही नए इलाकों में आ रहे हैं — कोई दूसरा पता आज़माएं।",
+    "changeAddress": "पता बदलें",
+    "cityTitle": "{{city}} में अभी कोई विक्रेता नहीं",
+    "cityMessage": "हम जल्द ही नए इलाकों में आ रहे हैं। दूसरी लोकेशन आज़माएं या बाद में देखें।",
+    "changeLocation": "लोकेशन बदलें"
+  },
+  "banner": {
+    "addAddressA11y": "पता जोड़ें",
+    "browsingPrefix": "",
+    "browsingSuffix": " में देख रहे हैं। सही डिलीवरी के लिए पता जोड़ें।",
+    "add": "जोड़ें",
+    "changeLocationA11y": "डिलीवरी लोकेशन बदलें",
+    "deliveringTo": "{{place}} में डिलीवरी",
+    "showingIn": "{{city}} के प्रोडक्ट्स दिख रहे हैं",
+    "merchants_one": "{{count}} विक्रेता",
+    "merchants_other": "{{count}} विक्रेता",
+    "withinKm": "{{km}}km के अंदर",
+    "expanded": "(बड़े इलाके में खोजा)",
+    "merchantsAvailable_one": "{{count}} विक्रेता उपलब्ध",
+    "merchantsAvailable_other": "{{count}} विक्रेता उपलब्ध",
+    "loginHint": "सही डिलीवरी के लिए लॉग इन करें",
+    "change": "बदलें",
+    "changeCity": "शहर बदलें"
+  },
+  "empty": {
+    "loadErrorTitle": "प्रोडक्ट्स लोड नहीं हो पाए",
+    "loadErrorMessage": "अपना इंटरनेट चेक करें और फिर से कोशिश करें।",
+    "retry": "फिर से कोशिश करें",
+    "noProductsTitle": "कोई प्रोडक्ट नहीं मिला",
+    "noProductsMessage": "खोज या फ़िल्टर बदलकर देखें।",
+    "clearFilters": "फ़िल्टर हटाएं"
+  },
+  "search": {
+    "browseA11y": "{{name}} देखें",
+    "categoryTag": "कैटेगरी",
+    "resultsFor": "“{{term}}” के नतीजे",
+    "products": "प्रोडक्ट्स",
+    "inScope": "{{name}} में",
+    "found_one": "{{count}} प्रोडक्ट मिला",
+    "found_other": "{{count}} प्रोडक्ट्स मिले",
+    "noMatchCategory": "इस कैटेगरी में कुछ नहीं मिला। सभी कैटेगरी में खोजें।",
+    "noMatchHint": "कोई दूसरा शब्द आज़माएं, जैसे “सीमेंट” या “ईंट”।",
+    "searchAll": "सभी कैटेगरी में खोजें",
+    "goBack": "वापस जाएं",
+    "recent": "हाल की खोजें",
+    "clearRecentA11y": "हाल की खोजें हटाएं",
+    "clearAll": "सब हटाएं",
+    "searchTermA11y": "{{term}} खोजें",
+    "removeRecentA11y": "{{term}} को हाल की खोजों से हटाएं",
+    "popular": "लोकप्रिय खोजें",
+    "browseCategories": "कैटेगरी देखें"
+  },
+  "detail": {
+    "toast": {
+      "selectSize": "पहले साइज़ चुनें",
+      "outOfStock": "यह प्रोडक्ट स्टॉक में नहीं है",
+      "added_one": "{{count}} आइटम कार्ट में डाला",
+      "added_other": "{{count}} आइटम कार्ट में डाले",
+      "shareFailed": "यह प्रोडक्ट शेयर नहीं हो पाया"
+    },
+    "shareMessage": "Chardeevari पर {{name}}",
+    "whatsappUnavailable": "अभी WhatsApp से ऑर्डर नहीं हो सकता",
+    "shareA11y": "प्रोडक्ट शेयर करें",
+    "openCartA11y": "कार्ट खोलें",
+    "headerTitle": "प्रोडक्ट",
+    "notAvailable": {
+      "title": "प्रोडक्ट उपलब्ध नहीं है",
+      "loadError": "यह प्रोडक्ट लोड नहीं हो पाया।",
+      "notFound": "प्रोडक्ट नहीं मिला",
+      "browse": "प्रोडक्ट्स देखें",
+      "retry": "फिर से कोशिश करें"
+    },
+    "from": "शुरुआत",
+    "taxNote": "GST बिल मिलेगा · टैक्स चेकआउट पर बिल में दिखेगा",
+    "trust": {
+      "delivery": "60 मिनट में डिलीवरी — {{city}}",
+      "payOnDelivery": "डिलीवरी पर भुगतान",
+      "genuine": "100% असली माल · GST बिल"
+    },
+    "quantity": "मात्रा",
+    "qtyTotal": "{{quantity}} {{unit}} के {{price}}",
+    "selectSizeHint": "आगे बढ़ने के लिए ऊपर साइज़ चुनें",
+    "inCart": {
+      "a11y_one": "कार्ट देखें, कार्ट में {{count}}",
+      "a11y_other": "कार्ट देखें, कार्ट में {{count}}",
+      "units_one": "आपके कार्ट में {{count}} यूनिट",
+      "units_other": "आपके कार्ट में {{count}} यूनिट",
+      "view": "कार्ट देखें"
+    },
+    "bulk": {
+      "a11y": "{{qty}} से ज़्यादा {{unit}} का थोक ऑर्डर WhatsApp पर",
+      "title": "{{qty}}+ {{unit}} ले रहे हैं?",
+      "subtitle": "WhatsApp पर थोक की खास कीमत पाएं"
+    },
+    "orderWhatsApp": "WhatsApp पर ऑर्डर करें",
+    "callToOrder": "कॉल करके ऑर्डर करें",
+    "description": "जानकारी",
+    "showLess": "कम दिखाएं",
+    "readMore": "और पढ़ें",
+    "specifications": "स्पेसिफिकेशन",
+    "addMore": "और डालें",
+    "addToCart": "कार्ट में डालें",
+    "buyNow": "अभी खरीदें",
+    "decreaseQty": "मात्रा घटाएं",
+    "increaseQty": "मात्रा बढ़ाएं"
+  }
+}

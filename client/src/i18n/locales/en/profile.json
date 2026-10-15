@@ -1,0 +1,60 @@
+{
+  "cancel": "Cancel",
+  "edit": "Edit",
+  "otp": {
+    "verifyPhone": "Verify new phone number",
+    "verifyEmail": "Verify new email address",
+    "sentTo": "We sent a 6-digit code to",
+    "enterBelow": ". Enter it below to confirm.",
+    "placeholder": "Enter 6-digit code",
+    "resend": "Resend",
+    "verify": "Verify"
+  },
+  "form": {
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone",
+    "willBeVerified": "(will be verified)",
+    "sendingCode": "Sending code...",
+    "save": "Save Changes"
+  },
+  "addresses": {
+    "title": "My Addresses",
+    "subtitle": "Manage your saved delivery addresses",
+    "saved": "Saved Addresses",
+    "manageShort": "Manage your delivery locations",
+    "addNew": "Add New Address",
+    "addNewShort": "Add New",
+    "add": "Add Address",
+    "default": "Default",
+    "setDefault": "Set Default",
+    "setAsDefault": "Set as default",
+    "near": "Near {{landmark}}",
+    "confirmDelete": "Are you sure you want to delete this address?",
+    "deleteQuestion": "Delete this address?",
+    "deleting": "Deleting...",
+    "yesDelete": "Yes, Delete",
+    "editTitle": "Edit Address",
+    "deleteTitle": "Delete Address",
+    "type": {
+      "home": "Home",
+      "office": "Office",
+      "other": "Other"
+    },
+    "empty": {
+      "title": "No Addresses Yet",
+      "subtitle": "Add your first delivery address to start shopping and get products delivered to your doorstep",
+      "cta": "Add Your First Address"
+    },
+    "emptyShort": {
+      "title": "No addresses saved",
+      "subtitle": "Add a delivery address to get started"
+    },
+    "toast": {
+      "deleted": "Address deleted successfully!",
+      "deleteFailed": "Failed to delete address",
+      "defaultUpdated": "Default address updated!",
+      "defaultFailed": "Failed to set default address"
+    }
+  }
+}

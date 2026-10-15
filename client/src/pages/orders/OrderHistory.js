@@ -5,8 +5,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderAPI } from "../../services/api";
 import { toast } from 'react-hot-toast';
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
+import { useTranslation } from 'react-i18next';
 
 const OrderHistory = () => {
+  const { t } = useTranslation('orders');
   const queryClient = useQueryClient();
   const { data: orderList, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["orders"],
@@ -27,13 +29,13 @@ const OrderHistory = () => {
   const cancelOrderMutation = useMutation({
     mutationFn: (orderId) => orderAPI.cancelOrder(orderId),
     onSuccess: () => {
-      toast.success('Order cancelled successfully');
+      toast.success(t('history.toast.cancelled'));
       queryClient.invalidateQueries(['orders']);
       setShowCancelModal(false);
       setOrderToCancel(null);
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to cancel order');
+      toast.error(error.response?.data?.message || t('history.toast.cancelFailed'));
     }
   });
 
@@ -85,7 +87,7 @@ const OrderHistory = () => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600">Error loading orders: {error.message}</p>
+        <p className="text-red-600">{t('history.loadError', { message: error.message })}</p>
       </div>
     );
   }
@@ -97,15 +99,15 @@ const OrderHistory = () => {
         <div className="fixed top-0 left-0 right-0 z-50 bg-primary-600 text-white text-center py-2 text-sm font-medium shadow-lg">
           <div className="flex items-center justify-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            <span>Refreshing orders...</span>
+            <span>{t('history.refreshing')}</span>
           </div>
         </div>
       )}
 
       {/* Modern Header */}
       <div className="bg-primary-700 rounded-xl shadow-lg p-6 sm:p-8 mb-6 sm:mb-8 text-white">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-1">📦 Order History</h1>
-        <p className="text-gray-100 text-sm">Track all your orders in one place</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-1">📦 {t('history.title')}</h1>
+        <p className="text-gray-100 text-sm">{t('history.subtitle')}</p>
       </div>
 
       {orderList.orders?.length === 0 ? (
@@ -114,16 +116,16 @@ const OrderHistory = () => {
             <span className="text-4xl">📦</span>
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">
-            No orders yet
+            {t('history.empty.title')}
           </h3>
           <p className="text-gray-600 mb-6">
-            Start shopping to see your orders here!
+            {t('history.empty.subtitle')}
           </p>
           <Link
             to="/products"
             className="inline-block bg-primary-700 hover:bg-primary-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
           >
-            Browse Products
+            {t('history.empty.browse')}
           </Link>
         </div>
       ) : (
@@ -139,7 +141,7 @@ const OrderHistory = () => {
                   {/* Left Side - Order Info */}
                   <div className="flex-1">
                     <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-                      Order #{order.orderNumber}
+                      {t('orderNumber', { number: order.orderNumber })}
                     </h3>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
                       <div className="flex items-center gap-1.5">
@@ -191,7 +193,7 @@ const OrderHistory = () => {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <span className="text-sm font-semibold text-success-700">
-                                  Arriving in {diffMins} mins
+                                  {t('eta.arrivingInMins', { count: diffMins })}
                                 </span>
                               </div>
                             );
@@ -205,7 +207,7 @@ const OrderHistory = () => {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <span className="text-sm font-medium text-blue-700">
-                                  Expected: {hours > 0 ? `${hours}h ${mins}m` : `${mins} mins`}
+                                  {t('eta.expected', { time: hours > 0 ? t('eta.hoursMins', { hours, mins }) : t('eta.mins', { count: mins }) })}
                                 </span>
                               </div>
                             );
@@ -217,7 +219,7 @@ const OrderHistory = () => {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <span className="text-sm font-medium text-primary-800">
-                                  Delayed
+                                  {t('eta.delayed')}
                                 </span>
                               </div>
                             );
@@ -232,8 +234,7 @@ const OrderHistory = () => {
                         order.orderStatus
                       )}`}
                     >
-                      {order.orderStatus.charAt(0).toUpperCase() +
-                        order.orderStatus.slice(1)}
+                      {t(`status.${order.orderStatus}`, { defaultValue: order.orderStatus })}
                     </span>
                   </div>
                 </div>
@@ -245,7 +246,7 @@ const OrderHistory = () => {
                   onClick={() => toggleOrder(order._id)}
                   className="w-full flex items-center justify-center gap-2 text-primary-700 hover:text-primary-800 font-semibold text-sm transition-colors"
                 >
-                  <span>{openOrder === order._id ? "Hide Details" : "Show Details"}</span>
+                  <span>{openOrder === order._id ? t('history.hideDetails') : t('history.showDetails')}</span>
                   <svg
                     className={`w-5 h-5 transform transition-transform ${openOrder === order._id ? 'rotate-180' : ''}`}
                     fill="none"
@@ -266,7 +267,7 @@ const OrderHistory = () => {
                       <svg className="w-5 h-5 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                       </svg>
-                      Order Items
+                      {t('items.title')}
                     </h4>
                     <div className="space-y-3">
                       {order.items?.map((item, index) => (
@@ -282,7 +283,7 @@ const OrderHistory = () => {
                             >
                               <img
                                 src={item.productId?.images?.[0] || '/placeholder-product.jpg'}
-                                alt={item.productName || 'Product'}
+                                alt={item.productName || t('items.product')}
                                 className="w-16 h-16 object-cover rounded-lg border border-gray-200 group-hover:border-primary-500 group-hover:shadow-lg transition-all cursor-pointer"
                                 onError={(e) => { e.target.src = '/placeholder-product.jpg'; }}
                               />
@@ -291,7 +292,7 @@ const OrderHistory = () => {
                             <div className="flex-shrink-0">
                               <img
                                 src="/placeholder-product.jpg"
-                                alt={item.productName || 'Product'}
+                                alt={item.productName || t('items.product')}
                                 className="w-16 h-16 object-cover rounded-lg border border-gray-200"
                               />
                             </div>
@@ -304,11 +305,11 @@ const OrderHistory = () => {
                                 to={`/products/${item.productId._id}`}
                                 className="font-semibold text-gray-900 text-sm sm:text-base hover:text-primary-700 transition-colors cursor-pointer inline-block"
                               >
-                                {item.productName || 'Unknown Product'}
+                                {item.productName || t('items.unknownProduct')}
                               </Link>
                             ) : (
                               <span className="font-semibold text-gray-900 text-sm sm:text-base">
-                                {item.productName || 'Unknown Product'}
+                                {item.productName || t('items.unknownProduct')}
                               </span>
                             )}
                             <p className="text-xs sm:text-sm text-gray-600">
@@ -335,33 +336,33 @@ const OrderHistory = () => {
                       <svg className="w-5 h-5 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
-                      Price Breakdown
+                      {t('price.title')}
                     </h4>
                     <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
                       <div className="flex justify-between text-sm text-gray-700">
-                        <span>Taxable Amount (Base)</span>
+                        <span>{t('price.taxable')}</span>
                         <span className="font-medium">₹{((order.subtotal || 0) - (order.tax || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-700">
-                        <span>GST (18%)</span>
+                        <span>{t('price.gst')}</span>
                         <span className="font-medium">₹{(order.tax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-700 pb-2 border-b border-gray-300">
-                        <span className="font-semibold">Subtotal (Inc. GST)</span>
+                        <span className="font-semibold">{t('price.subtotalIncGst')}</span>
                         <span className="font-semibold">₹{(order.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-700">
-                        <span>Delivery Charge</span>
+                        <span>{t('price.deliveryCharge')}</span>
                         <span className="font-medium">₹{(order.deliveryCharge || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       {order.platformFee && order.platformFee > 0 && (
                         <div className="flex justify-between text-sm text-gray-700">
-                          <span>Platform Fee</span>
+                          <span>{t('price.platformFee')}</span>
                           <span className="font-medium">₹{(order.platformFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
                       <div className="border-t-2 border-gray-300 pt-2 mt-2 flex justify-between font-bold text-gray-900 text-base">
-                        <span>Total Amount</span>
+                        <span>{t('price.totalAmount')}</span>
                         <span className="text-primary-700">₹{(order.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
@@ -374,7 +375,7 @@ const OrderHistory = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      Delivery Address
+                      {t('address.title')}
                     </h4>
                     <div className="bg-white rounded-xl border border-gray-200 p-4">
                     {order.deliveryAddressId ? (
@@ -448,21 +449,21 @@ const OrderHistory = () => {
                         <svg className="w-5 h-5 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                         </svg>
-                        <span className="font-semibold text-gray-900">Payment Method:</span>
+                        <span className="font-semibold text-gray-900">{t('payment.methodLabel')}</span>
                         <span className="capitalize font-medium text-gray-700">
-                          {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod}
+                          {order.paymentMethod === 'cod' ? t('payment.cod') : order.paymentMethod}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-900">Status:</span>
+                        <span className="font-semibold text-gray-900">{t('payment.statusLabel')}</span>
                         <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
                           order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
                           order.paymentStatus === 'failed' ? 'bg-red-100 text-red-800' :
                           'bg-blue-100 text-blue-800'
                         }`}>
                           {order.paymentStatus === 'pending'
-                            ? 'Pay on Delivery'
-                            : order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                            ? t('payment.payOnDelivery')
+                            : t(`payment.status.${order.paymentStatus}`, { defaultValue: order.paymentStatus })}
                         </span>
                       </div>
                     </div>
@@ -479,10 +480,10 @@ const OrderHistory = () => {
                         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        {cancelOrderMutation.isLoading ? 'Cancelling...' : 'Cancel Order'}
+                        {cancelOrderMutation.isLoading ? t('cancel.cancelling') : t('cancel.button')}
                       </button>
                       <p className="text-xs text-gray-500 mt-2">
-                        Note: Orders that have been delivered cannot be cancelled
+                        {t('cancel.note')}
                       </p>
                     </div>
                   )}
@@ -501,10 +502,10 @@ const OrderHistory = () => {
           setOrderToCancel(null);
         }}
         onConfirm={confirmCancelOrder}
-        title="Cancel Order"
-        message={`Are you sure you want to cancel order #${orderToCancel?.number}? This action cannot be undone and the order will be permanently cancelled.`}
-        confirmText="Yes, Cancel Order"
-        cancelText="No, Keep Order"
+        title={t('cancel.title')}
+        message={t('cancel.message', { number: orderToCancel?.number })}
+        confirmText={t('cancel.confirm')}
+        cancelText={t('cancel.keep')}
         isLoading={cancelOrderMutation.isLoading}
       />
     </div>

@@ -2,8 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO/SEO';
 import { blogPosts } from '../data/blogPosts';
+import { useTranslation } from 'react-i18next';
 
 const Blog = () => {
+  const { t } = useTranslation('blog');
   return (
     <div className="min-h-screen bg-gray-50">
       <SEO
@@ -16,10 +18,10 @@ const Blog = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-            Construction Materials Blog
+            {t('list.title')}
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Expert tips, guides, and insights for your construction projects in Ranchi, Jharkhand
+            {t('list.subtitle')}
           </p>
         </div>
 
@@ -57,7 +59,7 @@ const Blog = () => {
                   to={`/blog/${post.slug}`}
                   className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
                 >
-                  Read More →
+                  {t('list.readMore')}
                 </Link>
               </div>
             </article>
@@ -67,46 +69,45 @@ const Blog = () => {
         {/* SEO Content Section */}
         <div className="mt-16 prose prose-lg max-w-none">
           <h2 className="text-3xl font-bold text-gray-900 mb-6">
-            Why Choose Quality Construction Materials in Ranchi?
+            {t('info.title')}
           </h2>
 
           <div className="bg-white rounded-xl shadow-lg p-8">
             <p className="text-gray-700 mb-4">
-              Ranchi, the capital of Jharkhand, is experiencing rapid urbanization and infrastructure development.
-              Choosing the right construction materials is crucial for ensuring the durability and safety of your building projects.
+              {t('info.intro')}
             </p>
 
             <h3 className="text-2xl font-bold text-gray-900 mt-6 mb-4">
-              Key Considerations for Construction in Ranchi
+              {t('info.considerationsTitle')}
             </h3>
 
             <ul className="space-y-3 text-gray-700">
               <li className="flex items-start">
                 <span className="text-blue-600 font-bold mr-2">•</span>
-                <span><strong>Climate Factors:</strong> Ranchi's climate requires materials that can withstand monsoon rains and temperature variations.</span>
+                <span><strong>{t('info.climate.title')}</strong> {t('info.climate.text')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-blue-600 font-bold mr-2">•</span>
-                <span><strong>Quality Certification:</strong> Always choose ISI-marked cement, TMT bars, and other certified materials.</span>
+                <span><strong>{t('info.quality.title')}</strong> {t('info.quality.text')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-blue-600 font-bold mr-2">•</span>
-                <span><strong>Local Availability:</strong> Source materials from reliable suppliers in Ranchi to ensure timely delivery and competitive pricing.</span>
+                <span><strong>{t('info.local.title')}</strong> {t('info.local.text')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-blue-600 font-bold mr-2">•</span>
-                <span><strong>Sustainability:</strong> Consider eco-friendly options like M-Sand and recycled aggregates.</span>
+                <span><strong>{t('info.sustainability.title')}</strong> {t('info.sustainability.text')}</span>
               </li>
             </ul>
 
             <div className="mt-8 p-6 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg text-white">
-              <h4 className="text-xl font-bold mb-3">Need Construction Materials?</h4>
-              <p className="mb-4">Browse our wide range of quality construction materials with doorstep delivery in Ranchi.</p>
+              <h4 className="text-xl font-bold mb-3">{t('cta.title')}</h4>
+              <p className="mb-4">{t('cta.text')}</p>
               <a
                 href="/products"
                 className="inline-block bg-white text-blue-600 font-semibold px-6 py-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                View Products
+                {t('cta.button')}
               </a>
             </div>
           </div>

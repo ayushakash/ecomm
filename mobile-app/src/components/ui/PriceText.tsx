@@ -4,6 +4,8 @@ import { spacing, type ColorValue } from '../../theme';
 import { formatPrice, getDiscountPercent } from '../../utils/pricing';
 import { Badge } from './Badge';
 import { Text } from './Text';
+import { useTranslation } from 'react-i18next';
+
 
 export interface PriceTextProps {
   amount: number;
@@ -29,6 +31,7 @@ const SIZE = {
 
 /** ₹ amount (en-IN grouping) with optional MRP strike, unit and discount pill. */
 export function PriceText({ amount, mrp, unit, prefix, size = 'md', color = 'text', hideDiscount, style }: PriceTextProps) {
+  const { t } = useTranslation('common');
   const s = SIZE[size];
   const discount = getDiscountPercent(amount, mrp);
   return (
@@ -51,7 +54,7 @@ export function PriceText({ amount, mrp, unit, prefix, size = 'md', color = 'tex
           {formatPrice(mrp ?? 0)}
         </Text>
       )}
-      {discount > 0 && !hideDiscount && <Badge label={`${discount}% OFF`} tone="success" />}
+      {discount > 0 && !hideDiscount && <Badge label={t('product.off', { discount })} tone="success" />}
     </View>
   );
 }

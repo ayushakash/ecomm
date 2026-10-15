@@ -8,6 +8,7 @@ import {
   ChartBarIcon
 } from '@heroicons/react/24/outline';
 import ResponsiveDashboardLayout from './ResponsiveDashboardLayout';
+import EnglishOnly from '../../i18n/EnglishOnly';
 
 const MerchantLayout = () => {
   const navigation = [
@@ -20,17 +21,19 @@ const MerchantLayout = () => {
   ];
 
   return (
-    <ResponsiveDashboardLayout
-      navigation={navigation}
-      title="Merchant Hub"
-      subtitle="Business Dashboard"
-      brandIcon="🏪"
-      gradientFrom="from-indigo-900"
-      gradientVia="via-blue-900"
-      gradientTo="to-purple-900"
-      textColor="text-blue-200"
-      type="merchant"
-    />
+    <EnglishOnly>
+      <ResponsiveDashboardLayout
+        navigation={navigation}
+        title="Merchant Hub"
+        subtitle="Business Dashboard"
+        brandIcon="🏪"
+        gradientFrom="from-indigo-900"
+        gradientVia="via-blue-900"
+        gradientTo="to-purple-900"
+        textColor="text-blue-200"
+        type="merchant"
+      />
+    </EnglishOnly>
   );
 };
 

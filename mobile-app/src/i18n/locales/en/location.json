@@ -1,0 +1,51 @@
+{
+  "picker": {
+    "default": "Default",
+    "title": "Select delivery location",
+    "deliveringIn": "Delivering in: {{areas}}",
+    "useCurrent": "Use my current location",
+    "useCurrentAddress": "Add a new address using GPS",
+    "useCurrentStores": "Find stores that deliver to you",
+    "pickOnMap": "Pick on map",
+    "pickOnMapAddress": "Drop a pin for a new address",
+    "pickOnMapSite": "Drop a pin at your site",
+    "savedAddresses": "SAVED ADDRESSES",
+    "addNewAddress": "Add new address",
+    "manage": "Manage",
+    "orSelectCity": "or select your city",
+    "addDeliveryAddress": "Add a delivery address",
+    "loginA11y": "Login for saved addresses",
+    "loginTitle": "Login for precise delivery",
+    "loginSubtitle": "Save addresses and check out faster",
+    "privacy": "Your location is only used to show nearby merchants. We never share your data."
+  },
+  "toast": {
+    "noCityForPin": "Could not determine the city for that spot",
+    "noCityForPinHint": "Try another point or pick a city.",
+    "permissionDenied": "Location permission denied",
+    "permissionDeniedHint": "You can enable it in Settings.",
+    "unableToLocate": "Unable to get location",
+    "unableToLocateHint": "Make sure location services are on."
+  },
+  "city": {
+    "searchPlaceholder": "Search city...",
+    "searchA11y": "Search city",
+    "loadError": "Couldn't load cities. Tap to retry.",
+    "noMatch": "No cities match \"{{query}}\"",
+    "noneAvailable": "No cities available yet",
+    "stores_one": "{{count}} store",
+    "stores_other": "{{count}} stores"
+  },
+  "map": {
+    "permissionDenied": "Location access denied",
+    "tapInstead": "Tap on the map instead.",
+    "locateFailed": "Could not get your location",
+    "hint": "Tap on the map or drag the pin to select your location",
+    "fetching": "Fetching address…",
+    "locationSelected": "Location selected",
+    "title": "Pick location on map",
+    "searchPlaceholder": "Search area, landmark or city",
+    "selected": "Selected location",
+    "confirm": "Confirm location"
+  }
+}

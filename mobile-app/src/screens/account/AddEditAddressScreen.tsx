@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { isAxiosError } from 'axios';
 import * as Location from 'expo-location';
@@ -6,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheet, Button, Card, Chip, Icon, Input, Screen, ScreenHeader, Text } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
+import i18n from '../../i18n';
 import type { RootStackScreenProps } from '../../navigation/types';
 import { addressAPI, getErrorMessage } from '../../services/api';
 import { reverseGeocode } from '../../services/geocoding';
@@ -23,10 +25,11 @@ const INDIAN_STATES = [
   'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
 ];
 
-const ADDRESS_TYPES: { value: AddressType; label: string; icon: 'home-outline' | 'business-outline' | 'location-outline' }[] = [
-  { value: 'home', label: 'Home', icon: 'home-outline' },
-  { value: 'office', label: 'Office', icon: 'business-outline' },
-  { value: 'other', label: 'Other', icon: 'location-outline' },
+/** Label key: account:form.type.<value>. */
+const ADDRESS_TYPES: { value: AddressType; icon: 'home-outline' | 'business-outline' | 'location-outline' }[] = [
+  { value: 'home', icon: 'home-outline' },
+  { value: 'office', icon: 'business-outline' },
+  { value: 'other', icon: 'location-outline' },
 ];
 
 interface FormState {
@@ -44,6 +47,7 @@ interface FormState {
   coordinates: Coordinates | null;
 }
 
+/** Values are account-namespace translation keys. */
 type Errors = Partial<Record<keyof FormState, string>>;
 
 const fromAddress = (a: Address | undefined, phone: string): FormState => ({
@@ -65,6 +69,7 @@ const fromAddress = (a: Address | undefined, phone: string): FormState => ({
 });
 
 export default function AddEditAddressScreen({ navigation, route }: RootStackScreenProps<'AddEditAddress'>) {
+  const { t } = useTranslation('account');
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { fetchAddresses } = useLocation();
@@ -106,7 +111,7 @@ export default function AddEditAddressScreen({ navigation, route }: RootStackScr
   useEffect(() => {
     if (!picked) return;
     applyPlace(picked);
-    toast.success('Location selected!', 'Please verify the prefilled fields.');
+    toast.success(i18n.t('account:form.locationSelected'), i18n.t('account:form.verifyFields'));
     navigation.setParams({ pickedLocation: undefined });
   }, [picked, navigation]);
 
@@ -115,16 +120,16 @@ export default function AddEditAddressScreen({ navigation, route }: RootStackScr
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        toast.error('Location access denied', 'Please enable location permissions.');
+        toast.error(t('form.locationDenied'), t('form.enableLocation'));
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const coordinates = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
       const place = await reverseGeocode(coordinates);
       applyPlace(place ?? { coordinates });
-      toast.success('Location captured', place ? 'Please verify the prefilled fields.' : undefined);
+      toast.success(t('form.locationCaptured'), place ? t('form.verifyFields') : undefined);
     } catch {
-      toast.error('Unable to get your location');
+      toast.error(t('form.locationError'));
     } finally {
       setLocating(false);
     }
@@ -132,12 +137,12 @@ export default function AddEditAddressScreen({ navigation, route }: RootStackScr
 
   const validate = (): boolean => {
     const e: Errors = {};
-    if (!/^[6-9]\d{9}$/.test(form.phoneNumber)) e.phoneNumber = 'Enter a valid 10-digit mobile number';
-    if (!form.addressLine1.trim()) e.addressLine1 = 'Address line 1 is required';
-    if (!form.area.trim()) e.area = 'Area is required';
-    if (!form.city.trim()) e.city = 'City is required';
-    if (!form.state.trim()) e.state = 'State is required';
-    if (!/^\d{6}$/.test(form.pincode)) e.pincode = 'Enter a valid 6-digit pincode';
+    if (!/^[6-9]\d{9}$/.test(form.phoneNumber)) e.phoneNumber = 'form.errors.phone';
+    if (!form.addressLine1.trim()) e.addressLine1 = 'form.errors.line1';
+    if (!form.area.trim()) e.area = 'form.errors.area';
+    if (!form.city.trim()) e.city = 'form.errors.city';
+    if (!form.state.trim()) e.state = 'form.errors.state';
+    if (!/^\d{6}$/.test(form.pincode)) e.pincode = 'form.errors.pincode';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -165,17 +170,17 @@ export default function AddEditAddressScreen({ navigation, route }: RootStackScr
     try {
       if (addressId) {
         await addressAPI.update(addressId, payload);
-        toast.success('Address updated successfully!');
+        toast.success(t('form.updated'));
       } else {
         await addressAPI.create(payload);
-        toast.success('Address added successfully!');
+        toast.success(t('form.added'));
       }
       await fetchAddresses();
       navigation.goBack();
     } catch (err) {
       // 422 validation errors are not auto-toasted.
       const status = isAxiosError(err) ? err.response?.status : undefined;
-      if (status === 422 || status === 404) toast.error(getErrorMessage(err, 'Failed to save address'));
+      if (status === 422 || status === 404) toast.error(getErrorMessage(err, t('form.saveError')));
     } finally {
       setSaving(false);
     }
@@ -183,7 +188,7 @@ export default function AddEditAddressScreen({ navigation, route }: RootStackScr
 
   return (
     <Screen>
-      <ScreenHeader title={isEdit ? 'Edit address' : 'Add new address'} icon="home-outline" />
+      <ScreenHeader title={isEdit ? t('form.editTitle') : t('form.addTitle')} icon="home-outline" />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Card style={styles.locCard} elevated>
@@ -195,18 +200,18 @@ export default function AddEditAddressScreen({ navigation, route }: RootStackScr
               />
               <View style={styles.flex}>
                 <Text variant="title" weight="semibold">
-                  {form.coordinates ? 'Location pinned' : 'Pin your exact location'}
+                  {form.coordinates ? t('form.pinned') : t('form.pin')}
                 </Text>
                 <Text variant="caption" color="textMuted">
                   {form.coordinates
                     ? `${form.coordinates.latitude.toFixed(5)}, ${form.coordinates.longitude.toFixed(5)}`
-                    : 'Helps us find nearby suppliers and deliver faster'}
+                    : t('form.pinHint')}
                 </Text>
               </View>
             </View>
             <View style={styles.locActions}>
               <Button
-                title="Use current location"
+                title={t('form.useCurrent')}
                 variant="outline"
                 size="sm"
                 leftIcon="locate"
@@ -215,7 +220,7 @@ export default function AddEditAddressScreen({ navigation, route }: RootStackScr
                 style={styles.flex}
               />
               <Button
-                title="Pick on map"
+                title={t('form.pickOnMap')}
                 variant="outline"
                 size="sm"
                 leftIcon="map-outline"
@@ -228,110 +233,110 @@ export default function AddEditAddressScreen({ navigation, route }: RootStackScr
           </Card>
 
           <Text variant="label" weight="semibold" color="textSecondary">
-            Save address as
+            {t('form.saveAs')}
           </Text>
           <View style={styles.chips}>
-            {ADDRESS_TYPES.map((t) => (
+            {ADDRESS_TYPES.map((type) => (
               <Chip
-                key={t.value}
-                label={t.label}
-                icon={t.icon}
-                selected={form.addressType === t.value}
-                onPress={() => set('addressType', t.value)}
+                key={type.value}
+                label={t(`form.type.${type.value}`)}
+                icon={type.icon}
+                selected={form.addressType === type.value}
+                onPress={() => set('addressType', type.value)}
               />
             ))}
           </View>
 
           <Input
-            label="Phone number *"
+            label={`${t('form.phone')} *`}
             prefix="+91"
             value={form.phoneNumber}
-            onChangeText={(t) => set('phoneNumber', t.replace(/\D/g, '').slice(0, 10))}
+            onChangeText={(text) => set('phoneNumber', text.replace(/\D/g, '').slice(0, 10))}
             keyboardType="phone-pad"
             maxLength={10}
-            error={errors.phoneNumber}
+            error={errors.phoneNumber && t(errors.phoneNumber)}
           />
           <Input
-            label="House / flat / building *"
+            label={`${t('form.line1')} *`}
             value={form.addressLine1}
-            onChangeText={(t) => set('addressLine1', t)}
-            placeholder="House no., building, street"
-            error={errors.addressLine1}
+            onChangeText={(text) => set('addressLine1', text)}
+            placeholder={t('form.line1Placeholder')}
+            error={errors.addressLine1 && t(errors.addressLine1)}
           />
           <Input
-            label="Address line 2"
+            label={t('form.line2')}
             value={form.addressLine2}
-            onChangeText={(t) => set('addressLine2', t)}
-            placeholder="Apartment, suite, etc. (optional)"
+            onChangeText={(text) => set('addressLine2', text)}
+            placeholder={t('form.line2Placeholder')}
           />
           <View style={styles.row}>
             <Input
-              label="Area / locality *"
+              label={`${t('form.area')} *`}
               value={form.area}
-              onChangeText={(t) => set('area', t)}
-              error={errors.area}
+              onChangeText={(text) => set('area', text)}
+              error={errors.area && t(errors.area)}
               containerStyle={styles.flex}
             />
             <Input
-              label="City *"
+              label={`${t('form.city')} *`}
               value={form.city}
-              onChangeText={(t) => set('city', t)}
-              error={errors.city}
+              onChangeText={(text) => set('city', text)}
+              error={errors.city && t(errors.city)}
               containerStyle={styles.flex}
             />
           </View>
           <View style={styles.row}>
             <Input
-              label="Pincode *"
+              label={`${t('form.pincode')} *`}
               value={form.pincode}
-              onChangeText={(t) => set('pincode', t.replace(/\D/g, '').slice(0, 6))}
+              onChangeText={(text) => set('pincode', text.replace(/\D/g, '').slice(0, 6))}
               keyboardType="number-pad"
               maxLength={6}
-              error={errors.pincode}
+              error={errors.pincode && t(errors.pincode)}
               containerStyle={styles.flex}
             />
             <View style={styles.flex}>
               <Text variant="label" weight="semibold" color="textSecondary" style={styles.fieldLabel}>
-                State *
+                {t('form.state')} *
               </Text>
               <Pressable
                 onPress={() => setStateSheet(true)}
                 accessibilityRole="button"
-                accessibilityLabel="Select state"
+                accessibilityLabel={t('form.selectState')}
                 style={[styles.select, errors.state ? styles.selectError : null]}
               >
                 <Text variant="body" color={form.state ? 'text' : 'textMuted'} numberOfLines={1} style={styles.flex}>
-                  {form.state || 'Select state'}
+                  {form.state || t('form.selectState')}
                 </Text>
                 <Icon name="chevron-down" size={16} color="textMuted" />
               </Pressable>
               {errors.state ? (
                 <Text variant="caption" color="danger" style={styles.fieldError}>
-                  {errors.state}
+                  {t(errors.state)}
                 </Text>
               ) : null}
             </View>
           </View>
           <Input
-            label="Landmark"
+            label={t('form.landmark')}
             value={form.landmark}
-            onChangeText={(t) => set('landmark', t)}
-            placeholder="Nearby landmark (optional)"
+            onChangeText={(text) => set('landmark', text)}
+            placeholder={t('form.landmarkPlaceholder')}
           />
           <Input
-            label="Delivery instructions"
+            label={t('form.instructions')}
             value={form.deliveryInstructions}
-            onChangeText={(t) => set('deliveryInstructions', t)}
-            placeholder="e.g. Unload at the back gate"
+            onChangeText={(text) => set('deliveryInstructions', text)}
+            placeholder={t('form.instructionsPlaceholder')}
             textAreaHeight={80}
           />
           <View style={styles.switchRow}>
             <View style={styles.flex}>
               <Text variant="title" weight="semibold">
-                Make this my default address
+                {t('form.makeDefault')}
               </Text>
               <Text variant="caption" color="textMuted">
-                Used automatically at checkout
+                {t('form.makeDefaultHint')}
               </Text>
             </View>
             <Switch
@@ -343,11 +348,11 @@ export default function AddEditAddressScreen({ navigation, route }: RootStackScr
           </View>
         </ScrollView>
         <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
-          <Button title={isEdit ? 'Update address' : 'Save address'} variant="secondary" size="lg" fullWidth loading={saving} onPress={save} />
+          <Button title={isEdit ? t('form.update') : t('form.save')} variant="secondary" size="lg" fullWidth loading={saving} onPress={save} />
         </View>
       </KeyboardAvoidingView>
 
-      <BottomSheet visible={stateSheet} onClose={() => setStateSheet(false)} title="Select state">
+      <BottomSheet visible={stateSheet} onClose={() => setStateSheet(false)} title={t('form.selectState')}>
         {INDIAN_STATES.map((s) => (
           <Pressable
             key={s}

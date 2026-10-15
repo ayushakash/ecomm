@@ -88,7 +88,8 @@ router.put('/profile', [
   body('phone').optional().trim().matches(/^[6-9]\d{9}$/).withMessage('Please enter a valid 10-digit mobile number'),
   body('address').optional().trim(),
   body('area').optional().trim(),
-  body('email').optional().trim().isEmail().withMessage('Invalid email format')
+  body('email').optional().trim().isEmail().withMessage('Invalid email format'),
+  body('language').optional().isIn(['en', 'hi']).withMessage('Language must be en or hi')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -96,7 +97,7 @@ router.put('/profile', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, phone, address, area, email } = req.body;
+    const { name, phone, address, area, email, language } = req.body;
 
     // Build update object with only provided fields
     const updateData = {};
@@ -105,6 +106,7 @@ router.put('/profile', [
     if (address) updateData.address = address;
     if (area) updateData.area = area;
     if (email) updateData.email = email;
+    if (language) updateData.language = language;
 
     // Use findByIdAndUpdate to avoid issues with password validation
     const updatedUser = await User.findByIdAndUpdate(
