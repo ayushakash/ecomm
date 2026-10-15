@@ -3,6 +3,14 @@ const notificationConfig = require('../config/notifications');
 const OrderLog = require('../models/OrderLog');
 const { smartMerchantSelection } = require('../utils/geoUtils');
 
+// Customer app push copy per order event (orderNumber → body).
+const CUSTOMER_ORDER_PUSH = {
+  order_accepted: { title: '✅ Order confirmed', body: n => `Your order ${n} has been confirmed and is being prepared.` },
+  order_shipped: { title: '🚚 Out for delivery', body: n => `Your order ${n} is on the way to your site.` },
+  order_delivered: { title: '📦 Order delivered', body: n => `Your order ${n} has been delivered. Thank you for choosing Chardeevari!` },
+  order_cancelled: { title: 'Order cancelled', body: n => `Your order ${n} was cancelled. Tap to see details or contact us for help.` }
+};
+
 class NotificationService {
   constructor() {
     this.config = notificationConfig;
@@ -404,6 +412,9 @@ class NotificationService {
       notifications.push(...assignedMerchantNotifications);
     }
 
+    // Push to the customer's app (and merchant app on assignment). Never blocks n8n.
+    notifications.push(...(await this.sendOrderPush(eventType, eventData)));
+
     // Send to n8n (n8n will handle SMS/WhatsApp/Email decisions)
     // Skip generic n8n notification for order_assigned as it's handled by processOrderAssigned
     if (eventConfig.channels.includes('n8n') && this.config.n8n.enabled && eventType !== 'order_assigned') {
@@ -435,6 +446,42 @@ class NotificationService {
     }
 
     return notifications;
+  }
+
+  /**
+   * App push for order lifecycle events. Customers get status updates (not their own
+   * cancellations); the assigned merchant gets a new-order alert on order_assigned.
+   */
+  async sendOrderPush(eventType, eventData) {
+    const ExpoPushService = require('./ExpoPushService');
+    const order = eventData.orderData || {};
+    const results = [];
+    try {
+      const message = CUSTOMER_ORDER_PUSH[eventType];
+      const cancelledByCustomer = eventType === 'order_cancelled' && eventData.triggeredBy?.userType === 'customer';
+      if (message && order.customerId && !cancelledByCustomer) {
+        const result = await ExpoPushService.sendToUsers([order.customerId], {
+          title: message.title,
+          body: message.body(order.orderNumber || ''),
+          url: `chardeevari://orders/${order._id}`,
+          channelId: ExpoPushService.CHANNELS.ORDERS,
+          data: { type: 'order', eventType, orderId: String(order._id) }
+        });
+        results.push({ channel: 'push-customer', ...result, tickets: undefined });
+      }
+
+      if (eventType === 'order_assigned' && eventData.metadata?.merchantId) {
+        const Merchant = require('../models/Merchant');
+        const merchant = await Merchant.findById(eventData.metadata.merchantId).select('name deviceTokens').lean();
+        if (merchant?.deviceTokens?.length) {
+          const result = await ExpoPushService.sendOrderNotification({ merchantData: merchant, orderData: order });
+          results.push({ channel: 'push-merchant', ...result, tickets: undefined });
+        }
+      }
+    } catch (error) {
+      console.error(`Push for ${eventType} failed:`, error);
+    }
+    return results;
   }
 
   // Smart processing for order_created events

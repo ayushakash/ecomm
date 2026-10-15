@@ -9,10 +9,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { queryKeys } from '../hooks/queryKeys';
-import { authAPI, getErrorMessage, onSessionExpired, userAPI } from '../services/api';
+import { authAPI, getErrorMessage, onSessionExpired, pushAPI, userAPI } from '../services/api';
 import { getGoogleIdToken, googleSignOut, isGoogleSignInAvailable } from '../services/googleSignIn';
+import { getPushToken } from '../services/notifications';
 import { tokenStorage } from '../services/tokenStorage';
 import type { AuthResponse, User } from '../types/models';
 import { toast } from '../utils/toast';
@@ -112,6 +114,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearSession, setUser]);
 
   useEffect(() => onSessionExpired(() => setUser(null)), [setUser]);
+
+  // Register this device for push once per signed-in customer (asks permission the first time).
+  const pushTokenRef = useRef<string | null>(null);
+  const userId = user?._id;
+  useEffect(() => {
+    if (!userId || (Platform.OS !== 'android' && Platform.OS !== 'ios')) return;
+    let cancelled = false;
+    getPushToken()
+      .then(async (token) => {
+        if (!token || cancelled) return;
+        await pushAPI.register(token, Platform.OS as 'android' | 'ios');
+        pushTokenRef.current = token;
+      })
+      .catch((error) => console.warn('Push registration failed:', error));
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   /** Persist tokens + user from an auth response. Rejects non-customer roles. */
   const acceptAuth = useCallback(
@@ -270,6 +290,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [setUser]);
 
   const logout = useCallback(async () => {
+    // Stop pushes to this device for the account being signed out (needs the session).
+    if (pushTokenRef.current && tokenStorage.get()) await pushAPI.unregister(pushTokenRef.current).catch(() => {});
+    pushTokenRef.current = null;
     if (tokenStorage.get()) await authAPI.logout().catch(() => {});
     await googleSignOut();
     await clearSession();

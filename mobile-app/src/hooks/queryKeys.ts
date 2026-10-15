@@ -6,6 +6,7 @@ import type { CartTotalsItemInput, OrderStatus, ProductQuery } from '../types/mo
  */
 export const queryKeys = {
   publicSettings: ['public-settings'] as const,
+  banners: ['banners'] as const,
   categories: ['categories'] as const,
   availableCities: ['available-cities'] as const,
   productsAll: ['products'] as const,

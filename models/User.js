@@ -62,6 +62,13 @@ const userSchema = new mongoose.Schema({
   deletedAt: {
     type: Date
   },
+  // Expo push tokens of the customer's signed-in devices (routes/pushTokens.js).
+  pushTokens: [{
+    _id: false,
+    token: { type: String, required: true },
+    platform: { type: String, enum: ['ios', 'android'] },
+    updatedAt: { type: Date, default: Date.now }
+  }],
 }, {
   timestamps: true
 });

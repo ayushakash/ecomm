@@ -5,7 +5,7 @@
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useCart } from '../contexts/CartContext';
-import { analyticsAPI, merchantAPI, orderAPI, productAPI, settingsAPI } from '../services/api';
+import { analyticsAPI, bannerAPI, merchantAPI, orderAPI, productAPI, settingsAPI } from '../services/api';
 import type { CartTotalsItemInput, OrderStatus, ProductQuery } from '../types/models';
 import { queryKeys } from './queryKeys';
 
@@ -15,6 +15,10 @@ const FIVE_MINUTES = 5 * 60 * 1000;
 /** GET /settings/public — bulkOrderPhone, callOrderPhone, minimumOrderValue, serviceAreasNote. */
 export const usePublicSettings = () =>
   useQuery({ queryKey: queryKeys.publicSettings, queryFn: settingsAPI.getPublic, staleTime: TEN_MINUTES });
+
+/** GET /banners — admin-managed offer slides for the home carousel. */
+export const useBanners = () =>
+  useQuery({ queryKey: queryKeys.banners, queryFn: bannerAPI.getLive, staleTime: FIVE_MINUTES });
 
 export const useCategories = () =>
   useQuery({ queryKey: queryKeys.categories, queryFn: productAPI.getCategories, staleTime: TEN_MINUTES });

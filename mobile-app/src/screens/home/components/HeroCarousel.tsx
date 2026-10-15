@@ -1,4 +1,5 @@
 import { useIsFocused } from '@react-navigation/native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
@@ -12,11 +13,13 @@ export interface HeroSlide {
   key: string;
   /** Two-stop gradient (web hero radial #2C3E54 → #1E2A3A). */
   gradient: readonly [string, string];
-  badge: string;
+  badge?: string;
   title: string;
   /** Highlighted trailing part of the title (brand orange). */
   highlight?: string;
-  body: string;
+  body?: string;
+  /** Background image (admin offers); text sits on a dark scrim over it. */
+  image?: string;
   pill?: { icon: IconName; label: string };
   cta?: { label: string; icon: IconName; onPress: () => void };
 }
@@ -86,19 +89,36 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                   setCardHeight((prev) => (h > prev ? h : prev));
                 }}
               >
-                <View style={styles.glow} pointerEvents="none" />
-                <View style={styles.badge}>
-                  <Text variant="micro" style={styles.badgeText}>
-                    {item.badge}
-                  </Text>
-                </View>
-                <Text variant="h1" color="textInverse" style={styles.title}>
+                {item.image ? (
+                  <>
+                    <Image source={{ uri: item.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+                    <LinearGradient
+                      colors={['rgba(15,23,42,0.85)', 'rgba(15,23,42,0.35)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={StyleSheet.absoluteFill}
+                      pointerEvents="none"
+                    />
+                  </>
+                ) : (
+                  <View style={styles.glow} pointerEvents="none" />
+                )}
+                {!!item.badge && (
+                  <View style={[styles.badge, styles.badgeSpacing]}>
+                    <Text variant="micro" style={styles.badgeText}>
+                      {item.badge}
+                    </Text>
+                  </View>
+                )}
+                <Text variant="h1" color="textInverse">
                   {item.title}
                   {item.highlight ? <Text variant="h1" style={styles.highlight}>{` ${item.highlight}`}</Text> : null}
                 </Text>
-                <Text variant="bodySm" style={styles.body} numberOfLines={3}>
-                  {item.body}
-                </Text>
+                {!!item.body && (
+                  <Text variant="bodySm" style={styles.body} numberOfLines={3}>
+                    {item.body}
+                  </Text>
+                )}
                 {item.pill && (
                   <View style={styles.pill}>
                     <Icon name={item.pill.icon} size={14} color="#4ADE80" />
@@ -160,7 +180,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
   },
   badgeText: { color: '#FDBA74' },
-  title: { marginTop: spacing.md },
+  badgeSpacing: { marginBottom: spacing.md },
   highlight: { color: '#FB923C' },
   body: { marginTop: spacing.sm, color: '#B7C0CC' },
   pill: {

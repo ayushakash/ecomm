@@ -355,6 +355,24 @@ export interface PublicSettings {
   callOrderPhone: string;
 }
 
+export type BannerCtaType = 'none' | 'products' | 'category' | 'product' | 'url' | 'whatsapp' | 'calculator';
+
+/** Admin-managed home carousel offer (routes/banners.js). */
+export interface Banner {
+  _id: string;
+  badge?: string;
+  title: string;
+  highlight?: string;
+  body?: string;
+  imageUrl?: string;
+  gradientFrom: string;
+  gradientTo: string;
+  ctaType: BannerCtaType;
+  ctaValue?: string;
+  ctaLabel?: string;
+  sortOrder: number;
+}
+
 export interface PricingItemInput {
   price: number;
   quantity: number;

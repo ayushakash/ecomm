@@ -32,6 +32,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: 'in.chardeevari.app',
+    // EAS builds get the file from the GOOGLE_SERVICES_JSON file env var (it's gitignored).
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       monochromeImage: './assets/adaptive-icon-monochrome.png',
@@ -49,6 +51,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-status-bar',
     'expo-font',
     'expo-secure-store',
+    ['expo-notifications', { color: '#F18C34' }],
     [
       'expo-splash-screen',
       {
@@ -70,6 +73,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       : []),
   ],
   extra: {
+    eas: { projectId: 'cc419c24-5a3a-4637-8ce2-a58335e03a70' },
     apiUrl: process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL,
     googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || GOOGLE_WEB_CLIENT_ID,
     bulkWhatsapp: process.env.EXPO_PUBLIC_BULK_WHATSAPP || BULK_WHATSAPP,

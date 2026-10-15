@@ -17,6 +17,7 @@ import SearchScreen from '../screens/products/SearchScreen';
 import { colors } from '../theme';
 import { MainTabs } from './MainTabs';
 import type { RootStackParamList, RootStackScreenProps } from './types';
+import { getInitialNotificationUrl, subscribeNotificationUrls } from '../services/notifications';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -36,6 +37,18 @@ const navTheme: Theme = {
 /** chardeevari://product/<id>, chardeevari://orders/<id>, chardeevari://cart … */
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [Linking.createURL('/'), 'chardeevari://'],
+  // Push notifications carry a chardeevari:// deep link in data.url (services/ExpoPushService.js).
+  async getInitialURL() {
+    return (await Linking.getInitialURL()) ?? (await getInitialNotificationUrl());
+  },
+  subscribe(listener) {
+    const linkSub = Linking.addEventListener('url', ({ url }) => listener(url));
+    const unsubscribeNotifications = subscribeNotificationUrls(listener);
+    return () => {
+      linkSub.remove();
+      unsubscribeNotifications();
+    };
+  },
   config: {
     screens: {
       MainTabs: {

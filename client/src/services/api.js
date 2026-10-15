@@ -122,6 +122,26 @@ export const productAPI = {
   getMerchantProducts: (params) => api.get('/api/products/merchant/my', { params }).then(res => res.data),
 };
 
+export const bannerAPI = {
+  getAll: () => api.get('/api/banners/admin').then(res => res.data.banners),
+  create: (banner) => api.post('/api/banners', banner).then(res => res.data.banner),
+  update: (id, banner) => api.put(`/api/banners/${id}`, banner).then(res => res.data.banner),
+  remove: (id) => api.delete(`/api/banners/${id}`).then(res => res.data),
+  uploadImage: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    return api
+      .post('/api/upload/single-product-image', form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 })
+      .then(res => res.data.url);
+  },
+};
+
+export const pushCampaignAPI = {
+  getAll: () => api.get('/api/push-campaigns').then(res => res.data.campaigns),
+  audience: (params) => api.get('/api/push-campaigns/audience', { params }).then(res => res.data),
+  send: (campaign) => api.post('/api/push-campaigns', campaign, { timeout: 60000 }).then(res => res.data.campaign),
+};
+
 export const orderAPI = {
   createOrder: (orderData) => api.post('/api/orders', orderData),
   calculateCartTotals: (items, customerArea, addressId) => api.post('/api/orders/calculate-cart-totals', { items, customerArea, addressId }).then(res => res.data),

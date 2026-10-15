@@ -61,6 +61,9 @@ app.use('/api/cities', require('./routes/cities'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/calculator-leads', require('./routes/calculatorLeads'));
+app.use('/api/banners', require('./routes/banners'));
+app.use('/api/push-tokens', require('./routes/pushTokens'));
+app.use('/api/push-campaigns', require('./routes/pushCampaigns'));
 
 // New routes for logging and notifications
 app.use('/api/notifications', require('./routes/notifications'));

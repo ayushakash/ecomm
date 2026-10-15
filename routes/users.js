@@ -260,7 +260,7 @@ router.delete('/me', verifyToken, async (req, res) => {
     await User.updateOne(
       { _id: userId },
       {
-        $set: { name: 'Deleted user', isActive: false, isPhoneVerified: false, deletedAt: new Date() },
+        $set: { name: 'Deleted user', isActive: false, isPhoneVerified: false, deletedAt: new Date(), pushTokens: [] },
         $unset: { phone: 1, email: 1, googleId: 1, password: 1, refreshToken: 1, otp: 1, otpExpiry: 1 }
       }
     );

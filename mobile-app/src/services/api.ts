@@ -13,6 +13,7 @@ import type {
   AuthResponse,
   AuthTokens,
   AvailableCity,
+  Banner,
   CalculatorLeadInput,
   CartTotals,
   CartTotalsItemInput,
@@ -286,6 +287,21 @@ export const cityAPI = {
 export const calculatorLeadAPI = {
   create: (lead: CalculatorLeadInput) =>
     api.post<{ success: boolean; id: string }>('/calculator-leads', lead, SILENT).then((r) => r.data),
+};
+
+// ─── Banners (routes/banners.js) — public ────────────────────────────────────
+export const bannerAPI = {
+  /** Active, in-schedule offers for the home carousel. */
+  getLive: () =>
+    api.get<{ success: boolean; banners: Banner[] }>('/banners', SILENT).then((r) => r.data.banners),
+};
+
+// ─── Push tokens (routes/pushTokens.js) — customer auth required, always silent ──
+export const pushAPI = {
+  register: (token: string, platform: 'ios' | 'android') =>
+    api.post<{ success: boolean }>('/push-tokens', { token, platform }, SILENT).then((r) => r.data),
+  unregister: (token: string) =>
+    api.delete<{ success: boolean }>('/push-tokens', { ...SILENT, data: { token } }).then((r) => r.data),
 };
 
 // ─── Analytics (routes/analytics.js) — public ─────────────────────────────────

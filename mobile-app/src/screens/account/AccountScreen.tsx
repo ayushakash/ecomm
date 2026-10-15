@@ -19,6 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { MainTabScreenProps } from '../../navigation/types';
 import { colors, radii, shadows, spacing, SCREEN_PADDING } from '../../theme';
 import { callPhone, openExternal } from '../../utils/whatsapp';
+import { isNotificationsAvailable, sendTestNotification, type TestNotificationKind } from '../../services/notifications';
 import { DeleteAccountSheet } from './components/DeleteAccountSheet';
 import { VerifyChangeSheet } from './components/VerifyChangeSheet';
 
@@ -89,6 +90,17 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
   const [verifyKind, setVerifyKind] = useState<'phone' | 'email' | null>(null);
   const [contactSheet, setContactSheet] = useState(false);
   const [deleteSheet, setDeleteSheet] = useState(false);
+  const [notifSheet, setNotifSheet] = useState(false);
+
+  const testNotification = async (kind: TestNotificationKind) => {
+    try {
+      await sendTestNotification(kind);
+      setNotifSheet(false);
+      Alert.alert('Notification coming in 3 seconds', 'Lock the phone or go to the home screen to see it as a real notification.');
+    } catch (e) {
+      Alert.alert('Could not send test notification', e instanceof Error ? e.message : String(e));
+    }
+  };
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
@@ -155,6 +167,15 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
     { icon: 'information-circle-outline', label: 'About Chardeevari', subtitle: 'chardeevari.in', onPress: () => openExternal(WEBSITE_URL) },
     { icon: 'newspaper-outline', label: 'Blog', onPress: () => openExternal(`${WEBSITE_URL}/blog`) },
   ];
+  // Dev-only: preview push notification styles before server push is built.
+  if (__DEV__) {
+    helpItems.push({
+      icon: 'notifications-outline',
+      label: 'Test notifications',
+      subtitle: isNotificationsAvailable ? 'Preview offer / order alerts' : 'Needs a new app build',
+      onPress: () => setNotifSheet(true),
+    });
+  }
 
   return (
     <Screen>
@@ -268,6 +289,14 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
       />
 
       <DeleteAccountSheet visible={deleteSheet} onClose={() => setDeleteSheet(false)} />
+
+      <BottomSheet visible={notifSheet} onClose={() => setNotifSheet(false)} title="Test notifications" subtitle="Arrives 3 seconds after tapping">
+        <View style={styles.contactList}>
+          <Button title="Offer / deal" leftIcon="pricetag-outline" fullWidth onPress={() => void testNotification('offer')} />
+          <Button title="Order update" variant="outline" leftIcon="bus-outline" fullWidth onPress={() => void testNotification('order')} />
+          <Button title="Cart reminder" variant="outline" leftIcon="cart-outline" fullWidth onPress={() => void testNotification('cart')} />
+        </View>
+      </BottomSheet>
 
       <BottomSheet visible={contactSheet} onClose={() => setContactSheet(false)} title="Contact us" subtitle="We're here to help!">
         <View style={styles.contactList}>

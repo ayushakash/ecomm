@@ -25,14 +25,15 @@ import {
   Skeleton,
   Text,
 } from '../../components/ui';
+import type { IconName } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
-import { useCategories, usePublicSettings } from '../../hooks/queries';
+import { useBanners, useCategories, usePublicSettings } from '../../hooks/queries';
 import { queryKeys } from '../../hooks/queryKeys';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
 import type { MainTabScreenProps } from '../../navigation/types';
 import { colors, layout, palette, radii, SCREEN_PADDING, spacing } from '../../theme';
-import type { Product } from '../../types/models';
+import type { Banner, BannerCtaType, Product } from '../../types/models';
 import { openExternal } from '../../utils/whatsapp';
 import { useDetectLocation } from '../location/components/useDetectLocation';
 import { FilterSheet } from '../products/components/FilterSheet';
@@ -53,6 +54,22 @@ const LOGO = require('../../../assets/logo.png');
 const SORT_OPTIONS: SortOption[] = ['name', 'latest', 'price-low', 'price-high'];
 const MAX_CATEGORY_TILES = 10;
 const BULK_MESSAGE = 'Hi, I want to place a bulk order for construction materials.\nPlease share the pricing and availability.';
+const CTA_ICONS: Record<Exclude<BannerCtaType, 'none'>, IconName> = {
+  products: 'grid-outline',
+  category: 'grid-outline',
+  product: 'cube-outline',
+  url: 'open-outline',
+  whatsapp: 'logo-whatsapp',
+  calculator: 'calculator-outline',
+};
+const DEFAULT_CTA_LABEL: Record<Exclude<BannerCtaType, 'none'>, string> = {
+  products: 'Shop now',
+  category: 'Shop now',
+  product: 'View product',
+  url: 'Learn more',
+  whatsapp: 'Chat on WhatsApp',
+  calculator: 'Open calculator',
+};
 
 /**
  * Home tab. Port of client/src/pages/Home.js + Header.js service-area strip:
@@ -77,6 +94,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
   } = useLocation();
   const { number: bulkNumber, callToOrder } = useBulkWhatsApp();
   const { data: settings } = usePublicSettings();
+  const { data: banners } = useBanners();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { detecting, detect } = useDetectLocation();
 
@@ -125,8 +143,53 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
     [bulkNumber],
   );
 
+  const openProductsTab = useCallback(
+    (categoryId?: string) =>
+      navigation.navigate('MainTabs', { screen: 'ProductsTab', params: categoryId ? { categoryId } : undefined }),
+    [navigation],
+  );
+
+  const bannerAction = useCallback(
+    (b: Banner): (() => void) | undefined => {
+      switch (b.ctaType) {
+        case 'products':
+          return () => openProductsTab();
+        case 'category':
+          return b.ctaValue ? () => openProductsTab(b.ctaValue) : undefined;
+        case 'product':
+          return b.ctaValue ? () => navigation.navigate('ProductDetail', { productId: b.ctaValue! }) : undefined;
+        case 'url':
+          return b.ctaValue ? () => openExternal(b.ctaValue!, 'Could not open the link') : undefined;
+        case 'whatsapp':
+          return openBulkChat;
+        case 'calculator':
+          return () => navigation.navigate('Calculator');
+        default:
+          return undefined;
+      }
+    },
+    [navigation, openBulkChat, openProductsTab],
+  );
+
+  // Admin offers (routes/banners.js) lead; the built-in brand slides follow.
   const slides = useMemo<HeroSlide[]>(
     () => [
+      ...(banners ?? []).map((b): HeroSlide => {
+        const onPress = b.ctaType === 'none' ? undefined : bannerAction(b);
+        return {
+          key: `banner-${b._id}`,
+          gradient: [b.gradientFrom, b.gradientTo],
+          image: b.imageUrl || undefined,
+          badge: b.badge,
+          title: b.title,
+          highlight: b.highlight,
+          body: b.body,
+          cta:
+            onPress && b.ctaType !== 'none'
+              ? { label: b.ctaLabel || DEFAULT_CTA_LABEL[b.ctaType], icon: CTA_ICONS[b.ctaType], onPress }
+              : undefined,
+        };
+      }),
       {
         key: 'hero',
         gradient: ['#2C3E54', '#1E2A3A'],
@@ -155,7 +218,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
         cta: { label: 'Open calculator', icon: 'calculator-outline', onPress: () => navigation.navigate('Calculator') },
       },
     ],
-    [currentCity, openBulkChat, navigation],
+    [banners, bannerAction, currentCity, openBulkChat, navigation],
   );
 
   const onRefresh = () =>
@@ -163,6 +226,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.categories }),
         queryClient.invalidateQueries({ queryKey: queryKeys.publicSettings }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.banners }),
         user && selectedAddress ? refreshMerchants() : null,
       ]),
     );
@@ -172,9 +236,6 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
     setPriceRange(EMPTY_PRICE_RANGE);
     setSelectedCategory('');
   };
-
-  const openProductsTab = (categoryId?: string) =>
-    navigation.navigate('MainTabs', { screen: 'ProductsTab', params: categoryId ? { categoryId } : undefined });
 
   const cellWidth = useGridCellWidth();
   const renderItem = useCallback(

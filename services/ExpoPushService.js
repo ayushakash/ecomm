@@ -1,97 +1,122 @@
 const { Expo } = require('expo-server-sdk');
 
+// Android channels created by the mobile app (mobile-app/src/services/notifications.ts).
+const CHANNELS = {
+  ORDERS: 'orders',
+  OFFERS: 'offers',
+  // Merchant app channel (pre-existing).
+  MERCHANT_ORDERS: 'order-notifications'
+};
+
+const RECEIPT_DELAY_MS = 15000;
+
 class ExpoPushService {
   constructor() {
     this.expo = new Expo({
-      accessToken: process.env.EXPO_ACCESS_TOKEN, // Optional
-      useFcmV1: true // Use FCM v1 API
+      accessToken: process.env.EXPO_ACCESS_TOKEN, // Optional (only if push security is enabled on Expo)
+      useFcmV1: true
     });
+    this.CHANNELS = CHANNELS;
   }
 
   /**
-   * Send push notification to multiple device tokens
+   * Send push notifications.
+   * @param {Array<{deviceTokens: string[], title: string, body: string, data?: object,
+   *   badge?: number, sound?: string, channelId?: string}>} notifications
+   * @returns {{success: boolean, messagesSent?: number, failed?: number, tickets?: object[], error?: string}}
    */
   async sendNotifications(notifications) {
     try {
       const messages = [];
 
       for (const notification of notifications) {
-        const { deviceTokens, title, body, data = {}, badge = 1, sound = 'default' } = notification;
+        const {
+          deviceTokens,
+          title,
+          body,
+          data = {},
+          badge,
+          sound = 'default',
+          channelId = CHANNELS.MERCHANT_ORDERS
+        } = notification;
 
-        // Validate device tokens
-        const validTokens = deviceTokens.filter(token => {
+        for (const token of new Set(deviceTokens)) {
           if (!Expo.isExpoPushToken(token)) {
             console.error('❌ Invalid Expo push token:', token);
-            return false;
+            continue;
           }
-          return true;
-        });
-
-        if (validTokens.length === 0) {
-          console.log('⚠️ No valid device tokens found');
-          continue;
-        }
-
-        // Create message for each valid token
-        for (const token of validTokens) {
-          messages.push({
-            to: token,
-            sound,
-            title,
-            body,
-            data,
-            badge,
-            priority: 'high',
-            channelId: 'order-notifications'
-          });
+          messages.push({ to: token, sound, title, body, data, badge, priority: 'high', channelId });
         }
       }
 
       if (messages.length === 0) {
-        return {
-          success: false,
-          error: 'No valid messages to send'
-        };
+        return { success: false, error: 'No valid messages to send', messagesSent: 0, failed: 0 };
       }
 
-      console.log(`📤 Sending ${messages.length} push notifications...`);
-
-      // Send notifications in chunks
-      const chunks = this.expo.chunkPushNotifications(messages);
+      // tickets[i] belongs to sentMessages[i]; a failed chunk contributes no tickets.
       const tickets = [];
-
-      for (const chunk of chunks) {
+      const sentMessages = [];
+      for (const chunk of this.expo.chunkPushNotifications(messages)) {
         try {
-          const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk);
-          tickets.push(...ticketChunk);
-          console.log(`✅ Sent chunk of ${chunk.length} notifications`);
+          tickets.push(...(await this.expo.sendPushNotificationsAsync(chunk)));
+          sentMessages.push(...chunk);
         } catch (error) {
           console.error('❌ Error sending notification chunk:', error);
         }
       }
 
-      console.log(`📱 Total tickets received: ${tickets.length}`);
+      const deadTokens = [];
+      const receiptTokens = new Map();
+      tickets.forEach((ticket, i) => {
+        if (ticket.status === 'ok') receiptTokens.set(ticket.id, sentMessages[i].to);
+        else if (ticket.details?.error === 'DeviceNotRegistered') deadTokens.push(sentMessages[i].to);
+        else console.error('❌ Push ticket error:', ticket.message);
+      });
+      if (deadTokens.length) await this.removeTokens(deadTokens);
+      if (receiptTokens.size) setTimeout(() => this.handleReceipts(receiptTokens), RECEIPT_DELAY_MS);
 
-      // Handle receipts (optional - for tracking delivery)
-      setTimeout(() => this.handleReceipts(tickets), 15000); // Check receipts after 15 seconds
-
-      return {
-        success: true,
-        tickets,
-        messagesSent: messages.length
-      };
-
+      const ok = receiptTokens.size;
+      console.log(`📤 Push: ${ok}/${messages.length} accepted by Expo`);
+      return { success: ok > 0, messagesSent: ok, failed: messages.length - ok, tickets };
     } catch (error) {
       console.error('❌ Push notification service error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+      return { success: false, error: error.message };
     }
   }
 
   /**
-   * Send notification for new order
+   * Push to customers by User id.
+   * `url` is a chardeevari:// deep link the app opens when the notification is tapped.
+   */
+  async sendToUsers(userIds, { title, body, url, channelId = CHANNELS.ORDERS, data = {} }) {
+    const User = require('../models/User');
+    const users = await User.find({ _id: { $in: userIds }, isActive: true, 'pushTokens.0': { $exists: true } })
+      .select('pushTokens')
+      .lean();
+    const deviceTokens = users.flatMap(u => u.pushTokens.map(t => t.token));
+    if (deviceTokens.length === 0) {
+      return { success: false, error: 'No registered devices', messagesSent: 0, failed: 0 };
+    }
+    return this.sendNotifications([{ deviceTokens, title, body, channelId, data: { ...data, ...(url && { url }) } }]);
+  }
+
+  /** Drop tokens Expo reports as uninstalled/expired from customers and merchants. */
+  async removeTokens(tokens) {
+    const User = require('../models/User');
+    const Merchant = require('../models/Merchant');
+    try {
+      await Promise.all([
+        User.updateMany({ 'pushTokens.token': { $in: tokens } }, { $pull: { pushTokens: { token: { $in: tokens } } } }),
+        Merchant.updateMany({ 'deviceTokens.token': { $in: tokens } }, { $pull: { deviceTokens: { token: { $in: tokens } } } })
+      ]);
+      console.log(`🧹 Removed ${tokens.length} unregistered push token(s)`);
+    } catch (error) {
+      console.error('❌ Failed to remove push tokens:', error);
+    }
+  }
+
+  /**
+   * Send notification for new order (merchant app)
    */
   async sendOrderNotification({
     merchantData,
@@ -100,25 +125,19 @@ class ExpoPushService {
     itemData = {}
   }) {
     try {
-      // Extract active device tokens
       const deviceTokens = merchantData.deviceTokens
         ?.filter(dt => dt.isActive && dt.token)
         ?.map(dt => dt.token) || [];
 
       if (deviceTokens.length === 0) {
-        console.log('❌ No active device tokens for merchant:', merchantData.name);
-        return {
-          success: false,
-          error: 'No active device tokens'
-        };
+        return { success: false, error: 'No active device tokens' };
       }
 
-      console.log(`📱 Sending order notification to ${deviceTokens.length} devices`);
-
-      const notification = {
+      return await this.sendNotifications([{
         deviceTokens,
         title: '🛒 New Order Received!',
         body: this.createOrderNotificationBody(orderData, smartData, itemData),
+        channelId: CHANNELS.MERCHANT_ORDERS,
         data: {
           type: 'new_order',
           orderId: orderData._id || orderData.orderId,
@@ -130,18 +149,11 @@ class ExpoPushService {
           isSequential: smartData.isSequential,
           timestamp: new Date().toISOString()
         },
-        badge: 1,
-        sound: 'default'
-      };
-
-      return await this.sendNotifications([notification]);
-
+        badge: 1
+      }]);
     } catch (error) {
       console.error('❌ Error sending order notification:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+      return { success: false, error: error.message };
     }
   }
 
@@ -157,7 +169,6 @@ class ExpoPushService {
     if (distance) body += ` • ${distance}`;
     if (rank) body += ` ${rank}`;
 
-    // Add item info if available
     if (itemData.productName) {
       body += `\n${itemData.quantity || 1}x ${itemData.productName}`;
     }
@@ -166,49 +177,24 @@ class ExpoPushService {
   }
 
   /**
-   * Handle notification receipts (track delivery status)
+   * Check delivery receipts; prune tokens whose device is no longer registered.
+   * @param {Map<string, string>} receiptTokens receipt id → push token
    */
-  async handleReceipts(tickets) {
-    try {
-      const receiptIds = tickets
-        .filter(ticket => ticket.status === 'ok')
-        .map(ticket => ticket.id);
-
-      if (receiptIds.length === 0) return;
-
-      console.log(`📋 Checking receipts for ${receiptIds.length} notifications...`);
-
-      const receiptIdChunks = this.expo.chunkPushNotificationReceiptIds(receiptIds);
-
-      for (const chunk of receiptIdChunks) {
-        try {
-          const receipts = await this.expo.getPushNotificationReceiptsAsync(chunk);
-
-          for (const receiptId in receipts) {
-            const receipt = receipts[receiptId];
-
-            if (receipt.status === 'error') {
-              console.error('❌ Notification delivery error:', receipt.message);
-
-              // Handle specific errors
-              if (receipt.details && receipt.details.error) {
-                const errorCode = receipt.details.error;
-                if (errorCode === 'DeviceNotRegistered') {
-                  console.log('📱 Device token is invalid, should remove from database');
-                  // TODO: Remove invalid token from merchant's deviceTokens
-                }
-              }
-            } else if (receipt.status === 'ok') {
-              console.log('✅ Notification delivered successfully:', receiptId);
-            }
-          }
-        } catch (error) {
-          console.error('❌ Error checking receipts:', error);
+  async handleReceipts(receiptTokens) {
+    const deadTokens = [];
+    for (const chunk of this.expo.chunkPushNotificationReceiptIds([...receiptTokens.keys()])) {
+      try {
+        const receipts = await this.expo.getPushNotificationReceiptsAsync(chunk);
+        for (const [id, receipt] of Object.entries(receipts)) {
+          if (receipt.status !== 'error') continue;
+          if (receipt.details?.error === 'DeviceNotRegistered') deadTokens.push(receiptTokens.get(id));
+          else console.error('❌ Notification delivery error:', receipt.details?.error, receipt.message);
         }
+      } catch (error) {
+        console.error('❌ Error checking receipts:', error);
       }
-    } catch (error) {
-      console.error('❌ Error handling receipts:', error);
     }
+    if (deadTokens.length) await this.removeTokens(deadTokens);
   }
 
   /**
@@ -222,25 +208,12 @@ class ExpoPushService {
    * Send test notification
    */
   async sendTestNotification(deviceToken) {
-    try {
-      const notification = {
-        deviceTokens: [deviceToken],
-        title: '🧪 Test Notification',
-        body: 'This is a test notification from your e-commerce app!',
-        data: {
-          type: 'test',
-          timestamp: new Date().toISOString()
-        }
-      };
-
-      return await this.sendNotifications([notification]);
-    } catch (error) {
-      console.error('❌ Test notification error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+    return this.sendNotifications([{
+      deviceTokens: [deviceToken],
+      title: '🧪 Test Notification',
+      body: 'This is a test notification from your e-commerce app!',
+      data: { type: 'test', timestamp: new Date().toISOString() }
+    }]);
   }
 }
 
