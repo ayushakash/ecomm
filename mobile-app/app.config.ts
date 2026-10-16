@@ -72,6 +72,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       ? [['@react-native-google-signin/google-signin', { iosUrlScheme: GOOGLE_IOS_URL_SCHEME }] as [string, object]]
       : []),
   ],
+  // Over-the-air JS updates (`eas update --channel production`). The fingerprint
+  // runtime only delivers an update to builds with the same native code.
+  runtimeVersion: { policy: 'fingerprint' },
+  updates: { url: 'https://u.expo.dev/cc419c24-5a3a-4637-8ce2-a58335e03a70' },
   extra: {
     eas: { projectId: 'cc419c24-5a3a-4637-8ce2-a58335e03a70' },
     apiUrl: process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL,
