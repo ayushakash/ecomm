@@ -20,7 +20,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { MainTabScreenProps } from '../../navigation/types';
 import { colors, radii, shadows, spacing, SCREEN_PADDING } from '../../theme';
 import { callPhone, openExternal } from '../../utils/whatsapp';
-import { isNotificationsAvailable, sendTestNotification, type TestNotificationKind } from '../../services/notifications';
+import { getPushToken, isNotificationsAvailable, sendTestNotification, type TestNotificationKind } from '../../services/notifications';
+import { pushAPI } from '../../services/api';
+import { Platform } from 'react-native';
 import { currentLanguage, LANGUAGES, setLanguage } from '../../i18n';
 import { DeleteAccountSheet } from './components/DeleteAccountSheet';
 import { VerifyChangeSheet } from './components/VerifyChangeSheet';
@@ -96,6 +98,21 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
   const { t } = useTranslation('account');
   const language = currentLanguage();
 
+  // Registers this phone for push on demand and reports exactly what failed.
+  const enableNotifications = async () => {
+    try {
+      const token = await getPushToken();
+      if (!token) {
+        Alert.alert(t('notifications.title'), t('notifications.denied'));
+        return;
+      }
+      await pushAPI.register(token, Platform.OS === 'ios' ? 'ios' : 'android');
+      Alert.alert(t('notifications.title'), t('notifications.enabled'));
+    } catch (e) {
+      Alert.alert(t('notifications.failed'), e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const testNotification = async (kind: TestNotificationKind) => {
     try {
       await sendTestNotification(kind);
@@ -167,6 +184,9 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
   ];
 
   const helpItems: MenuItem[] = [
+    ...(isAuthenticated
+      ? [{ icon: 'notifications-outline' as IconName, label: t('notifications.title'), subtitle: t('notifications.subtitle'), onPress: () => void enableNotifications() }]
+      : []),
     {
       icon: 'language-outline',
       label: t('common:language.label'),

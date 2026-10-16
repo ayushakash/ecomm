@@ -155,5 +155,12 @@
     "makeDefaultHint": "Used automatically at checkout",
     "update": "Update address",
     "save": "Save address"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Tap to turn on order updates & offers",
+    "denied": "Notifications are off for Chardeevari. Turn them on in phone Settings → Apps → Chardeevari → Notifications, then tap here again.",
+    "enabled": "Done! You'll now get order updates and offers on this phone.",
+    "failed": "Could not turn on notifications"
   }
 }
