@@ -89,11 +89,9 @@ class ExpoPushService {
    * `url` is a chardeevari:// deep link the app opens when the notification is tapped.
    */
   async sendToUsers(userIds, { title, body, url, channelId = CHANNELS.ORDERS, data = {} }) {
-    const User = require('../models/User');
-    const users = await User.find({ _id: { $in: userIds }, isActive: true, 'pushTokens.0': { $exists: true } })
-      .select('pushTokens')
-      .lean();
-    const deviceTokens = users.flatMap(u => u.pushTokens.map(t => t.token));
+    const PushDevice = require('../models/PushDevice');
+    const devices = await PushDevice.find({ user: { $in: userIds } }).select('token').lean();
+    const deviceTokens = devices.map(d => d.token);
     if (deviceTokens.length === 0) {
       return { success: false, error: 'No registered devices', messagesSent: 0, failed: 0 };
     }
@@ -102,11 +100,11 @@ class ExpoPushService {
 
   /** Drop tokens Expo reports as uninstalled/expired from customers and merchants. */
   async removeTokens(tokens) {
-    const User = require('../models/User');
+    const PushDevice = require('../models/PushDevice');
     const Merchant = require('../models/Merchant');
     try {
       await Promise.all([
-        User.updateMany({ 'pushTokens.token': { $in: tokens } }, { $pull: { pushTokens: { token: { $in: tokens } } } }),
+        PushDevice.deleteMany({ token: { $in: tokens } }),
         Merchant.updateMany({ 'deviceTokens.token': { $in: tokens } }, { $pull: { deviceTokens: { token: { $in: tokens } } } })
       ]);
       console.log(`🧹 Removed ${tokens.length} unregistered push token(s)`);

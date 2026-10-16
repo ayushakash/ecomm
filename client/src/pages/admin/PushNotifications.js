@@ -41,7 +41,7 @@ const PushNotifications = () => {
 
   const submit = (e) => {
     e.preventDefault();
-    const where = form.audience === 'city' ? `customers in ${form.city.trim()}` : 'all customers';
+    const where = form.audience === 'city' ? `people in ${form.city.trim()}` : 'everyone with the app';
     if (window.confirm(`Send this notification to ${reach?.customers ?? 0} ${where} now? This cannot be undone.`)) {
       sendMutation.mutate(form);
     }
@@ -58,7 +58,7 @@ const PushNotifications = () => {
       <div>
         <h1 className="text-xl font-bold text-gray-900">Push Notifications</h1>
         <p className="text-sm text-gray-500">
-          Send offers and announcements to customers who have the mobile app with notifications on.
+          Send offers and announcements to everyone who has the mobile app with notifications on (logged in or not).
           Order updates (confirmed, out for delivery, delivered, cancelled) are sent automatically.
         </p>
       </div>
@@ -83,8 +83,8 @@ const PushNotifications = () => {
             <label className="text-sm font-medium text-gray-700">
               Send to
               <select className={inputCls} value={form.audience} onChange={(e) => setField('audience', e.target.value)}>
-                <option value="all">All customers</option>
-                <option value="city">Customers in a city</option>
+                <option value="all">Everyone with the app</option>
+                <option value="city">People in a city</option>
               </select>
             </label>
             {form.audience === 'city' && (
@@ -125,7 +125,7 @@ const PushNotifications = () => {
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-gray-100">
             <p className="text-sm text-gray-600">
-              Will reach <strong>{reach?.customers ?? '…'}</strong> customer{reach?.customers === 1 ? '' : 's'} on{' '}
+              Will reach <strong>{reach?.customers ?? '…'}</strong> {reach?.customers === 1 ? 'person' : 'people'} on{' '}
               <strong>{reach?.devices ?? '…'}</strong> device{reach?.devices === 1 ? '' : 's'}
             </p>
             <button type="submit" disabled={sendMutation.isPending || !reach?.devices}
@@ -181,7 +181,7 @@ const PushNotifications = () => {
                       <div className="font-medium text-gray-900">{c.title}</div>
                       <div className="text-gray-600 line-clamp-2">{c.body}</div>
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap">{c.audience === 'city' ? c.city : 'All customers'}</td>
+                    <td className="px-4 py-2 whitespace-nowrap">{c.audience === 'city' ? c.city : 'Everyone'}</td>
                     <td className="px-4 py-2 text-gray-600">{linkLabel(c)}</td>
                     <td className="px-4 py-2 text-right whitespace-nowrap">
                       {c.sent}/{c.devices}

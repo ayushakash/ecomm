@@ -262,10 +262,12 @@ router.delete('/me', verifyToken, async (req, res) => {
     await User.updateOne(
       { _id: userId },
       {
-        $set: { name: 'Deleted user', isActive: false, isPhoneVerified: false, deletedAt: new Date(), pushTokens: [] },
+        $set: { name: 'Deleted user', isActive: false, isPhoneVerified: false, deletedAt: new Date() },
         $unset: { phone: 1, email: 1, googleId: 1, password: 1, refreshToken: 1, otp: 1, otpExpiry: 1 }
       }
     );
+    // The phone keeps receiving general offers as a guest, never order updates for this account.
+    await require('../models/PushDevice').updateMany({ user: userId }, { $set: { user: null } });
 
     res.json({ success: true, message: 'Your account and personal data have been deleted.' });
   } catch (error) {

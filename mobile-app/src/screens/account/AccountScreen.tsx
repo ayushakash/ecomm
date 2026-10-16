@@ -106,7 +106,7 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
         Alert.alert(t('notifications.title'), t('notifications.denied'));
         return;
       }
-      await pushAPI.register(token, Platform.OS === 'ios' ? 'ios' : 'android');
+      await pushAPI.register({ token, platform: Platform.OS === 'ios' ? 'ios' : 'android' });
       Alert.alert(t('notifications.title'), t('notifications.enabled'));
     } catch (e) {
       Alert.alert(t('notifications.failed'), e instanceof Error ? e.message : String(e));

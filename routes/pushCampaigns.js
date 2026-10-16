@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const PushDevice = require('../models/PushDevice');
 const Address = require('../models/Address');
 const PushCampaign = require('../models/PushCampaign');
 const ExpoPushService = require('../services/ExpoPushService');
@@ -18,17 +18,21 @@ const linkUrl = (type, value) => {
   }
 };
 
-/** Customers with at least one registered device in the audience. */
-const audienceFilter = async (audience, city) => {
-  const filter = { role: 'customer', isActive: true, 'pushTokens.0': { $exists: true } };
-  if (audience === 'city') {
-    const userIds = await Address.distinct('user', {
-      city: new RegExp(`^${city.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
-      isActive: { $ne: false }
-    });
-    filter._id = { $in: userIds };
-  }
-  return filter;
+/**
+ * Devices in the audience (guests included). City = devices that picked that city
+ * in the app, plus devices of customers with a saved address there.
+ */
+const audienceDevices = async (audience, city) => {
+  if (audience !== 'city') return PushDevice.find().select('token user').lean();
+  const cityRe = new RegExp(`^${city.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+  const userIds = await Address.distinct('user', { city: cityRe, isActive: { $ne: false } });
+  return PushDevice.find({ $or: [{ city: cityRe }, { user: { $in: userIds } }] }).select('token user').lean();
+};
+
+/** Reach summary: people ≈ distinct logged-in customers + guest installs. */
+const reachOf = (devices) => {
+  const users = new Set(devices.filter(d => d.user).map(d => String(d.user)));
+  return { customers: users.size + devices.filter(d => !d.user).length, devices: devices.length };
 };
 
 const validate = ({ title, body, audience = 'all', city, linkType = 'none', linkValue }) => {
@@ -50,12 +54,7 @@ router.get('/audience', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { audience = 'all', city = '' } = req.query;
     if (audience === 'city' && !city.trim()) return res.json({ success: true, customers: 0, devices: 0 });
-    const users = await User.find(await audienceFilter(audience, city)).select('pushTokens').lean();
-    res.json({
-      success: true,
-      customers: users.length,
-      devices: users.reduce((n, u) => n + u.pushTokens.length, 0)
-    });
+    res.json({ success: true, ...reachOf(await audienceDevices(audience, city)) });
   } catch (err) {
     console.error('Push audience error:', err);
     res.status(500).json({ success: false, message: 'Failed to count audience' });
@@ -88,10 +87,10 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     if (error) return res.status(400).json({ success: false, message: error });
 
     const { title, body, audience = 'all', city, linkType = 'none', linkValue } = req.body;
-    const users = await User.find(await audienceFilter(audience, city)).select('pushTokens').lean();
-    const deviceTokens = users.flatMap(u => u.pushTokens.map(t => t.token));
+    const devices = await audienceDevices(audience, city);
+    const deviceTokens = devices.map(d => d.token);
     if (deviceTokens.length === 0) {
-      return res.status(400).json({ success: false, message: 'No customers with the app and notifications enabled in this audience yet' });
+      return res.status(400).json({ success: false, message: 'No phones with the app and notifications enabled in this audience yet' });
     }
 
     const url = linkUrl(linkType, linkValue);
@@ -110,7 +109,7 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
       linkValue: linkType === 'none' ? undefined : linkValue,
       audience,
       city: audience === 'city' ? city.trim() : undefined,
-      recipients: users.length,
+      recipients: reachOf(devices).customers,
       devices: deviceTokens.length,
       sent: result.messagesSent || 0,
       failed: result.failed ?? deviceTokens.length,

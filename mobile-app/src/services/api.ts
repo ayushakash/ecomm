@@ -296,12 +296,10 @@ export const bannerAPI = {
     api.get<{ success: boolean; banners: Banner[] }>('/banners', SILENT).then((r) => r.data.banners),
 };
 
-// ─── Push tokens (routes/pushTokens.js) — customer auth required, always silent ──
+// ─── Push devices (routes/pushTokens.js) — guests too; session (if any) attaches the customer ──
 export const pushAPI = {
-  register: (token: string, platform: 'ios' | 'android') =>
-    api.post<{ success: boolean }>('/push-tokens', { token, platform }, SILENT).then((r) => r.data),
-  unregister: (token: string) =>
-    api.delete<{ success: boolean }>('/push-tokens', { ...SILENT, data: { token } }).then((r) => r.data),
+  register: (body: { token: string; platform: 'ios' | 'android'; city?: string | null; language?: string }) =>
+    api.post<{ success: boolean }>('/push-tokens', body, SILENT).then((r) => r.data),
 };
 
 // ─── Analytics (routes/analytics.js) — public ─────────────────────────────────

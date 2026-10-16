@@ -1,20 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const PushDevice = require('../models/PushDevice');
 const ExpoPushService = require('../services/ExpoPushService');
-const { verifyToken, requireCustomer } = require('../middleware/auth');
-
-// A customer rarely has more than a few devices; cap to stop unbounded growth.
-const MAX_TOKENS_PER_USER = 10;
+const { optionalAuth } = require('../middleware/auth');
 
 /**
  * @route  POST /api/push-tokens
- * @desc   Register this device's Expo push token for the signed-in customer
- * @access Customer
+ * @desc   Register/refresh this app install for push. Works for guests; with a customer
+ *         session the device is attached to that customer, without one it is detached
+ *         (so logging out keeps offers coming but stops order updates for the old account).
+ * @access Public (optional customer auth)
  */
-router.post('/', verifyToken, requireCustomer, async (req, res) => {
+router.post('/', optionalAuth, async (req, res) => {
   try {
-    const { token, platform } = req.body;
+    const { token, platform, city, language } = req.body;
     if (!ExpoPushService.isValidToken(token)) {
       return res.status(400).json({ success: false, message: 'Invalid Expo push token' });
     }
@@ -22,35 +21,19 @@ router.post('/', verifyToken, requireCustomer, async (req, res) => {
       return res.status(400).json({ success: false, message: 'platform must be ios or android' });
     }
 
-    // A device belongs to one account at a time: detach it from anyone else first.
-    await User.updateMany({ _id: { $ne: req.user._id }, 'pushTokens.token': token }, { $pull: { pushTokens: { token } } });
-    await User.updateOne({ _id: req.user._id }, { $pull: { pushTokens: { token } } });
-    await User.updateOne(
-      { _id: req.user._id },
-      { $push: { pushTokens: { $each: [{ token, platform, updatedAt: new Date() }], $slice: -MAX_TOKENS_PER_USER } } }
-    );
+    const update = {
+      platform,
+      user: req.user?.role === 'customer' ? req.user._id : null,
+      lastSeenAt: new Date()
+    };
+    if (typeof city === 'string' && city.trim()) update.city = city.trim().slice(0, 50);
+    if (['en', 'hi'].includes(language)) update.language = language;
 
+    await PushDevice.updateOne({ token }, { $set: update }, { upsert: true });
     res.json({ success: true });
   } catch (err) {
-    console.error('Push token register error:', err);
-    res.status(500).json({ success: false, message: 'Failed to register push token' });
-  }
-});
-
-/**
- * @route  DELETE /api/push-tokens
- * @desc   Unregister a device (called on logout)
- * @access Customer
- */
-router.delete('/', verifyToken, requireCustomer, async (req, res) => {
-  try {
-    const { token } = req.body;
-    if (!token) return res.status(400).json({ success: false, message: 'token is required' });
-    await User.updateOne({ _id: req.user._id }, { $pull: { pushTokens: { token } } });
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Push token unregister error:', err);
-    res.status(500).json({ success: false, message: 'Failed to unregister push token' });
+    console.error('Push device register error:', err);
+    res.status(500).json({ success: false, message: 'Failed to register device' });
   }
 });
 

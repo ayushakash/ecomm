@@ -20,6 +20,7 @@ import { CartProvider } from './src/contexts/CartContext';
 import { LocationProvider } from './src/contexts/LocationContext';
 import { loadLanguage } from './src/i18n';
 import { LanguageSelectScreen } from './src/i18n/LanguageSelectScreen';
+import { PushRegistrar } from './src/components/PushRegistrar';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -76,6 +77,7 @@ export default function App() {
             <LocationProvider>
               <CartProvider>
                 <RootNavigator />
+                <PushRegistrar />
                 <StatusBar style="dark" />
                 <AppToast />
               </CartProvider>
