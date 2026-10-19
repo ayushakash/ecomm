@@ -5,7 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const Merchant = require('../models/Merchant');
 const OTP = require('../models/OTP');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, requireAdmin } = require('../middleware/auth');
 const MSG91Service = require('../services/MSG91Service');
 const EmailService = require('../services/EmailService');
 
@@ -568,8 +568,11 @@ router.post('/refresh', [
 router.post('/logout', verifyToken, async (req, res) => {
   try {
     // Clear refresh token
-    req.user.refreshToken = null;
-    await req.user.save();
+    // An admin acting as a merchant must not end the merchant's own session
+    if (!req.impersonatedBy) {
+      req.user.refreshToken = null;
+      await req.user.save();
+    }
 
     res.json({ message: 'Logout successful' });
   } catch (error) {
@@ -583,9 +586,34 @@ router.post('/logout', verifyToken, async (req, res) => {
 // @access  Private
 router.get('/me', verifyToken, async (req, res) => {
   try {
-    res.json({ user: req.user });
+    res.json({ user: req.user, impersonatedBy: req.impersonatedBy });
   } catch (error) {
     console.error('Get user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/auth/impersonate/:merchantId
+// @desc    Admin gets a short-lived access token that acts as the merchant (no refresh token)
+// @access  Admin
+router.post('/impersonate/:merchantId', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    if (!require('mongoose').isValidObjectId(req.params.merchantId)) {
+      return res.status(400).json({ message: 'Invalid merchant id' });
+    }
+    const merchant = await Merchant.findById(req.params.merchantId).select('-password');
+    if (!merchant) return res.status(404).json({ message: 'Merchant not found' });
+    if (!merchant.isActive) return res.status(400).json({ message: 'Merchant account is inactive' });
+
+    const accessToken = jwt.sign(
+      { userId: merchant._id, impersonatedBy: req.user._id },
+      process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+      { expiresIn: '2h' }
+    );
+    console.log(`Admin ${req.user._id} started acting as merchant ${merchant._id}`);
+    res.json({ user: merchant, accessToken, impersonatedBy: req.user._id });
+  } catch (error) {
+    console.error('Impersonate error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -558,8 +558,8 @@ router.put('/:id', [
 
 
 // @route   PUT /api/products/:id/stock
-// @desc    Update product stock
-// @access  Private (Merchant only)
+// @desc    Update a merchant's price/stock for a product. Admins pass merchantId and may add the product to that merchant.
+// @access  Private (Merchant self, or Admin for any merchant)
 router.put('/:id/stock', [
   verifyToken,
   requireMerchantOrAdmin,
@@ -580,7 +580,6 @@ body('stock')
   body('enabled').optional({ nullable: true }).toBoolean().isBoolean().withMessage('Enabled must be true or false')
 ], async (req, res) => {
   try {
-    console.log(req.body);
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -589,15 +588,19 @@ body('stock')
 
     const { stock, price, enabled, variantPricing } = req.body;
 
-    // Find merchant
-    const merchant = await Merchant.findById(req.user._id);
+    const merchantId = req.user.role === 'admin' ? (req.body.merchantId || req.query.merchantId) : req.user._id;
+    if (!merchantId) return res.status(400).json({ message: "merchantId is required" });
+    const merchant = await Merchant.findById(merchantId);
     if (!merchant) return res.status(400).json({ message: "Merchant profile not found" });
 
-    // Find merchant product
-    const merchantProduct = await MerchantProduct.findOne({
+    let merchantProduct = await MerchantProduct.findOne({
       merchantId: merchant._id,
       productId: req.params.id
     });
+    if (!merchantProduct && req.user.role === 'admin') {
+      if (!(await Product.exists({ _id: req.params.id }))) return res.status(404).json({ message: "Product not found" });
+      merchantProduct = new MerchantProduct({ merchantId: merchant._id, productId: req.params.id });
+    }
     if (!merchantProduct) return res.status(404).json({ message: "Merchant product not found" });
 
     // Update only fields provided

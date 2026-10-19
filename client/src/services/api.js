@@ -82,6 +82,7 @@ export const authAPI = {
   me: () => api.get('/api/auth/me'),
   sendChangeEmailOTP: (email) => api.post('/api/auth/change-email/send-otp', { email }),
   verifyChangeEmail: (email, otp) => api.post('/api/auth/change-email/verify', { email, otp }),
+  impersonate: (merchantId) => api.post(`/api/auth/impersonate/${merchantId}`).then(res => res.data),
 };
 
 export const userAPI = {
@@ -120,6 +121,35 @@ export const productAPI = {
   getCategories: () => api.get('/api/products/categories').then(res => res.data),
   addCategories: (category) => api.post('/api/products/categories',category).then(res => res.data),
   getMerchantProducts: (params) => api.get('/api/products/merchant/my', { params }).then(res => res.data),
+};
+
+const uploadExcel = (url, file, params) => {
+  const form = new FormData();
+  form.append('file', file);
+  return api
+    .post(url, form, { params, headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 })
+    .then(res => res.data)
+    // 422 = rows failed validation; the body lists them, so hand it back instead of throwing
+    .catch(err => { if (err.response?.status === 422) return err.response.data; throw err; });
+};
+
+const downloadExcel = async (url, params) => {
+  const res = await api.get(url, { params, responseType: 'blob', timeout: 120000 });
+  const name = /filename="([^"]+)"/.exec(res.headers['content-disposition'] || '')?.[1] || 'export.xlsx';
+  const href = URL.createObjectURL(res.data);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(href);
+};
+
+// Excel import/export. Stock calls take merchantId only when an admin acts for a merchant.
+export const excelAPI = {
+  exportCatalog: () => downloadExcel('/api/product-excel/catalog/export'),
+  importCatalog: (file, dryRun) => uploadExcel('/api/product-excel/catalog/import', file, { dryRun }),
+  exportStock: ({ merchantId, scope } = {}) => downloadExcel('/api/product-excel/stock/export', { merchantId, scope }),
+  importStock: (file, dryRun, merchantId) => uploadExcel('/api/product-excel/stock/import', file, { dryRun, merchantId }),
 };
 
 export const bannerAPI = {

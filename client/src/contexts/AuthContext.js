@@ -19,6 +19,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('accessToken'));
+  // Admin "login as merchant": the admin's own tokens are parked here until they switch back
+  const [impersonating, setImpersonating] = useState(!!localStorage.getItem('adminAccessToken'));
   const navigate = useNavigate();
 
   // Set up axios interceptor for token
@@ -109,6 +111,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    // Logging out of an impersonated merchant session returns to the admin account
+    if (localStorage.getItem('adminAccessToken')) return stopImpersonating();
     try {
       if (token) {
         await api.post('/api/auth/logout');
@@ -202,6 +206,38 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('refreshToken', refreshTokenValue);
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
   };
+
+  const impersonate = async (merchantId) => {
+    try {
+      const data = await authAPI.impersonate(merchantId);
+      localStorage.setItem('adminAccessToken', localStorage.getItem('accessToken') || '');
+      localStorage.setItem('adminRefreshToken', localStorage.getItem('refreshToken') || '');
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.removeItem('refreshToken'); // short-lived token; never refresh as the merchant
+      api.defaults.headers.common['Authorization'] = `Bearer ${data.accessToken}`;
+      setImpersonating(true);
+      setUser(data.user);
+      setToken(data.accessToken);
+      toast.success(`Now acting as ${data.user.businessName || data.user.name}`);
+      navigate('/merchant/products');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not log in as merchant');
+    }
+  };
+
+  function stopImpersonating() {
+    const adminToken = localStorage.getItem('adminAccessToken');
+    const adminRefresh = localStorage.getItem('adminRefreshToken');
+    localStorage.removeItem('adminAccessToken');
+    localStorage.removeItem('adminRefreshToken');
+    setImpersonating(false);
+    setUser(null);
+    if (adminToken) localStorage.setItem('accessToken', adminToken);
+    if (adminRefresh) localStorage.setItem('refreshToken', adminRefresh);
+    setLoading(true); // checkAuth reloads the admin via /api/auth/me
+    setToken(adminToken || null);
+    navigate('/admin/merchants');
+  }
 
   const loginWithGoogle = async (credential) => {
     try {
@@ -328,6 +364,9 @@ export const AuthProvider = ({ children }) => {
     verifyChangeEmail,
     loginWithOTP,
     loginWithGoogle,
+    impersonating,
+    impersonate,
+    stopImpersonating,
     linkPhone,
     sendLinkPhoneOTP,
     setAuthData,

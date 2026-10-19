@@ -2,9 +2,12 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DataTable from "../../components/commonComponents/dataTable";
 import { productAPI } from "../../services/api";
+import ExcelImportExport from "../../components/products/ExcelImportExport";
 import { toast } from "react-hot-toast";
 
-const Products = () => {
+// merchantId is set when an admin manages a merchant's stock (admin/merchants/:merchantId/products)
+const Products = ({ merchantId, merchantName }) => {
+  const productsKey = ["merchant-products", merchantId ?? "me"];
   const queryClient = useQueryClient();
 
   // Add modal state
@@ -35,8 +38,8 @@ const Products = () => {
 
   // Fetch merchant products
   const { data: merchantProducts, isLoading } = useQuery({
-    queryKey: ["merchant-products"],
-    queryFn: () => productAPI.getMerchantProducts(),
+    queryKey: productsKey,
+    queryFn: () => productAPI.getMerchantProducts(merchantId ? { merchantId } : undefined),
   });
 
   // Fetch categories
@@ -94,10 +97,14 @@ const Products = () => {
   };
 
   // Create merchant product mutation
+  // Merchants link products via POST /api/products; for admins that route creates master products,
+  // so admins link through the stock endpoint, which adds the product to the merchant.
   const createMerchantProduct = useMutation({
-    mutationFn: (data) => productAPI.createProduct(data),
+    mutationFn: ({ productId, ...data }) => merchantId
+      ? productAPI.updateStock(productId, { ...data, merchantId })
+      : productAPI.createProduct({ productId, ...data }),
     onSuccess: () => {
-      queryClient.invalidateQueries(["merchant-products"]);
+      queryClient.invalidateQueries({ queryKey: productsKey });
       setShowModal(false);
       setForm({ category: "", productId: "", price: "", stock: "", enabled: true, variantPricing: [] });
       toast.success("Product added successfully!");
@@ -109,9 +116,9 @@ const Products = () => {
 
   // Update stock/price mutation
   const updateStockMutation = useMutation({
-    mutationFn: ({ id, ...data }) => productAPI.updateStock(id, data),
+    mutationFn: ({ id, ...data }) => productAPI.updateStock(id, merchantId ? { ...data, merchantId } : data),
     onSuccess: () => {
-      queryClient.invalidateQueries(["merchant-products"]);
+      queryClient.invalidateQueries({ queryKey: productsKey });
       toast.success("Product updated successfully!");
     },
     onError: (err) => {
@@ -229,17 +236,24 @@ const Products = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-8 space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Products</h1>
-            <p className="text-gray-600">Manage your product inventory and pricing</p>
+            <h1 className="text-3xl font-bold text-gray-900">{merchantName ? `${merchantName} — Products` : "My Products"}</h1>
+            <p className="text-gray-600">Manage {merchantName ? "this merchant's" : "your"} product inventory and pricing</p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            + Add Product
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <ExcelImportExport
+              kind="stock"
+              merchantId={merchantId}
+              onImported={() => queryClient.invalidateQueries({ queryKey: productsKey })}
+            />
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              + Add Product
+            </button>
+          </div>
         </div>
 
         {/* Edit Popup */}

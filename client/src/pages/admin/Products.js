@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import DataTable from "../../components/commonComponents/dataTable";
 import { productAPI } from "../../services/api";
 import ConfirmDeleteButton from "../../components/products/ConfirmDeleteButton";
+import ExcelImportExport from "../../components/products/ExcelImportExport";
 import axios from "axios";
 import { compressToWebP } from "../../utils/imageUtils";
 
@@ -367,11 +368,19 @@ const Products = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
             <p className="text-gray-600">Manage all products in the system</p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+          <ExcelImportExport
+            kind="catalog"
+            onImported={() => {
+              queryClient.invalidateQueries({ queryKey: ["products"] });
+              queryClient.invalidateQueries({ queryKey: ["categories"] });
+            }}
+          />
         <button
   onClick={() => {
     setFormData({
@@ -397,6 +406,7 @@ const Products = () => {
 >
   + Add Product
 </button>
+          </div>
       </div>
 
       <DataTable

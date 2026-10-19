@@ -24,6 +24,8 @@ const verifyToken = async (req, res, next) => {
     }
 
     req.user = authenticatedUser;
+    // Set when an admin is acting as this merchant (POST /api/auth/impersonate/:merchantId)
+    req.impersonatedBy = decoded.impersonatedBy || null;
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {

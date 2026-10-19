@@ -50,6 +50,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/merchants', require('./routes/merchants'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/product-excel', require('./routes/productExcel'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/platform-earnings', require('./routes/platformEarnings'));
 app.use('/api/users', require('./routes/users'));

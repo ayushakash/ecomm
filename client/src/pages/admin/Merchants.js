@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { merchantAPI } from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 import DataTable from "../../components/commonComponents/dataTable";
 import { toast } from "react-hot-toast";
 
 const Merchants = () => {
   const queryClient = useQueryClient();
+  const { impersonate } = useAuth();
   const { data: merchantList, isLoading, error } = useQuery({
     queryKey: ["merchants"],
     queryFn: () => merchantAPI.getMerchants(),
@@ -121,6 +124,18 @@ const Merchants = () => {
             >
               Edit
             </button>
+            <Link
+              to={`/admin/merchants/${row.original._id}/products`}
+              className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-full font-medium"
+            >
+              Products &amp; stock
+            </Link>
+            <button
+              className="px-3 py-1 text-xs bg-amber-100 text-amber-800 hover:bg-amber-200 rounded-full font-medium"
+              onClick={() => impersonate(row.original._id)}
+            >
+              Login as
+            </button>
             {row.original.activeStatus === 'pending' && (
               <>
                 <button
@@ -157,7 +172,7 @@ const Merchants = () => {
         ),
       },
     ],
-    []
+    [impersonate]
   );
 
   if (isLoading) {
@@ -253,6 +268,18 @@ const Merchants = () => {
                     onClick={() => openEdit(merchant)}
                   >
                     Edit
+                  </button>
+                  <Link
+                    to={`/admin/merchants/${merchant._id}/products`}
+                    className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                  >
+                    Products
+                  </Link>
+                  <button
+                    className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-amber-300 text-sm font-medium rounded-lg text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors"
+                    onClick={() => impersonate(merchant._id)}
+                  >
+                    Login as
                   </button>
                   {merchant.activeStatus === 'pending' && (
                     <>
