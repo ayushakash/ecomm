@@ -99,7 +99,7 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
               <p className="text-gray-600">{t('invoice.tagline')}</p>
               <p className="text-sm text-gray-500 mt-2">
                 {t('invoice.addressLabel')}: Business Tower, Tech Park, Bangalore - 560001<br />
-                {t('invoice.emailLabel')}: support@chardeevari.in | {t('invoice.phoneLabel')}: +91-8069772324<br />
+                {t('invoice.emailLabel')}: support@chardeevari.in | {t('invoice.phoneLabel')}: +91-8553545862<br />
                 <span className="font-semibold">GSTIN: 29ABCDE1234F1Z5</span>
               </p>
             </div>

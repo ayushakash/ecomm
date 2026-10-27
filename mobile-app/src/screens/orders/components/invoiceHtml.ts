@@ -100,7 +100,7 @@ export function buildInvoiceHtml(order: Order): string {
     <p class="company">CharDeevaari</p>
     <p class="muted">E-Commerce Platform for Building Materials</p>
     <p class="muted">Address: Business Tower, Tech Park, Bangalore - 560001<br/>
-    Email: support@chardeevari.in | Phone: +91-8069772324<br/>
+    Email: support@chardeevari.in | Phone: +91-8553545862<br/>
     <b>GSTIN: 29ABCDE1234F1Z5</b></p>
   </div>
 
