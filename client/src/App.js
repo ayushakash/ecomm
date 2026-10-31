@@ -28,6 +28,7 @@ const Cart = lazy(() => import('./pages/cart/Cart'));
 const Checkout = lazy(() => import('./pages/cart/Checkout'));
 const Contact = lazy(() => import('./pages/Contact'));
 const DeleteAccount = lazy(() => import('./pages/DeleteAccount'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const Calculator = lazy(() => import('./pages/Calculator'));
 const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
@@ -105,6 +106,8 @@ function AppRoutes() {
           <Route path="order-success" element={<OrderSuccess />} />
           <Route path="contact" element={<Contact />} />
           <Route path="delete-account" element={<DeleteAccount />} />
+          <Route path="privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="privacy" element={<Navigate to="/privacy-policy" replace />} />
           <Route path="calculator" element={<Calculator />} />
           <Route path="blog" element={<Blog />} />
           <Route path="blog/:slug" element={<BlogPost />} />

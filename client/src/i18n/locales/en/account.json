@@ -1,14 +1,21 @@
 {
   "deletePage": {
     "title": "Delete your Chardeevari account",
-    "intro": "You can permanently delete your account from the Chardeevari app (Account → Delete account) or right here.",
+    "intro": "You can permanently delete your Chardeevari account and personal data from the Chardeevari app or right here on the website.",
+    "howTo": "How to delete your account",
+    "steps": {
+      "app": "In the Chardeevari app: open Account → Delete account, type DELETE and confirm.",
+      "web": "On this website: log in below with your registered phone number, then tap \"Delete my account\", type DELETE and confirm.",
+      "email": "Or email chardeevari.construction@gmail.com from your registered email, or with your registered phone number, asking us to delete your account."
+    },
     "whatHappens": "What happens when you delete",
     "items": {
-      "personal": "Your name, phone number, email and Google sign-in link are erased immediately.",
-      "saved": "Your saved addresses, cart and reviews are deleted.",
-      "invoices": "Invoices for past orders are retained as required by Indian GST law, but are no longer linked to any account.",
+      "personal": "Deleted immediately: your name, phone number, email and Google sign-in link.",
+      "saved": "Deleted immediately: your saved addresses, cart, reviews and login codes. Your device's notification token is unlinked from your account.",
+      "invoices": "Kept: order records and invoices (items, amounts, and the delivery address and phone used for each order) are retained for 72 months from the due date of the annual GST return for that financial year, as required by Indian GST law. They are no longer linked to any account.",
       "activeOrders": "If an order is still being delivered, please wait for it to be delivered or cancel it first."
     },
+    "privacyLink": "Read our Privacy Policy",
     "notCustomer": "Merchant and admin accounts can't be deleted here. Please contact support at {{phone}}.",
     "loginPrompt": "Log in with your registered phone number to continue.",
     "loginButton": "Log in to delete account",

@@ -28,6 +28,15 @@ const getOTPExpiry = () => {
   return new Date(Date.now() + expiryMinutes * 60 * 1000);
 };
 
+// Google Play reviewer login: when REVIEW_PHONE and REVIEW_OTP are both set,
+// OTP requests for REVIEW_PHONE store REVIEW_OTP as the code and skip sending.
+const getReviewOTP = (phone) => {
+  const reviewPhone = process.env.REVIEW_PHONE;
+  const reviewOTP = process.env.REVIEW_OTP;
+  if (!reviewPhone || !/^\d{4,6}$/.test(reviewOTP || '')) return null;
+  return phone === reviewPhone ? reviewOTP : null;
+};
+
 // Generate JWT tokens
 const generateTokens = (userId) => {
   const accessToken = jwt.sign(
@@ -59,6 +68,7 @@ router.post('/send-otp', [
     }
 
     const { phone, purpose = 'login' } = req.body;
+    const reviewOTP = getReviewOTP(phone);
 
     // Check if user exists with this phone number
     let user = await User.findOne({ phone });
@@ -71,7 +81,7 @@ router.post('/send-otp', [
 
     if (!user && !merchant) {
       // No user or merchant exists, generate OTP for registration
-      otp = generateOTPCode();
+      otp = reviewOTP || generateOTPCode();
       userExists = false;
 
       // Store OTP in OTP model for registration verification
@@ -89,15 +99,28 @@ router.post('/send-otp', [
     } else if (user) {
       // User exists, generate and save OTP
       otp = user.generateOTP();
+      if (reviewOTP) otp = user.otp = reviewOTP;
       await user.save();
       userExists = true;
       userRole = user.role;
     } else if (merchant) {
       // Merchant exists, generate and save OTP
       otp = merchant.generateOTP();
+      if (reviewOTP) otp = merchant.otp = reviewOTP;
       await merchant.save();
       userExists = true;
       userRole = 'merchant';
+    }
+
+    if (reviewOTP) {
+      console.log(`🔐 Review login OTP issued — phone: ${phone}, purpose: ${purpose}, role: ${userRole || 'new-user'}`);
+      return res.json({
+        message: 'OTP sent successfully to your WhatsApp',
+        userExists,
+        userRole,
+        phone,
+        channel: 'whatsapp'
+      });
     }
 
     // Log the full OTP for every login/registration attempt.
@@ -828,7 +851,8 @@ router.post('/link-phone/send-otp', verifyToken, [
       return res.status(400).json({ message: 'This phone number is already linked to another account' });
     }
 
-    const otp = generateOTPCode();
+    const reviewOTP = getReviewOTP(phone);
+    const otp = reviewOTP || generateOTPCode();
 
     // Delete any existing unused OTP for this phone+purpose
     await OTP.findOneAndDelete({ phone, purpose: 'phone_link', isUsed: false });
@@ -842,6 +866,10 @@ router.post('/link-phone/send-otp', verifyToken, [
       ipAddress: req.ip,
       userAgent: req.get('User-Agent')
     });
+
+    if (reviewOTP) {
+      return res.json({ message: 'OTP sent to your WhatsApp' });
+    }
 
     const sendResult = await MSG91Service.sendOTP(phone, otp, 'phone_link');
     if (!sendResult.success && sendResult.channel !== 'mock') {

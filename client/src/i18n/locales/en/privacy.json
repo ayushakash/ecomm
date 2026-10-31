@@ -1,0 +1,120 @@
+{
+  "title": "Privacy Policy",
+  "effective": "Effective date: 31 October 2026",
+  "intro": "This Privacy Policy explains how Chardeevari collects, uses, shares and protects your personal information when you use the Chardeevari mobile app and the website https://chardeevari.in (together, the \"Services\").",
+  "sections": [
+    {
+      "id": "who",
+      "title": "1. Who we are",
+      "paragraphs": [
+        "Chardeevari is an online marketplace for construction materials based in Ranchi, Jharkhand, India. We connect customers with local merchants (sellers) who supply and deliver cement, steel, sand, bricks and other materials. Chardeevari is the developer of the Chardeevari app and is responsible for your personal data under this policy."
+      ]
+    },
+    {
+      "id": "collect",
+      "title": "2. Information we collect",
+      "items": [
+        "Account details: your name, mobile number (verified with a one-time password sent on WhatsApp) and, optionally, your email address.",
+        "Google Sign-In: if you choose to sign in with Google, we receive your basic Google profile (name, email address and Google account ID). We do not receive your Google password.",
+        "Delivery addresses: the addresses you save, including receiver name, phone number, landmark and map location of the delivery point.",
+        "Location: with your permission, your device's precise and approximate location.",
+        "Orders: the products you order, quantities, prices, delivery details and order status. Payment is cash on delivery; we do not collect card, UPI or bank details.",
+        "Push notification token: a device token (Expo / Firebase Cloud Messaging) along with your device platform, selected city and language, used to send you notifications.",
+        "Usage information: searches, product views, cart and checkout activity on our Services, and basic technical data such as browser or device type, used to operate and improve the Services."
+      ]
+    },
+    {
+      "id": "use",
+      "title": "3. How we use your information",
+      "items": [
+        "To create and secure your account and verify your phone number.",
+        "To show products, prices and stores that deliver to your location.",
+        "To place, deliver and support your orders, and to issue invoices.",
+        "To send order updates and, if you allow notifications, offers and announcements.",
+        "To respond to your questions and provide customer support.",
+        "To prevent fraud and misuse, and to comply with legal and tax obligations."
+      ]
+    },
+    {
+      "id": "location",
+      "title": "4. Location",
+      "paragraphs": [
+        "The app asks for location permission to find your area, show stores that deliver to you and help you pin your delivery address on the map. Location is used while you use the app; we do not track your location in the background. You can deny or turn off location permission at any time in your phone settings and enter your address manually instead."
+      ]
+    },
+    {
+      "id": "notifications",
+      "title": "5. Push notifications",
+      "paragraphs": [
+        "If you allow notifications, we use your device's push token to send order updates, offers and announcements through Google Firebase Cloud Messaging. You can turn notifications off at any time in your phone settings."
+      ]
+    },
+    {
+      "id": "sharing",
+      "title": "6. How we share information",
+      "paragraphs": [
+        "We do not sell your personal data, and the Chardeevari app does not show ads. We share information only as described below:"
+      ],
+      "items": [
+        "Merchants (sellers): when you place an order, the merchant fulfilling it receives your name, phone number, delivery address and order details so they can deliver it.",
+        "Service providers who process data on our behalf: MSG91 (sending OTP messages on WhatsApp), Google Firebase (push notifications), Google Sign-In (if you use it) and our hosting and cloud infrastructure providers.",
+        "Website analytics: our website (not the mobile app) uses Google Analytics and the Meta Pixel to measure visits and the effectiveness of our promotions. These services may set cookies in your browser.",
+        "Legal requirements: when required by law, court order or a government authority, or to protect the rights and safety of our users and Chardeevari."
+      ]
+    },
+    {
+      "id": "retention",
+      "title": "7. Data retention",
+      "paragraphs": [
+        "We keep your account information for as long as your account is active. When you delete your account, your name, phone number, email, Google sign-in link, saved addresses, cart and reviews are erased immediately. Order records and invoices (including the delivery address and phone number used for the order) are kept for the period required by Indian GST law — 72 months from the due date of the annual GST return for that financial year — and are no longer linked to any account. One-time passwords expire within minutes."
+      ]
+    },
+    {
+      "id": "security",
+      "title": "8. Security",
+      "paragraphs": [
+        "All data sent between the app or website and our servers is encrypted in transit using HTTPS (TLS). Access to personal data is limited to people and services that need it to provide the Services. No method of transmission or storage is completely secure, but we work to protect your information."
+      ]
+    },
+    {
+      "id": "rights",
+      "title": "9. Your choices and rights",
+      "items": [
+        "View and update your name, email and saved addresses in your account.",
+        "Turn off location permission or notifications in your phone settings.",
+        "Request a copy or correction of your personal data by emailing us.",
+        "Delete your account and personal data at any time (see below)."
+      ]
+    },
+    {
+      "id": "deletion",
+      "title": "10. Deleting your account",
+      "paragraphs": [
+        "You can delete your account in the Chardeevari app (Account → Delete account) or on our website at https://chardeevari.in/delete-account after logging in with your phone number. If an order is still being delivered, wait for it to be delivered or cancel it first. You can also email us to request deletion."
+      ]
+    },
+    {
+      "id": "children",
+      "title": "11. Children",
+      "paragraphs": [
+        "Our Services are not directed to children under 18, and we do not knowingly collect personal data from them. If you believe a child has given us personal data, please contact us and we will delete it."
+      ]
+    },
+    {
+      "id": "changes",
+      "title": "12. Changes to this policy",
+      "paragraphs": [
+        "We may update this policy from time to time. We will post the updated version on this page with a new effective date and, for significant changes, notify you in the app or on the website."
+      ]
+    },
+    {
+      "id": "contact",
+      "title": "13. Contact us",
+      "paragraphs": [
+        "Chardeevari, Ranchi, Jharkhand, India. For any privacy question or request, email chardeevari.construction@gmail.com or visit https://chardeevari.in."
+      ]
+    }
+  ],
+  "deleteLink": "Delete your account",
+  "emailLink": "Email us"
+}

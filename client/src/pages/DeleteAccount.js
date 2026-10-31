@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import DeleteAccountPanel from '../components/account/DeleteAccountPanel';
 import SEO from '../components/SEO/SEO';
@@ -33,6 +33,15 @@ const DeleteAccount = () => {
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-sm text-gray-700 space-y-2">
+          <p className="font-semibold text-gray-900">{t('deletePage.howTo')}</p>
+          <ol className="list-decimal pl-5 space-y-1 text-gray-600">
+            <li>{t('deletePage.steps.app')}</li>
+            <li>{t('deletePage.steps.web')}</li>
+            <li>{t('deletePage.steps.email')}</li>
+          </ol>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-sm text-gray-700 space-y-2">
           <p className="font-semibold text-gray-900">{t('deletePage.whatHappens')}</p>
           <ul className="list-disc pl-5 space-y-1 text-gray-600">
             <li>{t('deletePage.items.personal')}</li>
@@ -62,7 +71,10 @@ const DeleteAccount = () => {
         )}
 
         <p className="text-xs text-gray-500">
-          {t('deletePage.help', { phone: SUPPORT_PHONE })}
+          {t('deletePage.help', { phone: SUPPORT_PHONE })}{' '}
+          <Link to="/privacy-policy" className="font-semibold text-primary-700 hover:text-primary-800">
+            {t('deletePage.privacyLink')}
+          </Link>
         </p>
       </div>
     </div>
