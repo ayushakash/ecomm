@@ -7,7 +7,7 @@ const WHITE = '#ffffff';
 const DEFAULT_API_URL = 'https://chardeevari.in';
 const GOOGLE_WEB_CLIENT_ID =
   '442854886009-iuumbp8cmcch1i5ac859at44e7o6e5p8.apps.googleusercontent.com';
-const BULK_WHATSAPP = '916201176610';
+const BULK_WHATSAPP = '919241514013';
 
 // iOS Google Sign-In needs the reversed iOS OAuth client ID as a URL scheme.
 // Android needs no plugin (autolinked; only the SHA-1-bound Android OAuth client).

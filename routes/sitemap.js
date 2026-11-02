@@ -12,6 +12,8 @@ const STATIC_PATHS = [
   { path: '/calculator', changefreq: 'weekly', priority: '0.8' },
   { path: '/blog', changefreq: 'weekly', priority: '0.6' },
   { path: '/contact', changefreq: 'monthly', priority: '0.5' },
+  { path: '/privacy-policy', changefreq: 'yearly', priority: '0.3' },
+  { path: '/delete-account', changefreq: 'yearly', priority: '0.2' },
   // Blog articles — keep in sync with client/src/data/blogPosts.js
   { path: '/blog/cement-calculation-1000-sqft-ranchi', changefreq: 'monthly', priority: '0.7' },
   { path: '/blog/msand-vs-river-sand-jharkhand', changefreq: 'monthly', priority: '0.7' },

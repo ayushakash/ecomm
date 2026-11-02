@@ -4,8 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import DeleteAccountPanel from '../components/account/DeleteAccountPanel';
 import SEO from '../components/SEO/SEO';
 import { useTranslation } from 'react-i18next';
-
-const SUPPORT_PHONE = '+91 6201176610';
+import { BUSINESS_PHONE_LABEL as SUPPORT_PHONE } from '../config/contact';
 
 /**
  * Public account-deletion page (Google Play "delete account" web link).

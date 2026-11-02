@@ -1,10 +1,15 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { BUSINESS_GEO, BUSINESS_PHONE_SCHEMA } from '../../config/contact';
 
 // Configurable via env so OG images / canonical / JSON-LD point at the real site.
 const SITE_URL = (process.env.REACT_APP_SITE_URL || 'https://chardeevari.in').replace(/\/$/, '');
 // Must match the Google Business Profile exactly (NAP consistency).
-const BUSINESS_PHONE = process.env.REACT_APP_BUSINESS_PHONE || '+91-6201176610';
+const BUSINESS_PHONE = BUSINESS_PHONE_SCHEMA;
+const SAME_AS = [
+  'https://www.instagram.com/chardeevari.in/',
+  'https://www.facebook.com/ChardeevariConstruction'
+];
 const BUSINESS_ADDRESS = {
   '@type': 'PostalAddress',
   streetAddress: 'New AG Co-operative Colony, Kadru',
@@ -15,9 +20,9 @@ const BUSINESS_ADDRESS = {
 };
 
 const SEO = ({
-  title = 'Cheap Construction Materials in Ranchi - Cement, Steel, Sand, Bricks',
-  description = 'Buy cheap construction materials online in Ranchi, Jharkhand. Lowest prices on cement, steel (TMT bars), sand, aggregates & bricks with doorstep delivery. Compare verified merchant prices & order online.',
-  keywords = 'cheap cement in Ranchi, cheap steel in Ranchi, cheap construction material in Ranchi, cement price in Ranchi, TMT steel price Ranchi, sand price Ranchi, bricks Ranchi, building materials online Ranchi, construction materials Jharkhand',
+  title = 'Construction Materials in Ranchi - Cement, Steel, Sand, Bricks',
+  description = 'Buy construction materials online in Ranchi, Jharkhand at dealer rates. Cement, TMT steel (sariya), sand, aggregates & bricks with 60-minute delivery, cash on delivery and GST bill.',
+  keywords = 'cement price in Ranchi, cement dealer Ranchi, TMT steel price Ranchi, sariya rate Ranchi, sand price Ranchi, bricks Ranchi, building materials online Ranchi, construction materials Jharkhand',
   image = '/logo512.png',
   // Canonical: always SITE_URL + path. Never window.location.href — it bakes the
   // react-snap prerender origin (localhost:45678) into static HTML and lets
@@ -52,6 +57,7 @@ const SEO = ({
         name: 'Ranchi'
       },
       priceRange: '₹₹',
+      sameAs: SAME_AS,
       ...(BUSINESS_PHONE && { telephone: BUSINESS_PHONE })
     });
 
@@ -62,12 +68,12 @@ const SEO = ({
       name: siteName,
       image: `${siteUrl}/logo512.png`,
       url: siteUrl,
-      description: 'Buy cheap cement, steel, sand, aggregates and bricks online in Ranchi with doorstep delivery.',
+      description: 'Cement, TMT steel, sand, aggregates and bricks in Ranchi at dealer rates with 60-minute doorstep delivery.',
       address: BUSINESS_ADDRESS,
       geo: {
         '@type': 'GeoCoordinates',
-        latitude: 23.3441,
-        longitude: 85.3096
+        latitude: BUSINESS_GEO.latitude,
+        longitude: BUSINESS_GEO.longitude
       },
       areaServed: {
         '@type': 'City',
@@ -237,8 +243,8 @@ const SEO = ({
       {/* Geographic Meta Tags for Local SEO */}
       <meta name="geo.region" content="IN-JH" />
       <meta name="geo.placename" content="Ranchi" />
-      <meta name="geo.position" content="23.3441;85.3096" />
-      <meta name="ICBM" content="23.3441, 85.3096" />
+      <meta name="geo.position" content={`${BUSINESS_GEO.latitude};${BUSINESS_GEO.longitude}`} />
+      <meta name="ICBM" content={`${BUSINESS_GEO.latitude}, ${BUSINESS_GEO.longitude}`} />
 
       {/* Mobile Meta Tags */}
       <meta name="mobile-web-app-capable" content="yes" />

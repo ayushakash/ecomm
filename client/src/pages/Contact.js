@@ -7,6 +7,7 @@ import {
 } from '@heroicons/react/24/outline';
 import SEO from '../components/SEO/SEO';
 import { useTranslation } from 'react-i18next';
+import { BUSINESS_PHONE_LABEL, BUSINESS_PHONE_TEL } from '../config/contact';
 
 const Contact = () => {
   const { t } = useTranslation('contact');
@@ -57,7 +58,7 @@ const Contact = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <SEO
         title="Contact Chardeevari - Construction Materials in Ranchi"
-        description="Contact Chardeevari for cheap cement, steel, sand and construction materials in Ranchi, Jharkhand. Call or message us for the best prices and doorstep delivery."
+        description="Contact Chardeevari for cement, steel, sand and construction materials in Ranchi, Jharkhand. Call or WhatsApp us for dealer rates and 60-minute doorstep delivery."
         keywords="contact construction material supplier Ranchi, cement dealer Ranchi contact, building material shop Ranchi, Chardeevari contact"
       />
       <div className="max-w-7xl mx-auto">
@@ -89,10 +90,10 @@ const Contact = () => {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('info.phone')}</h3>
                 <a
-                  href="tel:+916201176610"
+                  href={`tel:${BUSINESS_PHONE_TEL}`}
                   className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
-                  +91 6201176610
+                  {BUSINESS_PHONE_LABEL}
                 </a>
                 <p className="text-sm text-gray-500 mt-1">{t('info.hours')}</p>
               </div>

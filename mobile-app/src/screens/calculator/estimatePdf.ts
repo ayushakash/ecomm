@@ -4,7 +4,7 @@
  */
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { WEBSITE_URL } from '../../config';
+import { CONTACT_PHONE_LABEL as CONTACT_PHONE, WEBSITE_URL } from '../../config';
 import i18n from '../../i18n';
 import type { CityPriceMaterial, CityPricesResponse } from '../../types/models';
 import { formatNumber, type CalculationResult, type MaterialLine } from './calculatorMath';
@@ -16,7 +16,6 @@ const SOCIAL_MEDIA_LINKS = {
   twitter: 'https://x.com/Chardeevari_in',
   email: 'chardeevari.construction@gmail.com',
 };
-const CONTACT_PHONE = '+91 6201176610';
 
 export interface EstimatePdfInput {
   name: string;

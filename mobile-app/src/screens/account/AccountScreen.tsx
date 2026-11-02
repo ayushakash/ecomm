@@ -15,7 +15,7 @@ import {
   Text,
   type IconName,
 } from '../../components/ui';
-import { WEBSITE_URL } from '../../config';
+import { CONTACT_PHONE, CONTACT_PHONE_LABEL, WEBSITE_URL } from '../../config';
 import { useAuth } from '../../contexts/AuthContext';
 import type { MainTabScreenProps } from '../../navigation/types';
 import { colors, radii, shadows, spacing, SCREEN_PADDING } from '../../theme';
@@ -28,8 +28,6 @@ import { DeleteAccountSheet } from './components/DeleteAccountSheet';
 import { VerifyChangeSheet } from './components/VerifyChangeSheet';
 
 /** Contact details from web pages/Contact.js. */
-const CONTACT_PHONE = '916201176610';
-const CONTACT_PHONE_LABEL = '+91 6201176610';
 const OFFICE_ADDRESS = 'Kadru, AG Colony, Jharkhand 834002, India';
 const OFFICE_MAP_URL = 'https://www.google.com/maps?q=23.35708709274134,85.31314123434679';
 

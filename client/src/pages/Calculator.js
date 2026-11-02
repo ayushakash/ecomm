@@ -9,6 +9,7 @@ import { jsPDF } from 'jspdf';
 import { formatPrice } from '../utils/pricingUtils';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
+import { BUSINESS_PHONE_LABEL, BUSINESS_PHONE_TEL } from '../config/contact';
 
 // Maps each calculated material to a catalog search keyword + a unit-aware
 // quantity converter. Calculator units (bags / kg / cu.ft / nos) rarely match
@@ -507,10 +508,10 @@ const Calculator = () => {
     doc.link(emailX, emailY - 3, emailWidth, 4, { url: `mailto:${SOCIAL_MEDIA_LINKS.email}` });
 
     // Phone (below email)
-    const phoneText = tp('pdf.phone', { phone: '+91 6201176610' });
+    const phoneText = tp('pdf.phone', { phone: BUSINESS_PHONE_LABEL });
     doc.text(phoneText, emailX, emailY + 5);
     const phoneWidth = doc.getTextWidth(phoneText);
-    doc.link(emailX, emailY + 2, phoneWidth, 4, { url: 'tel:+916201176610' });
+    doc.link(emailX, emailY + 2, phoneWidth, 4, { url: `tel:${BUSINESS_PHONE_TEL}` });
 
     // Social Media Icons (right side, properly centered)
     const iconY = 38.5;

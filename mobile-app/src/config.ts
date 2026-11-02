@@ -23,6 +23,10 @@ export const BULK_WHATSAPP_FALLBACK = extra.bulkWhatsapp || '';
 /** Public website, used for share links. */
 export const WEBSITE_URL = 'https://chardeevari.in';
 
+/** Business phone (must match Google Business Profile). wa.me / tel digits and display label. */
+export const CONTACT_PHONE = '919241514013';
+export const CONTACT_PHONE_LABEL = '+91 92415 14013';
+
 /** True inside the Expo Go client, where custom native modules (Google Sign-In) are absent. */
 export const IS_EXPO_GO = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
