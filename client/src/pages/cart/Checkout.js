@@ -182,6 +182,7 @@ const Checkout = () => {
     },
     onError: (err) => {
       console.error("❌ Order creation failed:", err.response?.data || err.message);
+      analytics.trackEvent('order_failed', { status: err.response?.status || 0, reason: (err.response?.data?.message || err.message || '').slice(0, 100) });
       if (err.response?.status === 401) {
         toast.error(t('toast.loginToOrder'));
         navigate('/login');
@@ -281,14 +282,19 @@ const Checkout = () => {
   };
 
   const handleAddNewAddress = () => {
+    analytics.trackEvent('checkout_add_address_click');
     setShowAddAddressForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    analytics.trackEvent('place_order_click', { value: finalPricing.totalAmount || subtotal });
+    const blocked = (reason) => analytics.trackEvent('checkout_blocked', { reason });
+
     // Check if user is authenticated - if not, prompt for login
     if (!user) {
+      blocked('not_logged_in');
       const shouldLogin = window.confirm(
         t('loginOrRegisterConfirm')
       );
@@ -302,11 +308,13 @@ const Checkout = () => {
 
     // Google-auth users must verify phone before placing orders
     if (!user.phone) {
+      blocked('phone_required');
       setShowPhoneModal(true);
       return;
     }
 
     if (!selectedAddress) {
+      blocked('no_address');
       toast.error(t('toast.selectAddress'));
       return;
     }
@@ -314,6 +322,7 @@ const Checkout = () => {
     // CRITICAL: Check if cart city matches selected address city
     if (cartCity && selectedAddress.city) {
       if (cartCity.toLowerCase() !== selectedAddress.city.toLowerCase()) {
+        blocked('city_mismatch');
         toast.error(
           t('toast.cityMismatch', { cartCity, addressCity: selectedAddress.city }),
           { duration: 5000 }
@@ -329,6 +338,7 @@ const Checkout = () => {
     });
 
     if (unavailableItems.length > 0) {
+      blocked('undeliverable_items');
       toast.error(t('toast.undeliverable', { count: unavailableItems.length }));
       return;
     }
@@ -401,6 +411,7 @@ const Checkout = () => {
     try {
       const result = await linkPhone(phoneInput.trim(), phoneOtp.trim());
       if (result.success) {
+        analytics.trackEvent('checkout_phone_linked');
         setShowPhoneModal(false);
         setPhoneModalStep(1);
         setPhoneInput('');
@@ -912,7 +923,7 @@ const Checkout = () => {
       <AddressFormModal
         isOpen={showAddAddressForm}
         onClose={() => setShowAddAddressForm(false)}
-        onSuccess={() => refetchAddresses()}
+        onSuccess={() => { analytics.trackEvent('checkout_address_added'); refetchAddresses(); }}
       />
 
 

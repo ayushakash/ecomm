@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { abandonedCartAPI } from '../services/api';
+import { toast } from 'react-hot-toast';
+import { abandonedCartAPI, productAPI } from '../services/api';
+import analytics from '../services/analytics';
 
 const CartContext = createContext();
 
@@ -60,6 +62,28 @@ export const CartProvider = ({ children }) => {
       }
     }
   }, [cart, cartCity, isInitialized]);
+
+  // Saved carts can outlive products (deleted/disabled in admin). Such items make
+  // cart totals and checkout fail with "Product … not found", so drop them once on
+  // load. A 404 from the product endpoint is silent (no global toast).
+  const validatedRef = useRef(false);
+  useEffect(() => {
+    if (!isInitialized || validatedRef.current || cart.length === 0) return;
+    validatedRef.current = true;
+    const ids = [...new Set(cart.map(item => item._id))];
+    Promise.all(ids.map(id =>
+      productAPI.getById(id)
+        .then(p => ({ id, ok: p && p.enabled !== false }))
+        .catch(err => ({ id, ok: err?.response?.status !== 404 }))
+    )).then(results => {
+      const gone = new Set(results.filter(r => !r.ok).map(r => r.id));
+      if (!gone.size) return;
+      const removed = cart.filter(item => gone.has(item._id));
+      setCart(prev => prev.filter(item => !gone.has(item._id)));
+      analytics.trackEvent('cart_items_unavailable', { count: removed.length });
+      toast(`${removed.map(i => i.name).join(', ')} is no longer available and was removed from your cart.`, { icon: 'ℹ️' });
+    });
+  }, [isInitialized, cart]);
 
   // Mirror cart to the server (abandoned-cart tracking) — debounced, silent.
   // Logged-in users are identified by their token; guests by guestCartId.

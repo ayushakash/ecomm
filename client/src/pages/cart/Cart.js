@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
 import { useTranslation } from 'react-i18next';
+import analytics from '../../services/analytics';
 
 const Cart = () => {
   const { t } = useTranslation('cart');
@@ -63,6 +64,7 @@ const Cart = () => {
   const isMinimumOrderMet = finalPricing.subtotal >= minimumOrderValue;
 
   const handleCheckout = () => {
+    analytics.trackEvent('cart_checkout_click', { logged_in: isLoggedIn, value: finalPricing.subtotal, min_order_met: isMinimumOrderMet });
     if (!isLoggedIn) {
       localStorage.setItem('postLoginRedirect', '/checkout');
       navigate('/login');

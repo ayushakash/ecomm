@@ -22,6 +22,7 @@ class AnalyticsService {
   initialize() {
     if (!this.enabled || this.initialized) return;
     this.initialized = true;
+    this.trackContactClicks();
 
     // Meta Pixel fires quickly (800ms) so paid-ad clicks are attributed even when
     // a visitor bounces within a few seconds — the script is async, so this costs
@@ -43,6 +44,28 @@ class AnalyticsService {
     } else {
       window.addEventListener('load', schedule, { once: true });
     }
+  }
+
+  /**
+   * One delegated listener for every WhatsApp (wa.me) and phone (tel:) link on
+   * the site, so offline-channel orders (WhatsApp/call) show up as conversions.
+   * GA4: whatsapp_click / phone_click; Meta: Contact.
+   */
+  trackContactClicks() {
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest?.('a[href]');
+      if (!a) return;
+      const href = a.getAttribute('href') || '';
+      const type = /^https?:\/\/(wa\.me|api\.whatsapp\.com)\//i.test(href) ? 'whatsapp'
+        : /^tel:/i.test(href) ? 'phone' : null;
+      if (!type) return;
+      const params = {
+        page_path: window.location.pathname,
+        link_text: (a.innerText || a.getAttribute('aria-label') || '').trim().slice(0, 60)
+      };
+      if (window.gtag) window.gtag('event', `${type}_click`, params);
+      if (window.fbq) window.fbq('track', 'Contact', { content_name: type, ...params });
+    }, { capture: true });
   }
 
   /**
