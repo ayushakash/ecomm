@@ -63,7 +63,7 @@ class AnalyticsService {
         page_path: window.location.pathname,
         link_text: (a.innerText || a.getAttribute('aria-label') || '').trim().slice(0, 60)
       };
-      if (window.gtag) window.gtag('event', `${type}_click`, params);
+      this.ga('event', `${type}_click`, params);
       if (window.fbq) window.fbq('track', 'Contact', { content_name: type, ...params });
     }, { capture: true });
   }
@@ -89,8 +89,17 @@ class AnalyticsService {
       page_location: window.location.href,
       page_path: window.location.pathname
     });
+    this.gaReady = true;
+    (this.pendingGA || []).forEach(args => window.gtag(...args));
+    this.pendingGA = [];
 
     console.log('✅ Google Analytics initialized:', this.gaId);
+  }
+
+  /** gtag call that waits for the deferred GA config (events sent before it are dropped). */
+  ga(...args) {
+    if (this.gaReady && window.gtag) window.gtag(...args);
+    else (this.pendingGA = this.pendingGA || []).push(args);
   }
 
   /**
@@ -152,10 +161,7 @@ class AnalyticsService {
   trackEvent(eventName, eventParams = {}) {
     if (!this.enabled) return;
 
-    // Google Analytics
-    if (window.gtag) {
-      window.gtag('event', eventName, eventParams);
-    }
+    this.ga('event', eventName, eventParams);
 
     console.log('📊 Event tracked:', eventName, eventParams);
   }
