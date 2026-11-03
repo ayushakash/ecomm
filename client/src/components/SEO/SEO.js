@@ -8,7 +8,7 @@ const SITE_URL = (process.env.REACT_APP_SITE_URL || 'https://chardeevari.in').re
 const BUSINESS_PHONE = BUSINESS_PHONE_SCHEMA;
 const SAME_AS = [
   'https://www.instagram.com/chardeevari.in/',
-  'https://www.facebook.com/ChardeevariConstruction'
+  'https://www.facebook.com/chardeevari.in'
 ];
 const BUSINESS_ADDRESS = {
   '@type': 'PostalAddress',

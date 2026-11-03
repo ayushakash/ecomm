@@ -94,7 +94,7 @@ const Calculator = () => {
 
   // Social Media Configuration from Footer.jsx
   const SOCIAL_MEDIA_LINKS = {
-    facebook: 'https://www.facebook.com/ChardeevariConstruction',
+    facebook: 'https://www.facebook.com/chardeevari.in',
     instagram: 'https://www.instagram.com/chardeevari.in/',
     linkedin: 'https://www.linkedin.com/company/chardeevari/',
     twitter: 'https://x.com/Chardeevari_in',
