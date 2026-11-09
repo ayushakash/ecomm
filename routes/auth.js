@@ -37,6 +37,9 @@ const getReviewOTP = (phone) => {
   return phone === reviewPhone ? reviewOTP : null;
 };
 
+// Shown when MSG91 rejects the WhatsApp OTP, so the client doesn't wait for a code that never arrives.
+const OTP_SEND_FAILED_MESSAGE = 'Could not send OTP on WhatsApp right now. Please try again in a minute.';
+
 // Generate JWT tokens
 const generateTokens = (userId) => {
   const accessToken = jwt.sign(
@@ -131,6 +134,7 @@ router.post('/send-otp', [
 
     if (!sendResult.success && sendResult.channel !== 'mock') {
       console.warn('⚠️ MSG91 OTP send failed:', sendResult.error);
+      return res.status(503).json({ message: OTP_SEND_FAILED_MESSAGE });
     }
 
     // In development, return OTP for testing
@@ -874,6 +878,7 @@ router.post('/link-phone/send-otp', verifyToken, [
     const sendResult = await MSG91Service.sendOTP(phone, otp, 'phone_link');
     if (!sendResult.success && sendResult.channel !== 'mock') {
       console.warn('MSG91 OTP send failed:', sendResult.error);
+      return res.status(503).json({ message: OTP_SEND_FAILED_MESSAGE });
     }
 
     const isDevelopment = process.env.NODE_ENV === 'development';

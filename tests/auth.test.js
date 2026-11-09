@@ -282,4 +282,37 @@ describe('Auth API Tests', () => {
       expect(response.body).toHaveProperty('success', false);
     });
   });
+
+  describe('POST /api/auth/send-otp', () => {
+    const MSG91Service = require('../services/MSG91Service');
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('returns 503 instead of "OTP sent" when WhatsApp delivery fails', async () => {
+      jest.spyOn(MSG91Service, 'sendOTP').mockResolvedValue({
+        success: false,
+        channel: 'whatsapp',
+        error: { errors: 'There is no subscription assigned to this number' }
+      });
+
+      const response = await request(app)
+        .post('/api/auth/send-otp')
+        .send({ phone: '9876543210' })
+        .expect(503);
+
+      expect(response.body.message).toMatch(/could not send otp/i);
+      expect(response.body).not.toHaveProperty('otp');
+    });
+
+    it('returns 200 when WhatsApp delivery succeeds', async () => {
+      jest.spyOn(MSG91Service, 'sendOTP').mockResolvedValue({ success: true, channel: 'whatsapp' });
+
+      const response = await request(app)
+        .post('/api/auth/send-otp')
+        .send({ phone: '9876543210' })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('channel', 'whatsapp');
+    });
+  });
 });
