@@ -8,7 +8,8 @@ const Users = () => {
   const queryClient = useQueryClient();
   const { data: userList, isLoading, error } = useQuery({
     queryKey: ["users"],
-    queryFn: () => userAPI.getUsers(),
+    // Load every user; DataTable paginates and searches client-side.
+    queryFn: () => userAPI.getUsers({ limit: 10000 }),
   });
 
   // 🔎 search state (passed down to DataTable)
