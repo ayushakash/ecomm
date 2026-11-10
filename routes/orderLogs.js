@@ -4,7 +4,7 @@ const OrderLogService = require('../services/OrderLogService');
 const { verifyToken: auth, requireAdmin: adminAuth } = require('../middleware/auth');
 
 // Get logs for a specific order
-router.get('/order/:orderId', auth, async (req, res) => {
+router.get('/order/:orderId', auth, adminAuth, async (req, res) => {
   try {
     const { orderId } = req.params;
     const {
@@ -34,7 +34,7 @@ router.get('/order/:orderId', auth, async (req, res) => {
 });
 
 // Get all logs (Admin only)
-router.get('/all', adminAuth, async (req, res) => {
+router.get('/all', auth, adminAuth, async (req, res) => {
   try {
     const {
       page = 1,
@@ -73,7 +73,7 @@ router.get('/all', adminAuth, async (req, res) => {
 });
 
 // Get log analytics (Admin only)
-router.get('/analytics', adminAuth, async (req, res) => {
+router.get('/analytics', auth, adminAuth, async (req, res) => {
   try {
     const { startDate, endDate, groupBy = 'eventType' } = req.query;
 
@@ -94,7 +94,7 @@ router.get('/analytics', adminAuth, async (req, res) => {
 });
 
 // Resend failed notification (Admin only)
-router.post('/:logId/resend-notification', adminAuth, async (req, res) => {
+router.post('/:logId/resend-notification', auth, adminAuth, async (req, res) => {
   try {
     const { logId } = req.params;
 
@@ -112,7 +112,7 @@ router.post('/:logId/resend-notification', adminAuth, async (req, res) => {
 });
 
 // Get log details by ID
-router.get('/:logId', auth, async (req, res) => {
+router.get('/:logId', auth, adminAuth, async (req, res) => {
   try {
     const { logId } = req.params;
 
@@ -164,7 +164,7 @@ router.get('/meta/event-types', auth, async (req, res) => {
 });
 
 // Search logs (Admin only)
-router.post('/search', adminAuth, async (req, res) => {
+router.post('/search', auth, adminAuth, async (req, res) => {
   try {
     const {
       query,

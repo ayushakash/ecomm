@@ -4,7 +4,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Merchant = require('../models/Merchant');
 const Address = require('../models/Address');
-const { verifyToken, requireCustomer, requireMerchantOrAdmin, requireAdmin, optionalAuth } = require('../middleware/auth');
+const { verifyToken, requireCustomer, requireMerchant, requireMerchantOrAdmin, requireAdmin, optionalAuth } = require('../middleware/auth');
 const MerchantProduct = require('../models/MerchantProduct');
 const { getPricingCalculator } = require('../utils/pricingUtils');
 const OrderLogService = require('../services/OrderLogService');
@@ -1957,7 +1957,7 @@ router.get('/merchant/analytics/summary', [verifyToken, requireMerchantOrAdmin],
   }
 });
 
-router.put("/:orderId/assign-merchant", async (req, res) => {
+router.put("/:orderId/assign-merchant", [verifyToken, requireAdmin], async (req, res) => {
   const { merchantId, itemId } = req.body;
   try {
     const order = await assignMerchantToItem(
@@ -2499,16 +2499,18 @@ router.get("/:id", async (req, res) => {
 
 
 // POST /orders/:orderId/items/:itemId/reject
-router.post("/:orderId/items/:itemId/reject", async (req, res) => {
-  const { orderId, itemId } = req.params;
-  const merchantId = req.user._id;
-
-  await Order.updateOne(
-    { _id: orderId, "items._id": itemId },
-    { $addToSet: { "items.$.rejectedBy": merchantId } } 
-  );
-
-  res.json({ success: true });
+router.post("/:orderId/items/:itemId/reject", [verifyToken, requireMerchant], async (req, res) => {
+  try {
+    const { orderId, itemId } = req.params;
+    await Order.updateOne(
+      { _id: orderId, "items._id": itemId },
+      { $addToSet: { "items.$.rejectedBy": req.user._id } }
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Reject item error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 
@@ -2694,17 +2696,28 @@ router.post('/claim', verifyToken, async (req, res) => {
  * GET ORDER LIFECYCLE (Admin)
  * ---------------------------
  */
-// router.get('/:orderId/lifecycle', requireMerchantOrAdmin, async (req, res) => {
-  router.get('/:orderId/lifecycle',  async (req, res) => {
+router.get('/:orderId/lifecycle', verifyToken, async (req, res) => {
   try {
     const { orderId } = req.params;
-    
+
     const order = await Order.findById(orderId)
-      .select('orderNumber lifecycle customerId customerName orderStatus totalAmount')
+      .select('orderNumber lifecycle customerId customerName orderStatus totalAmount items.merchantId items.assignedMerchantId')
       .populate('customerId', 'name email phone');
-    
+
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Customers see only their own orders; merchants only orders with their items.
+    const userId = req.user._id.toString();
+    const allowed =
+      req.user.role === 'admin' ||
+      (req.user.role === 'customer' && order.customerId?._id?.toString() === userId) ||
+      (req.user.role === 'merchant' && order.items.some(
+        (i) => i.merchantId?.toString() === userId || i.assignedMerchantId?.toString() === userId
+      ));
+    if (!allowed) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
 
     res.json({

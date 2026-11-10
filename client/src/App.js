@@ -137,7 +137,14 @@ function AppRoutes() {
         </Route>
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route
+          path="/admin"
+          element={
+            <RoleRoute role="admin">
+              <AdminLayout />
+            </RoleRoute>
+          }
+        >
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="analytics" element={<AdminAnalytics />} />

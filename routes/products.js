@@ -759,7 +759,7 @@ router.get('/merchant/my', [verifyToken, requireMerchantOrAdmin], async (req, re
 
 
 // Add new category
-router.post("/categories", async (req, res) => {
+router.post("/categories", [verifyToken, requireAdmin], async (req, res) => {
   try {
     const { name, description } = req.body;
     const category = new Category({ name, description });

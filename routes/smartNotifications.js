@@ -15,7 +15,7 @@ const { calculateDistance, isWithinWorkingHours, calculateMerchantScore } = requ
  * - Working hours
  * - Recent activity
  */
-router.post('/smart-merchant-selection', verifyToken, async (req, res) => {
+router.post('/smart-merchant-selection', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { orderId, productId, customerLocation, maxDistance = 15, maxMerchants = 5 } = req.body;
 
@@ -254,7 +254,7 @@ router.patch('/merchant-availability/:merchantId', [verifyToken, requireAdmin], 
 /**
  * Test distance calculation
  */
-router.post('/test-distance', verifyToken, async (req, res) => {
+router.post('/test-distance', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { coord1, coord2 } = req.body;
     

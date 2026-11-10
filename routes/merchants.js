@@ -217,13 +217,9 @@ router.get('/', optionalAuth, async (req, res) => {
     // If requesting city-specific approved merchants, allow public access
     const isPublicCityQuery = city && (activeStatus === 'approved' || (!activeStatus && !status));
 
-    // For non-city queries or admin queries, require authentication
-    if (!isPublicCityQuery) {
-      // Check if user is admin
-      const token = req.header('Authorization')?.replace('Bearer ', '');
-      if (!token) {
-        return res.status(401).json({ message: 'Access denied. Admin only.' });
-      }
+    // Anything beyond the public approved-by-city listing is admin-only.
+    if (!isPublicCityQuery && req.user?.role !== 'admin') {
+      return res.status(req.user ? 403 : 401).json({ message: 'Access denied. Admin only.' });
     }
 
     const filter = {};

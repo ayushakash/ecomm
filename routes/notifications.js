@@ -5,7 +5,7 @@ const OTP = require('../models/OTP');
 const { verifyToken: auth, requireAdmin: adminAuth } = require('../middleware/auth');
 
 // Send SMS notification
-router.post('/sms/send', auth, async (req, res) => {
+router.post('/sms/send', auth, adminAuth, async (req, res) => {
   console.log('SMS send request body:', req.body);
   try {
     const { phone, message, templateId, templateData } = req.body;
@@ -36,7 +36,7 @@ router.post('/sms/send', auth, async (req, res) => {
 });
 
 // Send WhatsApp notification
-router.post('/whatsapp/send', auth, async (req, res) => {
+router.post('/whatsapp/send', auth, adminAuth, async (req, res) => {
   console.log('WhatsApp send request body:', req.body);
   try {
     const { phone, templateId, templateData } = req.body;
@@ -258,7 +258,7 @@ router.post('/otp/verify', async (req, res) => {
 });
 
 // Get notification analytics (Admin only)
-router.get('/analytics', adminAuth, async (req, res) => {
+router.get('/analytics', auth, adminAuth, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
@@ -298,7 +298,7 @@ router.get('/analytics', adminAuth, async (req, res) => {
 });
 
 // Test n8n webhook
-router.post('/test/n8n', adminAuth, async (req, res) => {
+router.post('/test/n8n', auth, adminAuth, async (req, res) => {
   try {
     const testData = {
       eventType: 'test_notification',
