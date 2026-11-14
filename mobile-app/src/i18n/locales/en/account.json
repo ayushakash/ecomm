@@ -12,6 +12,12 @@
     "contact": "Contact us",
     "about": "About Chardeevari",
     "blog": "Blog",
+    "rate": "Rate Chardeevari",
+    "rateSub": "Tell others about your experience on Play Store",
+    "rateError": "Could not open Play Store",
+    "share": "Share Chardeevari",
+    "shareSub": "Send the app to friends & contractors",
+    "shareMessage": "Ranchi mein cement, sariya, balu aur eent sahi rate par, 60 minute mein site par delivery. Chardeevari app download karein:",
     "deleteAccount": "Delete account"
   },
   "logout": {

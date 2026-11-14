@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +25,7 @@ import { useOrder, useOrderLifecycle } from '../../hooks/queries';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
 import type { RootStackScreenProps } from '../../navigation/types';
 import { orderAPI } from '../../services/api';
+import { maybeRequestReview } from '../../services/appReview';
 import { colors, radii, SCREEN_PADDING, spacing } from '../../theme';
 import type { Order } from '../../types/models';
 import { toast } from '../../utils/toast';
@@ -57,6 +58,12 @@ export default function OrderDetailScreen({ navigation, route }: RootStackScreen
   const support = useBulkWhatsApp();
   const [refreshing, setRefreshing] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+
+  // Ask for a Play Store review once the customer sees a delivered order (throttled to 90 days).
+  const delivered = orderQuery.data?.orderStatus === 'delivered';
+  useEffect(() => {
+    if (delivered) void maybeRequestReview();
+  }, [delivered]);
 
   const cancelMutation = useMutation({
     mutationFn: () => orderAPI.cancelOrder(orderId),

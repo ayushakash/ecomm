@@ -22,6 +22,7 @@ import { colors, radii, shadows, spacing, SCREEN_PADDING } from '../../theme';
 import { callPhone, openExternal } from '../../utils/whatsapp';
 import { getPushToken, isNotificationsAvailable, sendTestNotification, type TestNotificationKind } from '../../services/notifications';
 import { pushAPI } from '../../services/api';
+import { rateApp, shareApp } from '../../services/appReview';
 import { Platform } from 'react-native';
 import { currentLanguage, LANGUAGES, setLanguage } from '../../i18n';
 import { DeleteAccountSheet } from './components/DeleteAccountSheet';
@@ -193,6 +194,8 @@ export default function AccountScreen({ navigation }: MainTabScreenProps<'Accoun
     },
     { icon: 'headset-outline', label: t('menu.contact'), subtitle: CONTACT_PHONE_LABEL, onPress: () => setContactSheet(true) },
     { icon: 'information-circle-outline', label: t('menu.about'), subtitle: 'chardeevari.in', onPress: () => openExternal(WEBSITE_URL) },
+    { icon: 'star-outline', label: t('menu.rate'), subtitle: t('menu.rateSub'), onPress: () => void rateApp(t('menu.rateError')) },
+    { icon: 'share-social-outline', label: t('menu.share'), subtitle: t('menu.shareSub'), onPress: () => void shareApp(t('menu.shareMessage')) },
     { icon: 'newspaper-outline', label: t('menu.blog'), onPress: () => openExternal(`${WEBSITE_URL}/blog`) },
   ];
   // Dev-only: preview push notification styles before server push is built.

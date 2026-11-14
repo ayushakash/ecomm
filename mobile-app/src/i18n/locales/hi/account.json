@@ -12,6 +12,12 @@
     "contact": "संपर्क करें",
     "about": "Chardeevari के बारे में",
     "blog": "ब्लॉग",
+    "rate": "Chardeevari को रेटिंग दें",
+    "rateSub": "Play Store पर अपना अनुभव बताएं",
+    "rateError": "Play Store नहीं खुल पाया",
+    "share": "Chardeevari शेयर करें",
+    "shareSub": "दोस्तों और ठेकेदारों को ऐप भेजें",
+    "shareMessage": "रांची में सीमेंट, सरिया, बालू और ईंट सही रेट पर, 60 मिनट में साइट पर डिलीवरी। Chardeevari ऐप डाउनलोड करें:",
     "deleteAccount": "अकाउंट हटाएं"
   },
   "logout": {
