@@ -223,6 +223,20 @@ export const settingsAPI = {
   getDeliveryPreview: () => api.get('/api/settings/delivery-preview').then(res => res.data)
 };
 
+export const whatsappBillAPI = {
+  preview: (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post('/api/whatsapp-bills/preview', form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 }).then(res => res.data);
+  },
+  send: (bills) => api.post('/api/whatsapp-bills/send', { bills }).then(res => res.data),
+  batch: (id) => api.get(`/api/whatsapp-bills/batch/${id}`).then(res => res.data),
+  history: (params) => api.get('/api/whatsapp-bills/history', { params }).then(res => res.data),
+  optOuts: () => api.get('/api/whatsapp-bills/opt-outs').then(res => res.data.items),
+  addOptOut: (phone, note) => api.post('/api/whatsapp-bills/opt-outs', { phone, note }).then(res => res.data),
+  removeOptOut: (phone) => api.delete(`/api/whatsapp-bills/opt-outs/${phone}`).then(res => res.data),
+};
+
 export const addressAPI = {
   getAllAddresses: () => api.get('/api/addresses').then(res => ({ addresses: res.data.data })),
   getAddress: (id) => api.get(`/api/addresses/${id}`).then(res => res.data.data),

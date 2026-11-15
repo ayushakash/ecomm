@@ -77,6 +77,10 @@ router.put('/', [
   body('callOrderPhone').optional().isString().trim().withMessage('callOrderPhone must be a string'),
   body('serviceAreasNote').optional().isString().trim().isLength({ max: 200 }).withMessage('serviceAreasNote must be a string of max 200 chars'),
   body('appLinkUrl').optional({ checkFalsy: true }).isURL({ protocols: ['http', 'https'], require_protocol: true }).withMessage('App link must be a full URL starting with https://'),
+  body('whatsappBills.enabled').optional().isBoolean().withMessage('enabled must be true/false'),
+  body('whatsappBills.traderName').optional().isString().trim().isLength({ min: 2, max: 60 }).withMessage('Trader name must be 2–60 characters'),
+  body(['whatsappBills.paidTemplate', 'whatsappBills.dueTemplate']).optional().matches(/^[a-z0-9_]{1,512}$/).withMessage('Template names use lowercase letters, numbers and _ only'),
+  body('whatsappBills.language').optional().matches(/^[a-z]{2}(_[A-Z]{2})?$/).withMessage('Language code like en or en_US'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

@@ -4,6 +4,8 @@ const Order = require('../models/Order');
 const Merchant = require('../models/Merchant');
 const SequentialNotificationService = require('../services/SequentialNotificationService');
 const NotificationService = require('../services/NotificationService');
+const WhatsAppOptOut = require('../models/WhatsAppOptOut');
+const { normalizePhone } = require('../utils/billReport');
 
 // Webhook secret for verification
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'your-webhook-secret';
@@ -245,6 +247,20 @@ router.post('/msg91-whatsapp', async (req, res) => {
     const payload = req.body;
 
     console.log('📥 MSG91 WhatsApp callback received:', JSON.stringify(payload, null, 2));
+
+    // Inbound "STOP" reply → never send WhatsApp bills/promos to this number again.
+    // MSG91 inbound payload shapes vary, so look in the common places for sender and text.
+    const inboundText = String(payload.text?.body ?? payload.text ?? payload.content?.text ?? payload.message?.text ?? payload.body ?? '').trim();
+    const sender = normalizePhone(payload.from ?? payload.sender ?? payload.customerNumber ?? payload.mobile);
+    if (sender && /^(stop|unsubscribe|band\s*karo|बंद\s*करो?|बंद)\W*$/i.test(inboundText)) {
+      await WhatsAppOptOut.updateOne(
+        { phone: sender },
+        { $setOnInsert: { phone: sender, source: 'stop_reply', note: inboundText.slice(0, 200) } },
+        { upsert: true },
+      );
+      console.log(`🚫 WhatsApp opt-out from ${sender.slice(0, 2)}xxxxxx${sender.slice(-2)}`);
+      return res.json({ success: true, message: 'Opt-out recorded' });
+    }
 
     // MSG91 sends different types of callbacks
     const eventType = payload.type || payload.event || 'unknown';

@@ -11,7 +11,8 @@ import {
   CalculatorIcon,
   PhotoIcon,
   BellAlertIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline';
 import ResponsiveDashboardLayout from './ResponsiveDashboardLayout';
 import EnglishOnly from '../../i18n/EnglishOnly';
@@ -24,6 +25,7 @@ const AdminLayout = () => {
     { name: 'Professionals', href: '/admin/professionals', icon: WrenchScrewdriverIcon },
     { name: 'Products', href: '/admin/products', icon: CubeIcon },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingCartIcon },
+    { name: 'WhatsApp Bills', href: '/admin/whatsapp-bills', icon: ChatBubbleLeftRightIcon },
     { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon },
     { name: 'Earnings', href: '/admin/earnings', icon: CurrencyRupeeIcon },
     { name: 'Calculator Leads', href: '/admin/calculator-leads', icon: CalculatorIcon },

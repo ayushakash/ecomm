@@ -171,6 +171,15 @@ const AppSettingsSchema = new mongoose.Schema({
     match: [/^$|^https?:\/\/\S+$/, 'App link must start with http:// or https://']
   },
 
+  // WhatsApp bills (Admin → WhatsApp Bills). Sending stays off until the MSG91 templates are approved.
+  whatsappBills: {
+    enabled: { type: Boolean, default: false },
+    traderName: { type: String, trim: true, maxlength: 60, default: 'Chardeevari' },
+    paidTemplate: { type: String, trim: true, default: 'bill_paid' },
+    dueTemplate: { type: String, trim: true, default: 'bill_due' },
+    language: { type: String, trim: true, default: 'en' },
+  },
+
 
   // GST Mode Configuration
   gstMode: {
