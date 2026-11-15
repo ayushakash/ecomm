@@ -23,8 +23,10 @@ description: Commit, push and deploy the ecomm app (backend + web frontend) to p
    changes, stage only your hunks. Many files use CRLF line endings — keep them.
 3. **Push** the current branch: `git push origin <branch>` (production is built from whatever
    commit you deploy; it is currently `redesign/chardeevari-ui`).
-4. **Deploy**: `scripts/deploy-production.sh` (add `--no-prerender` when no public/SEO page
-   changed — much faster frontend build). The script:
+4. **Deploy**: `scripts/deploy-production.sh` (always with prerendering). **Never use
+   `--no-prerender` for a production deploy:** every deploy rebuilds the whole frontend image,
+   so it replaces ALL prerendered SEO pages with empty `<div id="root"></div>` shells —
+   Google and link previews then see blank pages. (Happened 9–15 Nov 2026.) The script:
    - refuses if HEAD isn't pushed or Docker Hub login (`ayushmishra9`) is missing;
    - builds both images from a clean `git worktree` of HEAD (uncommitted files are excluded;
      `client/.env*` are copied in because CRA bakes them in at build time);

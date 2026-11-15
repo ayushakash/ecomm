@@ -3,8 +3,8 @@
 # redeploy https://chardeevari.in. See .claude/skills/deploy-production/SKILL.md.
 #
 # Usage: scripts/deploy-production.sh [--no-prerender]
-#   --no-prerender  skip react-snap SEO prerendering (faster; only for changes
-#                   that don't touch public/SEO pages, e.g. admin-only work)
+#   --no-prerender  skip react-snap SEO prerendering. NOT for production: the whole
+#                   frontend is rebuilt, so every public page loses its prerendered HTML.
 #
 # Images are built from a clean `git worktree` of HEAD, so uncommitted or
 # untracked files in your checkout never reach production.
@@ -51,10 +51,19 @@ wait $B || { echo "!! Backend build failed:"; cat /tmp/build-backend.log; exit 1
 wait $F || { echo "!! Frontend build failed:"; cat /tmp/build-frontend.log; exit 1; }
 
 echo "==> [3/5] Pushing $TAG and latest"
+# Docker Hub over IPv6 is intermittently unreachable from this machine ("network is
+# unreachable"); a retry a few seconds later succeeds, so retry each push.
+push() {
+  for n in 1 2 3 4 5 6; do
+    docker push -q "$1" > /dev/null 2>&1 && return 0
+    echo "    push of $1 failed (attempt $n), retrying…"; sleep 5
+  done
+  echo "!! Could not push $1" >&2; return 1
+}
 for img in ecomm-backend ecomm-frontend; do
   docker tag "$DOCKER_USERNAME/$img:$TAG" "$DOCKER_USERNAME/$img:latest"
-  docker push -q "$DOCKER_USERNAME/$img:$TAG"
-  docker push -q "$DOCKER_USERNAME/$img:latest"
+  push "$DOCKER_USERNAME/$img:$TAG"
+  push "$DOCKER_USERNAME/$img:latest"
 done
 
 echo "==> [4/5] Deploying on server (/root/ecomm/deploy.sh)"
