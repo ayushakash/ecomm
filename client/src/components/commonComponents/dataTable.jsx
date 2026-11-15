@@ -15,7 +15,8 @@ const DataTable = ({
   title,
   globalFilter,
   setGlobalFilter,
-  renderCard // New prop for card rendering function
+  renderCard, // New prop for card rendering function
+  onRowClick, // Optional: (rowData) => void — makes rows/cards clickable (e.g. open details)
 }) => {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -48,7 +49,7 @@ const DataTable = ({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+      <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
         <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
 
         {/* 🔎 Search Box */}
@@ -57,7 +58,7 @@ const DataTable = ({
           placeholder="Search..."
           value={globalFilter ?? ""}
           onChange={(e) => setGlobalFilter(e.target.value)}
-          className="w-64 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full sm:w-64 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -72,7 +73,11 @@ const DataTable = ({
           ) : (
             <div className="space-y-4">
               {table.getRowModel().rows.map((row) => (
-                <div key={row.id}>
+                <div
+                  key={row.id}
+                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  className={onRowClick ? 'cursor-pointer' : undefined}
+                >
                   {renderCard(row.original)}
                 </div>
               ))}
@@ -102,7 +107,11 @@ const DataTable = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {table.getRowModel().rows.map((row) => (
-                <tr key={row.id}>
+                <tr
+                  key={row.id}
+                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  className={onRowClick ? 'cursor-pointer hover:bg-gray-50' : undefined}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}

@@ -10,7 +10,8 @@ import {
   CogIcon,
   CalculatorIcon,
   PhotoIcon,
-  BellAlertIcon
+  BellAlertIcon,
+  WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline';
 import ResponsiveDashboardLayout from './ResponsiveDashboardLayout';
 import EnglishOnly from '../../i18n/EnglishOnly';
@@ -20,6 +21,7 @@ const AdminLayout = () => {
     { name: 'Dashboard', href: '/admin', icon: HomeIcon },
     { name: 'Users', href: '/admin/users', icon: UsersIcon },
     { name: 'Merchants', href: '/admin/merchants', icon: BuildingStorefrontIcon },
+    { name: 'Professionals', href: '/admin/professionals', icon: WrenchScrewdriverIcon },
     { name: 'Products', href: '/admin/products', icon: CubeIcon },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingCartIcon },
     { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon },

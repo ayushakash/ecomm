@@ -53,6 +53,7 @@ const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 const AdminEarnings = lazy(() => import('./pages/admin/Earnings'));
 const AdminCalculatorLeads = lazy(() => import('./pages/admin/CalculatorLeads'));
 const AdminBanners = lazy(() => import('./pages/admin/Banners'));
+const AdminProfessionals = lazy(() => import('./pages/admin/Professionals'));
 const AdminPushNotifications = lazy(() => import('./pages/admin/PushNotifications'));
 
 // Merchant Pages — lazy loaded
@@ -156,6 +157,7 @@ function AppRoutes() {
           <Route path="settings" element={<AdminSettings />} />
           <Route path="calculator-leads" element={<AdminCalculatorLeads />} />
           <Route path="banners" element={<AdminBanners />} />
+          <Route path="professionals" element={<AdminProfessionals />} />
           <Route path="notifications" element={<AdminPushNotifications />} />
         </Route>
 

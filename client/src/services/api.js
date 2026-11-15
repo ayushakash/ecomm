@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { getBackendUrlSync } from '../utils/getBackendUrl';
+import compressImage from '../utils/compressImage';
 
 const api = axios.create({
   baseURL: getBackendUrlSync(),
@@ -152,18 +153,31 @@ export const excelAPI = {
   importStock: (file, dryRun, merchantId) => uploadExcel('/api/product-excel/stock/import', file, { dryRun, merchantId }),
 };
 
+/** Admin image upload (MinIO via /api/upload); returns the public URL. Shared by banners and professionals.
+ *  Photos are shrunk in the browser first so phone-camera images fit the server's 5 MB limit. */
+const uploadImage = async (file) => {
+  const form = new FormData();
+  form.append('image', await compressImage(file));
+  return api
+    .post('/api/upload/single-product-image', form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 })
+    .then(res => res.data.url);
+};
+
 export const bannerAPI = {
   getAll: () => api.get('/api/banners/admin').then(res => res.data.banners),
   create: (banner) => api.post('/api/banners', banner).then(res => res.data.banner),
   update: (id, banner) => api.put(`/api/banners/${id}`, banner).then(res => res.data.banner),
   remove: (id) => api.delete(`/api/banners/${id}`).then(res => res.data),
-  uploadImage: (file) => {
-    const form = new FormData();
-    form.append('image', file);
-    return api
-      .post('/api/upload/single-product-image', form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 })
-      .then(res => res.data.url);
-  },
+  uploadImage,
+};
+
+export const professionalAPI = {
+  meta: () => api.get('/api/professionals/meta').then(res => res.data),
+  getAll: () => api.get('/api/professionals').then(res => res.data.professionals),
+  create: (data) => api.post('/api/professionals', data).then(res => res.data.professional),
+  update: (id, data) => api.put(`/api/professionals/${id}`, data).then(res => res.data.professional),
+  remove: (id) => api.delete(`/api/professionals/${id}`).then(res => res.data),
+  uploadImage,
 };
 
 export const pushCampaignAPI = {

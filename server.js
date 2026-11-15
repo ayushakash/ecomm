@@ -65,6 +65,7 @@ app.use('/api/calculator-leads', require('./routes/calculatorLeads'));
 app.use('/api/banners', require('./routes/banners'));
 app.use('/api/push-tokens', require('./routes/pushTokens'));
 app.use('/api/push-campaigns', require('./routes/pushCampaigns'));
+app.use('/api/professionals', require('./routes/professionals'));
 
 // New routes for logging and notifications
 app.use('/api/notifications', require('./routes/notifications'));
