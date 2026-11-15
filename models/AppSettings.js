@@ -175,8 +175,8 @@ const AppSettingsSchema = new mongoose.Schema({
   whatsappBills: {
     enabled: { type: Boolean, default: false },
     traderName: { type: String, trim: true, maxlength: 60, default: 'Chardeevari' },
-    paidTemplate: { type: String, trim: true, default: 'bill_paid' },
-    dueTemplate: { type: String, trim: true, default: 'bill_due' },
+    // One template for every bill: trader, bill no, date, total. Payment status is never sent.
+    template: { type: String, trim: true, default: 'bill_details' },
     language: { type: String, trim: true, default: 'en' },
   },
 

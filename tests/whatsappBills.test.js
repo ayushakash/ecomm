@@ -53,7 +53,7 @@ describe('WhatsApp bills', () => {
     const res = await preview().expect(200);
     expect(res.body.summary).toMatchObject({ bills: 4, sendable: 2, noPhone: 2 });
     const b502 = res.body.rows.find((r) => r.billNo === '502');
-    expect(b502).toMatchObject({ phone: '9334003859', total: 20620, balance: 20620, template: 'due', status: 'new', dateLabel: '15 Nov 2026' });
+    expect(b502).toMatchObject({ phone: '9334003859', total: 20620, balance: 20620, status: 'new', dateLabel: '15 Nov 2026' });
     expect(res.body.rows.find((r) => r.billNo === '494').phone).toBe('9835543245');
   });
 
@@ -127,11 +127,8 @@ describe('WhatsApp bills', () => {
 });
 
 describe('WhatsApp bill template values', () => {
-  it('fills paid and due templates in the approved order', () => {
-    const base = { billNo: '502', dateLabel: '15 Nov 2026', total: 20620, received: 5000, balance: 15620 };
-    expect(WhatsAppBillService.templateValues({ ...base, template: 'paid' }, 'Mishra Traders'))
-      .toEqual(['Mishra Traders', '502', '15 Nov 2026', '20,620']);
-    expect(WhatsAppBillService.templateValues({ ...base, template: 'due' }, 'Mishra Traders'))
-      .toEqual(['Mishra Traders', '502', '15 Nov 2026', '20,620', '5,000', '15,620']);
+  it('sends trader, bill no, date and total only — never paid or balance due', () => {
+    const bill = { billNo: '502', dateLabel: '15 Nov 2026', total: 20620, received: 5000, balance: 15620 };
+    expect(WhatsAppBillService.templateValues(bill, 'Mishra Traders')).toEqual(['Mishra Traders', '502', '15 Nov 2026', '20,620']);
   });
 });

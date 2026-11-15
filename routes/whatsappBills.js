@@ -21,7 +21,7 @@ router.use(verifyToken, requireAdmin);
 async function billSettings() {
   const s = await AppSettings.findOne().select('whatsappBills').lean();
   return {
-    enabled: false, traderName: 'Chardeevari', paidTemplate: 'bill_paid', dueTemplate: 'bill_due', language: 'en',
+    enabled: false, traderName: 'Chardeevari', template: 'bill_details', language: 'en',
     ...(s?.whatsappBills || {}),
   };
 }
@@ -88,7 +88,7 @@ router.post('/preview', upload.single('file'), async (req, res) => {
 async function claim(bill, batchId, userId) {
   const fields = {
     billNo: bill.billNo, billDate: bill.billDate, partyName: bill.partyName, phone: bill.phone,
-    total: bill.total, received: bill.received, balance: bill.balance, template: bill.template,
+    total: bill.total, received: bill.received, balance: bill.balance,
     status: 'sending', batchId, sentBy: userId,
   };
   try {
@@ -130,7 +130,7 @@ router.post('/send', async (req, res) => {
   try {
     const settings = await billSettings();
     if (!settings.enabled) {
-      return res.status(400).json({ success: false, message: 'Sending is off. Turn it on in WhatsApp Bills → Settings after MSG91 approves the templates.' });
+      return res.status(400).json({ success: false, message: 'Sending is off. Turn it on in WhatsApp Bills → Settings after MSG91 approves the template.' });
     }
     const input = Array.isArray(req.body?.bills) ? req.body.bills : [];
     if (!input.length) return res.status(400).json({ success: false, message: 'Select at least one bill' });
@@ -158,7 +158,6 @@ router.post('/send', async (req, res) => {
       const bill = {
         key: billKey(billNo, billDate), billNo, billDate, phone, total, received, balance,
         partyName: String(raw.partyName ?? '').slice(0, 80),
-        template: balance > 0 ? 'due' : 'paid',
       };
       if (await claim(bill, batchId, req.user._id)) queued++;
       else skipped.push({ billNo, reason: 'already_sent' });

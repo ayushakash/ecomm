@@ -90,8 +90,8 @@ const SendBills = ({ onOpenSettings }) => {
     const all = data?.rows ?? [];
     switch (filter) {
       case 'sendable': return all.filter((r) => SENDABLE.includes(r.status));
-      case 'due': return all.filter((r) => r.template === 'due' && r.phone);
-      case 'paid': return all.filter((r) => r.template === 'paid' && r.phone);
+      case 'due': return all.filter((r) => r.balance > 0 && r.phone);
+      case 'paid': return all.filter((r) => r.balance <= 0 && r.phone);
       case 'skipped': return all.filter((r) => !SENDABLE.includes(r.status));
       default: return all;
     }
@@ -165,7 +165,7 @@ const SendBills = ({ onOpenSettings }) => {
 
       {data && enabled === false && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          Sending is <strong>off</strong>. Once MSG91 approves the bill templates, turn it on in{' '}
+          Sending is <strong>off</strong>. Once MSG91 approves the bill template, turn it on in{' '}
           <button className="underline font-medium" onClick={onOpenSettings}>Settings</button>. You can still review the list.
         </div>
       )}

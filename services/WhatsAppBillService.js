@@ -4,14 +4,12 @@ const { formatAmount } = require('../utils/billReport');
 const MSG91_URL = 'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/';
 
 /**
- * Template variables, in order — must match the approved MSG91 templates:
- *   bill_paid: {{1}} trader, {{2}} bill no, {{3}} date, {{4}} total
- *   bill_due:  {{1}} trader, {{2}} bill no, {{3}} date, {{4}} total, {{5}} paid, {{6}} balance
+ * Template variables, in order — must match the approved MSG91 template (bill_details):
+ *   {{1}} trader, {{2}} bill no, {{3}} date, {{4}} total.
+ * Paid / balance due are deliberately never sent to customers.
  */
 function templateValues(bill, traderName) {
-  const values = [traderName, bill.billNo, bill.dateLabel, formatAmount(bill.total)];
-  if (bill.template === 'due') values.push(formatAmount(bill.received), formatAmount(bill.balance));
-  return values;
+  return [traderName, bill.billNo, bill.dateLabel, formatAmount(bill.total)];
 }
 
 /**
@@ -35,7 +33,7 @@ async function sendBill(bill, settings) {
         messaging_product: 'whatsapp',
         type: 'template',
         template: {
-          name: bill.template === 'due' ? settings.dueTemplate : settings.paidTemplate,
+          name: settings.template,
           language: { code: settings.language || 'en', policy: 'deterministic' },
           namespace: process.env.MSG91_WHATSAPP_NAMESPACE || null,
           to_and_components: [{ to: [`91${bill.phone}`], components }],

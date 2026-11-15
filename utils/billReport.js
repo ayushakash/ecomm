@@ -117,7 +117,6 @@ function parseBillReport(buffer) {
         total,
         received,
         balance,
-        template: balance > 0 ? 'due' : 'paid',
       });
     }
     return { bills, rowsRead: rows.length };

@@ -13,7 +13,6 @@ const billMessageSchema = new mongoose.Schema({
   total: { type: Number, required: true },
   received: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
-  template: { type: String, enum: ['paid', 'due'], required: true },
   status: { type: String, enum: ['sending', 'sent', 'failed'], required: true },
   error: { type: String },
   sentAt: { type: Date },
