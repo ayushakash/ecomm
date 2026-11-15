@@ -42,7 +42,8 @@ const Settings = () => {
     platformFeeRate: 0.02,
     bulkOrderPhone: '',
     callOrderPhone: '',
-    serviceAreasNote: ''
+    serviceAreasNote: '',
+    appLinkUrl: ''
   });
 
 
@@ -165,6 +166,24 @@ const Settings = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <p className="text-xs text-gray-500 mt-1">Used by the "Call to Order" buttons on product and cart pages. Leave empty to use the Bulk Order WhatsApp number.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      App Link (chardeevari.in/app)
+                    </label>
+                    <input
+                      type="url"
+                      name="appLinkUrl"
+                      value={formData.appLinkUrl || ''}
+                      onChange={handleInputChange}
+                      placeholder="https://play.google.com/store/apps/details?id=in.chardeevari.app"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Where <a href="https://chardeevari.in/app" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">chardeevari.in/app</a> sends
+                      people (WhatsApp bills, reels, QR codes). Leave empty for the website home page; set the Play Store link once the app is live.
+                    </p>
                   </div>
 
                   <div>

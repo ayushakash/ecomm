@@ -97,6 +97,8 @@ app.use('/api/og', require('./routes/og'));
 
 // SEO: dynamic sitemap (must be before the SPA catch-all so it isn't swallowed)
 app.use('/', require('./routes/sitemap'));
+// Short link /app → admin-configured app link (Play Store / website)
+app.use('/', require('./routes/appLink'));
 
 // Serve static files from client/public (for test pages)
 app.use(express.static('client/public'));

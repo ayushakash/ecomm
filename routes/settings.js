@@ -76,6 +76,7 @@ router.put('/', [
   body('bulkOrderPhone').optional().isString().trim().withMessage('bulkOrderPhone must be a string'),
   body('callOrderPhone').optional().isString().trim().withMessage('callOrderPhone must be a string'),
   body('serviceAreasNote').optional().isString().trim().isLength({ max: 200 }).withMessage('serviceAreasNote must be a string of max 200 chars'),
+  body('appLinkUrl').optional({ checkFalsy: true }).isURL({ protocols: ['http', 'https'], require_protocol: true }).withMessage('App link must be a full URL starting with https://'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

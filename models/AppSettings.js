@@ -162,6 +162,15 @@ const AppSettingsSchema = new mongoose.Schema({
     default: ''
   },
 
+  // Where https://chardeevari.in/app redirects (WhatsApp bills, reels, QR codes).
+  // Empty = the website home page. Switch to the Play Store link once the app is live.
+  appLinkUrl: {
+    type: String,
+    trim: true,
+    default: '',
+    match: [/^$|^https?:\/\/\S+$/, 'App link must start with http:// or https://']
+  },
+
 
   // GST Mode Configuration
   gstMode: {
