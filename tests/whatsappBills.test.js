@@ -36,18 +36,46 @@ const waitForBatch = async (token, batchId) => {
 describe('WhatsApp bills', () => {
   let token;
   let sendSpy;
+  let templateSpy;
 
   beforeEach(async () => {
     const admin = await createTestUser({ role: 'admin', email: 'admin@example.com', phone: '9999999990' });
     token = generateToken(admin._id);
     await AppSettings.create({ whatsappBills: { enabled: true, traderName: 'Mishra Traders' } });
     sendSpy = jest.spyOn(WhatsAppBillService, 'sendBill').mockResolvedValue({ success: true });
+    templateSpy = jest.spyOn(WhatsAppBillService, 'getTemplateInfo').mockResolvedValue({ status: 'approved', variables: 4 });
   });
   afterEach(() => jest.restoreAllMocks());
 
   const preview = (rows = ROWS) => request(app).post('/api/whatsapp-bills/preview')
     .set('Authorization', `Bearer ${token}`).attach('file', report(rows), 'Sale_Report.xls');
   const send = (bills) => request(app).post('/api/whatsapp-bills/send').set('Authorization', `Bearer ${token}`).send({ bills });
+
+  it('refuses to send when the contact number is set but the approved template has only 4 blanks (the 16 Nov failure)', async () => {
+    await AppSettings.updateOne({}, { 'whatsappBills.contactPhone': '9241514013' });
+    const { body } = await preview().expect(200);
+    const res = await send(body.rows.filter((r) => r.status === 'new')).expect(400);
+    expect(res.body.message).toMatch(/has 4 blanks but 5 values/);
+    expect(sendSpy).not.toHaveBeenCalled();
+    expect(await BillMessage.countDocuments()).toBe(0);
+  });
+
+  it('sends 5 values once the template is edited to use {{5}}', async () => {
+    await AppSettings.updateOne({}, { 'whatsappBills.contactPhone': '9241514013' });
+    templateSpy.mockResolvedValue({ status: 'approved', variables: 5 });
+    const { body } = await preview(ROWS.slice(1, 2)).expect(200);
+    const r = await send(body.rows).expect(200);
+    await waitForBatch(token, r.body.batchId);
+    expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({ billNo: '502' }), expect.objectContaining({ contactPhone: '9241514013' }));
+  });
+
+  it('refuses to send while the template is not approved (e.g. edit in review)', async () => {
+    templateSpy.mockResolvedValue({ status: 'pending', variables: 5 });
+    const { body } = await preview().expect(200);
+    const res = await send(body.rows.filter((r) => r.status === 'new')).expect(400);
+    expect(res.body.message).toMatch(/pending/);
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
 
   it('reads an .xls report and explains which bills can be sent', async () => {
     const res = await preview().expect(200);

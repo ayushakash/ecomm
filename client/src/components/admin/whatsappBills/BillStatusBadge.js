@@ -4,7 +4,8 @@ const STYLES = {
   new: ['New', 'bg-blue-100 text-blue-800'],
   retry: ['Failed · retry', 'bg-amber-100 text-amber-800'],
   sending: ['Sending…', 'bg-gray-200 text-gray-700'],
-  sent: ['Sent ✓', 'bg-green-100 text-green-800'],
+  // "Sent" = MSG91 accepted it. Actual WhatsApp delivery is reported in MSG91's delivery report.
+  sent: ['Sent to MSG91 ✓', 'bg-green-100 text-green-800'],
   failed: ['Failed ✗', 'bg-red-100 text-red-800'],
   no_phone: ['No phone', 'bg-gray-100 text-gray-500'],
   opted_out: ['Opted out', 'bg-red-100 text-red-700'],

@@ -136,6 +136,20 @@ router.post('/send', async (req, res) => {
     if (!input.length) return res.status(400).json({ success: false, message: 'Select at least one bill' });
     if (input.length > MAX_PER_SEND) return res.status(400).json({ success: false, message: `Send at most ${MAX_PER_SEND} bills at a time` });
 
+    // MSG91 accepts mismatched sends and fails them later, so check the template first.
+    const tpl = await WhatsAppBillService.getTemplateInfo(settings);
+    if (tpl.error) return res.status(400).json({ success: false, message: tpl.error });
+    if (tpl.status !== 'approved') {
+      return res.status(400).json({ success: false, message: `Template "${settings.template}" is ${tpl.status || 'not approved'} in MSG91 — wait for approval before sending.` });
+    }
+    const expected = WhatsAppBillService.templateValues({ billNo: '', dateLabel: '', total: 0 }, settings.traderName, settings.contactPhone).length;
+    if (tpl.variables !== expected) {
+      const hint = tpl.variables === 4
+        ? 'Clear "Contact number" in Settings (the template has the number written in it), or edit the template to use {{5}}.'
+        : 'Fill "Contact number" in Settings (the template expects it as {{5}}).';
+      return res.status(400).json({ success: false, message: `Template "${settings.template}" has ${tpl.variables} blanks but ${expected} values would be sent. ${hint}` });
+    }
+
     const optOuts = new Set((await WhatsAppOptOut.find().select('phone').lean()).map((o) => o.phone));
     const batchId = crypto.randomUUID();
     let queued = 0;

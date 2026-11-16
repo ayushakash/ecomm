@@ -61,4 +61,41 @@ async function sendBill(bill, settings) {
   }
 }
 
-module.exports = { sendBill, templateValues };
+const TEMPLATE_CACHE_MS = 5 * 60 * 1000;
+const templateCache = new Map();
+
+/**
+ * Look up the template in MSG91: approval status and how many {{n}} blanks its body has.
+ * MSG91 accepts a send even when the value count is wrong and only fails it later, so this is
+ * checked before every batch. Never throws.
+ * @returns {Promise<{status?: string, variables?: number, error?: string}>}
+ */
+async function getTemplateInfo(settings) {
+  const key = `${settings.template}|${settings.language}`;
+  const cached = templateCache.get(key);
+  if (cached && Date.now() - cached.at < TEMPLATE_CACHE_MS) return cached.info;
+
+  const authKey = process.env.MSG91_AUTH_KEY;
+  if (!authKey) return { error: 'MSG91_AUTH_KEY is not configured' };
+  const number = process.env.MSG91_WHATSAPP_INTEGRATED_NUMBER || '916201176610';
+  try {
+    const { data } = await axios.get(`https://control.msg91.com/api/v5/whatsapp/get-template-client/${number}`, {
+      params: { template_name: settings.template },
+      headers: { authkey: authKey, accept: 'application/json' },
+      timeout: 15000,
+    });
+    const templates = Array.isArray(data?.data) ? data.data : [data?.data].filter(Boolean);
+    const tpl = templates.find((t) => t.name === settings.template);
+    const lang = tpl?.languages?.find((l) => l.language === settings.language);
+    if (!lang) return { error: `Template "${settings.template}" (${settings.language}) was not found in MSG91` };
+    const body = (lang.code || lang.components || []).find((c) => String(c.type).toUpperCase() === 'BODY');
+    const variables = new Set(String(body?.text || '').match(/\{\{\d+\}\}/g) || []).size;
+    const info = { status: String(lang.status || '').toLowerCase(), variables };
+    templateCache.set(key, { at: Date.now(), info });
+    return info;
+  } catch (err) {
+    return { error: `Could not check the template in MSG91 (${err.response?.status || err.message})` };
+  }
+}
+
+module.exports = { sendBill, templateValues, getTemplateInfo };
