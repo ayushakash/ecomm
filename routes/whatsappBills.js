@@ -21,7 +21,7 @@ router.use(verifyToken, requireAdmin);
 async function billSettings() {
   const s = await AppSettings.findOne().select('whatsappBills').lean();
   return {
-    enabled: false, traderName: 'Chardeevari', template: 'bill_details', language: 'en',
+    enabled: false, traderName: 'Chardeevari', template: 'bill_details', contactPhone: '', language: 'en',
     ...(s?.whatsappBills || {}),
   };
 }

@@ -177,6 +177,8 @@ const AppSettingsSchema = new mongoose.Schema({
     traderName: { type: String, trim: true, maxlength: 60, default: 'Chardeevari' },
     // One template for every bill: trader, bill no, date, total. Payment status is never sent.
     template: { type: String, trim: true, default: 'bill_details' },
+    // Shown in the message as {{5}} ("call or WhatsApp us at …"). Empty = 4-variable template (bill_details).
+    contactPhone: { type: String, trim: true, default: '' },
     language: { type: String, trim: true, default: 'en' },
   },
 

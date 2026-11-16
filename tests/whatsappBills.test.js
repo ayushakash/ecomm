@@ -131,4 +131,12 @@ describe('WhatsApp bill template values', () => {
     const bill = { billNo: '502', dateLabel: '15 Nov 2026', total: 20620, received: 5000, balance: 15620 };
     expect(WhatsAppBillService.templateValues(bill, 'Mishra Traders')).toEqual(['Mishra Traders', '502', '15 Nov 2026', '20,620']);
   });
+
+  it('adds the admin-configured contact number as {{5}}, formatted, only when one is set', () => {
+    const bill = { billNo: '502', dateLabel: '15 Nov 2026', total: 20620 };
+    expect(WhatsAppBillService.templateValues(bill, 'Chardeevari', '9241514013'))
+      .toEqual(['Chardeevari', '502', '15 Nov 2026', '20,620', '+91 92415 14013']);
+    expect(WhatsAppBillService.templateValues(bill, 'Chardeevari', '+91 98765-43210')[4]).toBe('+91 98765 43210');
+    expect(WhatsAppBillService.templateValues(bill, 'Chardeevari', '  ')).toHaveLength(4);
+  });
 });

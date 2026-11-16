@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { settingsAPI } from '../../../services/api';
 
-const DEFAULTS = { enabled: false, traderName: 'Chardeevari', template: 'bill_details', language: 'en' };
+const DEFAULTS = { enabled: false, traderName: 'Chardeevari', template: 'bill_details', contactPhone: '', language: 'en' };
 const inputCls = 'mt-1 block w-full border border-gray-300 rounded-md p-2 text-sm';
 
 /** Trader name, MSG91 template name and the master on/off switch for sending. */
@@ -43,6 +43,15 @@ const BillSettings = () => {
         Trader name in the message
         <input className={inputCls} required minLength={2} maxLength={60} value={form.traderName} onChange={(e) => set('traderName', e.target.value)} />
         <span className="text-xs text-gray-500 font-normal">"Thank you for shopping with <strong>{form.traderName || '…'}</strong>!"</span>
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Contact number in the message ({'{{5}}'})
+        <input className={inputCls} inputMode="tel" maxLength={16} placeholder="e.g. 9241514013" pattern="\+?[0-9\s\-]{10,16}"
+          value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
+        <span className="text-xs text-gray-500 font-normal">
+          "For any queries, please call or WhatsApp us at <strong>{form.contactPhone || '…'}</strong>." Fill this only with a template that has
+          {' {{5}}'} (e.g. <code>bill_details_v2</code>); leave empty for <code>bill_details</code> — otherwise MSG91 rejects the message.
+        </span>
       </label>
       <div className="grid sm:grid-cols-2 gap-3">
         <label className="text-sm font-medium text-gray-700">
