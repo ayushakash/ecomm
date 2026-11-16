@@ -182,6 +182,15 @@ const AppSettingsSchema = new mongoose.Schema({
     language: { type: String, trim: true, default: 'en' },
   },
 
+  // WhatsApp chat (Admin → WhatsApp Chat): optional automatic first reply, at most once per customer per 24 h.
+  whatsappChat: {
+    autoReplyEnabled: { type: Boolean, default: false },
+    autoReplyText: {
+      type: String, trim: true, maxlength: 1000,
+      default: 'Thanks for your message! 🙏 We will reply here shortly. For urgent help, call or WhatsApp us at +91 92415 14013.',
+    },
+  },
+
 
   // GST Mode Configuration
   gstMode: {

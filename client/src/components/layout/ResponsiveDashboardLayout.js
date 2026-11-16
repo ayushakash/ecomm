@@ -120,6 +120,9 @@ const ResponsiveDashboardLayout = ({
                               <div className="text-xs opacity-75 mt-0.5">Active</div>
                             )}
                           </div>
+                          {item.badge > 0 && (
+                            <span className="ml-2 min-w-[1.5rem] px-1.5 py-0.5 rounded-full bg-green-500 text-white text-xs font-bold text-center">{item.badge > 99 ? '99+' : item.badge}</span>
+                          )}
                           {isActive && (
                             <div className="flex items-center space-x-1">
                               <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
@@ -219,6 +222,9 @@ const ResponsiveDashboardLayout = ({
                         <div className="text-xs opacity-75 mt-0.5">Active</div>
                       )}
                     </div>
+                    {item.badge > 0 && (
+                      <span className="ml-2 min-w-[1.5rem] px-1.5 py-0.5 rounded-full bg-green-500 text-white text-xs font-bold text-center">{item.badge > 99 ? '99+' : item.badge}</span>
+                    )}
                     {isActive && (
                       <div className="flex items-center space-x-1">
                         <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>

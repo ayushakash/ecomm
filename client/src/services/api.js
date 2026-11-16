@@ -237,6 +237,13 @@ export const whatsappBillAPI = {
   removeOptOut: (phone) => api.delete(`/api/whatsapp-bills/opt-outs/${phone}`).then(res => res.data),
 };
 
+export const whatsappChatAPI = {
+  chats: (q) => api.get('/api/whatsapp-chat/chats', { params: { q: q || undefined } }).then(res => res.data.chats),
+  unread: () => api.get('/api/whatsapp-chat/unread').then(res => res.data.unread),
+  messages: (phone) => api.get(`/api/whatsapp-chat/chats/${phone}/messages`).then(res => res.data),
+  reply: (phone, text) => api.post(`/api/whatsapp-chat/chats/${phone}/messages`, { text }).then(res => res.data.message),
+};
+
 export const addressAPI = {
   getAllAddresses: () => api.get('/api/addresses').then(res => ({ addresses: res.data.data })),
   getAddress: (id) => api.get(`/api/addresses/${id}`).then(res => res.data.data),

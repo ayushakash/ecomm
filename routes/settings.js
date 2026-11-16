@@ -82,6 +82,8 @@ router.put('/', [
   body('whatsappBills.template').optional().matches(/^[a-z0-9_]{1,512}$/).withMessage('Template name uses lowercase letters, numbers and _ only'),
   body('whatsappBills.contactPhone').optional({ checkFalsy: true }).matches(/^\+?[\d\s-]{10,16}$/).withMessage('Contact number: 10-digit mobile, optionally with +91'),
   body('whatsappBills.language').optional().matches(/^[a-z]{2}(_[A-Z]{2})?$/).withMessage('Language code like en or en_US'),
+  body('whatsappChat.autoReplyEnabled').optional().isBoolean().withMessage('autoReplyEnabled must be true/false'),
+  body('whatsappChat.autoReplyText').optional().isString().trim().isLength({ min: 2, max: 1000 }).withMessage('Auto-reply text must be 2–1000 characters'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
