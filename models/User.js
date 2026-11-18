@@ -68,6 +68,11 @@ const userSchema = new mongoose.Schema({
     enum: ['en', 'hi'],
     default: 'en'
   },
+  // Unsubscribed from campaign emails via the link in the email footer.
+  emailOptOut: {
+    type: Boolean,
+    default: false
+  },
 }, {
   timestamps: true
 });

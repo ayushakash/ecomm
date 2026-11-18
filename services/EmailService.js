@@ -1,3 +1,4 @@
+const axios = require('axios');
 const nodemailer = require('nodemailer');
 
 // ─── Transporter ────────────────────────────────────────────────────────────
@@ -18,6 +19,36 @@ const isSmtpConfigured = () =>
 
 const FROM = () =>
   `"Chardeevari" <${process.env.SMTP_USER || 'noreply@chardeevari.com'}>`;
+
+/**
+ * Which transport `send` uses. Brevo's HTTPS API is preferred because the production host
+ * blocks outgoing SMTP ports; SMTP still works locally. 'none' = mock (logs only).
+ * @returns {{ transport: 'brevo'|'smtp'|'none', from: string|null }}
+ */
+const transportInfo = () => {
+  if (process.env.BREVO_API_KEY) return { transport: 'brevo', from: process.env.EMAIL_FROM || process.env.SMTP_USER || null };
+  if (isSmtpConfigured()) return { transport: 'smtp', from: process.env.SMTP_USER };
+  return { transport: 'none', from: null };
+};
+
+const sendViaBrevo = async (to, subject, html, toName) => {
+  const { from } = transportInfo();
+  if (!from) return { success: false, error: 'Set EMAIL_FROM (a sender verified in Brevo)', channel: 'brevo' };
+  const recipients = (Array.isArray(to) ? to : [to]).map((email) => ({ email, ...(toName && { name: toName }) }));
+  try {
+    await axios.post('https://api.brevo.com/v3/smtp/email', {
+      sender: { name: 'Chardeevari', email: from },
+      to: recipients,
+      subject,
+      htmlContent: html,
+    }, { headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json', accept: 'application/json' }, timeout: 15000 });
+    return { success: true, channel: 'brevo' };
+  } catch (error) {
+    const detail = error.response?.data?.message || error.message;
+    console.error('[EmailService] Brevo send failed:', detail);
+    return { success: false, error: String(detail).slice(0, 300), channel: 'brevo' };
+  }
+};
 
 // ─── Diagnostics ─────────────────────────────────────────────────────────────
 
@@ -66,10 +97,13 @@ const verifyConnection = async () => {
  * @param {string|string[]} to - recipient email(s)
  * @param {string} subject
  * @param {string} html
+ * @param {string} [toName] - recipient display name (Brevo only)
  * @returns {{ success: boolean, channel: string, error?: string }}
  */
-const send = async (to, subject, html) => {
-  if (!isSmtpConfigured()) {
+const send = async (to, subject, html, toName) => {
+  const { transport } = transportInfo();
+  if (transport === 'brevo') return sendViaBrevo(to, subject, html, toName);
+  if (transport === 'none') {
     console.log(`[EmailService MOCK] To: ${to} | Subject: ${subject}`);
     return { success: true, channel: 'mock' };
   }
@@ -86,10 +120,10 @@ const send = async (to, subject, html) => {
 
 // ─── Email Templates ─────────────────────────────────────────────────────────
 
-const layout = (content) => `
+const layout = (content, footerExtra = '') => `
   <div style="font-family: Inter, sans-serif; max-width: 560px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
     <div style="background: #334155; padding: 20px 32px; text-align: center;">
-      <img src="https://uat.chardeevari.in/logo.png" alt="Chardeevari" height="48"
+      <img src="https://chardeevari.in/logo.png" alt="Chardeevari" height="48"
            style="display: inline-block; max-height: 48px; object-fit: contain;" />
       <h1 style="color: #fff; margin: 8px 0 0; font-size: 18px; font-weight: 700; letter-spacing: 0.5px;">Chardeevari</h1>
     </div>
@@ -100,7 +134,7 @@ const layout = (content) => `
       <p style="color: #94a3b8; font-size: 12px; margin: 0;">
         Chardeevari · Ranchi, Jharkhand ·
         <a href="https://chardeevari.com" style="color: #64748b;">chardeevari.com</a>
-      </p>
+      </p>${footerExtra}
     </div>
   </div>
 `;
@@ -111,6 +145,28 @@ const btn = (text, url) => `
     ${text}
   </a>
 `;
+
+const escapeHtml = (text) => String(text ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+const BUSINESS_PHONE = '9241514013';
+
+/**
+ * Branded campaign email from admin-typed plain text: blank lines split paragraphs,
+ * single line breaks are kept; optional CTA button; footer with phone + unsubscribe link.
+ */
+const campaignHtml = ({ body, ctaText, ctaUrl, unsubscribeUrl }) => {
+  const paragraphs = String(body || '').trim().split(/\n\s*\n/).filter(Boolean)
+    .map((p) => `<p style="color: #334155; font-size: 15px; line-height: 1.6; margin: 0 0 14px;">${escapeHtml(p.trim()).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+  const cta = ctaText && ctaUrl ? btn(escapeHtml(ctaText), escapeHtml(ctaUrl)) : '';
+  const footer = `
+      <p style="color: #94a3b8; font-size: 12px; margin: 8px 0 0;">
+        Call / WhatsApp: <a href="tel:+91${BUSINESS_PHONE}" style="color: #64748b;">${BUSINESS_PHONE}</a>
+        · <a href="${escapeHtml(unsubscribeUrl)}" style="color: #64748b;">Unsubscribe</a>
+      </p>`;
+  return layout(`${paragraphs}${cta}`, footer);
+};
 
 // ─── Transactional Emails ────────────────────────────────────────────────────
 
@@ -315,6 +371,8 @@ const EmailService = {
   checkEnv,
   verifyConnection,
   isSmtpConfigured,
+  transportInfo,
+  campaignHtml,
 };
 
 module.exports = EmailService;

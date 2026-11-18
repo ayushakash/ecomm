@@ -68,6 +68,9 @@ app.use('/api/push-campaigns', require('./routes/pushCampaigns'));
 app.use('/api/professionals', require('./routes/professionals'));
 app.use('/api/whatsapp-bills', require('./routes/whatsappBills'));
 app.use('/api/whatsapp-chat', require('./routes/whatsappChat'));
+app.use('/api/shop-contacts', require('./routes/shopContacts'));
+app.use('/api/whatsapp-templates', require('./routes/whatsappTemplates'));
+app.use('/api/campaigns', require('./routes/campaigns'));
 
 // New routes for logging and notifications
 app.use('/api/notifications', require('./routes/notifications'));

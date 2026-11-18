@@ -56,7 +56,7 @@ const AdminBanners = lazy(() => import('./pages/admin/Banners'));
 const AdminProfessionals = lazy(() => import('./pages/admin/Professionals'));
 const AdminWhatsAppBills = lazy(() => import('./pages/admin/WhatsAppBills'));
 const AdminWhatsAppChat = lazy(() => import('./pages/admin/WhatsAppChat'));
-const AdminPushNotifications = lazy(() => import('./pages/admin/PushNotifications'));
+const AdminCampaigns = lazy(() => import('./pages/admin/Campaigns'));
 
 // Merchant Pages — lazy loaded
 const MerchantDashboard = lazy(() => import('./pages/merchant/Dashboard'));
@@ -162,7 +162,8 @@ function AppRoutes() {
           <Route path="professionals" element={<AdminProfessionals />} />
           <Route path="whatsapp-bills" element={<AdminWhatsAppBills />} />
           <Route path="whatsapp-chat" element={<AdminWhatsAppChat />} />
-          <Route path="notifications" element={<AdminPushNotifications />} />
+          <Route path="campaigns" element={<AdminCampaigns />} />
+          <Route path="notifications" element={<Navigate to="/admin/campaigns?tab=push" replace />} />
         </Route>
 
         {/* Merchant Routes */}

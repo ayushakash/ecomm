@@ -5,13 +5,13 @@ import {
   UsersIcon,
   BuildingStorefrontIcon,
   CubeIcon,
-  ShoppingCartIcon,
+  ClipboardDocumentListIcon,
   ChartBarIcon,
   CurrencyRupeeIcon,
   CogIcon,
   CalculatorIcon,
   PhotoIcon,
-  BellAlertIcon,
+  MegaphoneIcon,
   WrenchScrewdriverIcon,
   ChatBubbleLeftRightIcon,
   ChatBubbleOvalLeftEllipsisIcon
@@ -29,20 +29,20 @@ const AdminLayout = () => {
   });
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: HomeIcon },
-    { name: 'Users', href: '/admin/users', icon: UsersIcon },
-    { name: 'Merchants', href: '/admin/merchants', icon: BuildingStorefrontIcon },
-    { name: 'Professionals', href: '/admin/professionals', icon: WrenchScrewdriverIcon },
-    { name: 'Products', href: '/admin/products', icon: CubeIcon },
-    { name: 'Orders', href: '/admin/orders', icon: ShoppingCartIcon },
-    { name: 'WhatsApp Bills', href: '/admin/whatsapp-bills', icon: ChatBubbleLeftRightIcon },
-    { name: 'WhatsApp Chat', href: '/admin/whatsapp-chat', icon: ChatBubbleOvalLeftEllipsisIcon, badge: unread },
-    { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon },
-    { name: 'Earnings', href: '/admin/earnings', icon: CurrencyRupeeIcon },
-    { name: 'Calculator Leads', href: '/admin/calculator-leads', icon: CalculatorIcon },
-    { name: 'App Banners', href: '/admin/banners', icon: PhotoIcon },
-    { name: 'Push Notifications', href: '/admin/notifications', icon: BellAlertIcon },
-    { name: 'Settings', href: '/admin/settings', icon: CogIcon },
+    { name: 'Dashboard', shortName: 'Home', href: '/admin', icon: HomeIcon, group: 'Overview', mobileTab: true },
+    { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon, group: 'Overview' },
+    { name: 'Earnings', href: '/admin/earnings', icon: CurrencyRupeeIcon, group: 'Overview' },
+    { name: 'Orders', href: '/admin/orders', icon: ClipboardDocumentListIcon, group: 'Operations', mobileTab: true },
+    { name: 'Products', shortName: 'Stock', href: '/admin/products', icon: CubeIcon, group: 'Operations', mobileTab: true },
+    { name: 'Merchants', href: '/admin/merchants', icon: BuildingStorefrontIcon, group: 'Operations' },
+    { name: 'Professionals', shortName: 'Pros', href: '/admin/professionals', icon: WrenchScrewdriverIcon, group: 'Operations' },
+    { name: 'Users', href: '/admin/users', icon: UsersIcon, group: 'Customers' },
+    { name: 'WhatsApp Chat', shortName: 'Chat', href: '/admin/whatsapp-chat', icon: ChatBubbleOvalLeftEllipsisIcon, badge: unread, group: 'Customers', mobileTab: true },
+    { name: 'WhatsApp Bills', shortName: 'WA Bills', href: '/admin/whatsapp-bills', icon: ChatBubbleLeftRightIcon, group: 'Customers' },
+    { name: 'Calculator Leads', shortName: 'Leads', href: '/admin/calculator-leads', icon: CalculatorIcon, group: 'Customers' },
+    { name: 'Campaigns', href: '/admin/campaigns', icon: MegaphoneIcon, group: 'Marketing' },
+    { name: 'App Banners', shortName: 'Banners', href: '/admin/banners', icon: PhotoIcon, group: 'Marketing' },
+    { name: 'Settings', href: '/admin/settings', icon: CogIcon, pinned: true },
   ];
 
   return (
@@ -50,7 +50,6 @@ const AdminLayout = () => {
       <ResponsiveDashboardLayout
         navigation={navigation}
         title="Admin Control"
-        subtitle="System Dashboard"
         brandIcon="🔥"
         gradientFrom="from-red-900"
         gradientVia="via-pink-900"

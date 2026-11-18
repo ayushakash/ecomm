@@ -218,6 +218,18 @@ MSG91_WA_MERCHANT_ORDER_ACCEPTED_TEMPLATE=your_template_id
 
 ---
 
+## CAMPAIGN TEMPLATES (Admin → Campaigns → Templates)
+
+Campaign and shop-welcome templates are not configured in `.env`. After a template is created in MSG91,
+add it in **Admin → Campaigns → Templates** by its exact name and language; the body, buttons, category
+and approval status are read from MSG91. Map each body `{{n}}` to the customer's name (with fallback text)
+or fixed text. Only switched-on, approved templates can be sent, and the status is re-checked before
+every send. Removing a template there never deletes it from MSG91.
+
+Bill messages (`bill_details`) keep using **WhatsApp Bills → Settings**.
+
+---
+
 ## MSG91 WEBHOOK SETUP (For Button Callbacks)
 
 1. Go to MSG91 Dashboard → WhatsApp → Settings → Webhooks

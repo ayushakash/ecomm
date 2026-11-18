@@ -244,6 +244,35 @@ export const whatsappChatAPI = {
   reply: (phone, text) => api.post(`/api/whatsapp-chat/chats/${phone}/messages`, { text }).then(res => res.data.message),
 };
 
+export const whatsappTemplateAPI = {
+  getAll: () => api.get('/api/whatsapp-templates').then(res => res.data.templates),
+  add: (template) => api.post('/api/whatsapp-templates', template, { timeout: 30000 }).then(res => res.data.template),
+  update: (id, changes) => api.put(`/api/whatsapp-templates/${id}`, changes).then(res => res.data.template),
+  refresh: (id) => api.post(`/api/whatsapp-templates/${id}/refresh`, null, { timeout: 30000 }).then(res => res.data.template),
+  remove: (id) => api.delete(`/api/whatsapp-templates/${id}`).then(res => res.data),
+};
+
+export const campaignAPI = {
+  getAll: () => api.get('/api/campaigns').then(res => res.data.campaigns),
+  get: (id) => api.get(`/api/campaigns/${id}`).then(res => res.data.campaign),
+  audience: (params) => api.get('/api/campaigns/audience', { params, timeout: 30000 }).then(res => res.data),
+  emailStatus: () => api.get('/api/campaigns/email-status').then(res => res.data),
+  emailPreview: (content) => api.post('/api/campaigns/email-preview', content).then(res => res.data.html),
+  sendWhatsApp: (data) => api.post('/api/campaigns/whatsapp', data, { timeout: 60000 }).then(res => res.data.campaign),
+  sendEmail: (data) => api.post('/api/campaigns/email', data, { timeout: 60000 }).then(res => res.data.campaign),
+  continue: (id) => api.post(`/api/campaigns/${id}/continue`, null, { timeout: 60000 }).then(res => res.data.campaign),
+};
+
+export const shopContactAPI = {
+  list: (params) => api.get('/api/shop-contacts', { params }).then(res => res.data),
+  import: (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post('/api/shop-contacts/import', form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 }).then(res => res.data);
+  },
+  optOut: (id) => api.put(`/api/shop-contacts/${id}/opt-out`).then(res => res.data.contact),
+};
+
 export const addressAPI = {
   getAllAddresses: () => api.get('/api/addresses').then(res => ({ addresses: res.data.data })),
   getAddress: (id) => api.get(`/api/addresses/${id}`).then(res => res.data.data),
