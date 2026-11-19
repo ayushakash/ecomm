@@ -16,6 +16,11 @@ const billMessageSchema = new mongoose.Schema({
   status: { type: String, enum: ['sending', 'sent', 'failed'], required: true },
   error: { type: String },
   sentAt: { type: Date },
+  // What WhatsApp did after MSG91 accepted it (from MSG91 delivery reports, matched by providerId).
+  providerId: { type: String, index: true, sparse: true },
+  delivery: { type: String, enum: ['sent', 'delivered', 'read', 'failed'] },
+  deliveryError: { type: String },
+  deliveryAt: { type: Date },
   attempts: { type: Number, default: 0 },
   batchId: { type: String, index: true },
   sentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

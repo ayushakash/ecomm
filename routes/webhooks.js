@@ -7,6 +7,7 @@ const NotificationService = require('../services/NotificationService');
 const WhatsAppOptOut = require('../models/WhatsAppOptOut');
 const { normalizePhone } = require('../utils/billReport');
 const WhatsAppChatService = require('../services/WhatsAppChatService');
+const WhatsAppDeliveryService = require('../services/WhatsAppDeliveryService');
 
 // Webhook secret for verification
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'your-webhook-secret';
@@ -261,9 +262,11 @@ router.post('/msg91-whatsapp', async (req, res) => {
       return res.json({ success: true, message: 'Test callback received' });
     }
 
-    // Delivery reports for messages we sent (chat replies): update their status.
-    if (payload.webhookType === 'outbound') {
+    // Delivery reports for messages we sent (chat replies, bills, campaigns). MSG91 leaves webhookType
+    // empty on template reports and marks them direction "1"; they must never reach the inbound chat.
+    if (WhatsAppDeliveryService.isOutboundReport(payload)) {
       await WhatsAppChatService.recordStatus(payload);
+      await WhatsAppDeliveryService.recordReport(payload);
       return res.json({ success: true, message: 'Report received' });
     }
 

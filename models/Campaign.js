@@ -27,7 +27,12 @@ const campaignSchema = new mongoose.Schema({
   failed: { type: Number, default: 0 },
   skipped: { type: Number, default: 0 }, // opted out / invalid, latest batch
   remaining: { type: Number, default: 0 }, // still to send after the latest batch
-  errorSample: [{ type: String }], // first few send errors
+  // WhatsApp only, from MSG91 delivery reports (matched by providerIds).
+  delivered: { type: Number, default: 0 },
+  read: { type: Number, default: 0 },
+  undelivered: { type: Number, default: 0 },
+  providerIds: { type: [String], select: false, index: true }, // MSG91 request ids of messages sent
+  errorSample: [{ type: String }], // first few send errors, then WhatsApp "not delivered" reasons
   sentTo: { type: [String], select: false }, // phones / emails already attempted
   sentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, {

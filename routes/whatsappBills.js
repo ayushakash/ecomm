@@ -116,7 +116,7 @@ async function runBatch(batchId, settings) {
       ? { success: false, error: 'Customer opted out' }
       : await WhatsAppBillService.sendBill({ ...bill, dateLabel: dateLabel(bill.billDate) }, settings);
     await BillMessage.updateOne({ _id: bill._id }, result.success
-      ? { $set: { status: 'sent', sentAt: new Date() }, $unset: { error: 1 } }
+      ? { $set: { status: 'sent', sentAt: new Date(), providerId: result.requestId, delivery: 'sent' }, $unset: { error: 1, deliveryError: 1 } }
       : { $set: { status: 'failed', error: result.error } });
     if (i < queue.length - 1 && sendDelayMs() > 0) await new Promise((r) => setTimeout(r, sendDelayMs()));
   }

@@ -190,6 +190,7 @@ async function runBatch(campaignId, batch, deliver) {
   for (const p of batch) {
     const result = await deliver(p);
     const update = { $inc: result.success ? { sent: 1 } : { failed: 1 }, $push: { sentTo: p.to } };
+    if (result.requestId) update.$push.providerIds = result.requestId;
     if (!result.success) {
       update.$push.errorSample = { $each: [`${p.to}: ${String(result.error || 'failed').slice(0, 200)}`], $slice: ERROR_SAMPLE };
     }

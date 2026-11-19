@@ -12,7 +12,7 @@ const errorText = (err) => {
 /**
  * Send one approved MSG91 WhatsApp template to a 10-digit Indian number.
  * `values` fill the body {{1}}, {{2}}, … in order. Never throws.
- * @returns {Promise<{success: boolean, error?: string}>}
+ * @returns {Promise<{success: boolean, requestId?: string, error?: string}>} `requestId` matches the `requestId` in MSG91 delivery reports.
  */
 async function sendTemplate({ name, language, phone, values = [] }) {
   const authKey = process.env.MSG91_AUTH_KEY;
@@ -44,7 +44,7 @@ async function sendTemplate({ name, language, phone, values = [] }) {
     if (data?.hasError || data?.status === 'fail') {
       return { success: false, error: String(data.errors || data.message || 'MSG91 rejected the message').slice(0, 300) };
     }
-    return { success: true };
+    return { success: true, requestId: data?.request_id || undefined };
   } catch (err) {
     return { success: false, error: errorText(err) };
   }

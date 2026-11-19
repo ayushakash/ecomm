@@ -21,6 +21,8 @@ const toRow = (c) => (c.channel
     total: c.recipients,
     failed: c.failed,
     skipped: c.skipped,
+    delivery: c.channel === 'whatsapp' ? { delivered: c.delivered || 0, read: c.read || 0, undelivered: c.undelivered || 0 } : null,
+    reasons: c.channel === 'whatsapp' ? (c.errorSample || []) : [],
     note: c.status === 'sending' ? 'sending…' : c.status === 'stopped' ? 'stopped' : c.remaining ? `${c.remaining} not sent yet` : '',
     by: c.sentBy?.name,
   }
@@ -34,6 +36,8 @@ const toRow = (c) => (c.channel
     total: c.devices,
     failed: c.failed,
     skipped: 0,
+    delivery: null,
+    reasons: [],
     note: '',
     by: c.sentBy?.name,
   });
@@ -59,6 +63,11 @@ const CampaignHistory = () => {
             <p className="text-xs text-gray-500 break-words">
               {formatDate(r.createdAt)} · {r.audience}{r.by ? ` · by ${r.by}` : ''}
             </p>
+            {r.reasons.length > 0 && (
+              <ul className="text-xs text-red-600 list-disc pl-4">
+                {r.reasons.map((x) => <li key={x} className="break-words">{x}</li>)}
+              </ul>
+            )}
           </div>
           <div className="text-left sm:text-right shrink-0">
             <p className="font-medium text-gray-900">{r.sent}/{r.total} sent</p>
@@ -67,6 +76,12 @@ const CampaignHistory = () => {
                 r.skipped > 0 && `${r.skipped} skipped`,
                 r.note].filter(Boolean).reduce((acc, x, i) => (i ? [...acc, ' · ', x] : [x]), [])}
             </p>
+            {r.delivery && (
+              <p className="text-xs text-gray-600">
+                {r.delivery.delivered} delivered · {r.delivery.read} read
+                {r.delivery.undelivered > 0 && <span className="text-red-600"> · {r.delivery.undelivered} not delivered</span>}
+              </p>
+            )}
           </div>
         </li>
       ))}
