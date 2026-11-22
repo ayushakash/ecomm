@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO/SEO';
 import { useBulkWhatsApp } from '../hooks/useBulkWhatsApp';
+import { AreaRequestButton } from '../components/AreaRequestModal';
 import { useTranslation } from 'react-i18next';
 
 const Home = () => {
@@ -335,21 +336,24 @@ const Home = () => {
                     </p>
                   </div>
                 </div>
-                {addresses.length > 1 ? (
-                  <button
-                    onClick={() => setShowAddressModal(true)}
-                    className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium whitespace-nowrap"
-                  >
-                    {t('location.changeAddress')}
-                  </button>
-                ) : (
-                  <Link
-                    to="/profile/addresses"
-                    className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium whitespace-nowrap"
-                  >
-                    {t('location.addNewAddress')}
-                  </Link>
-                )}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  <AreaRequestButton className="!rounded-lg !px-4 !py-2" />
+                  {addresses.length > 1 ? (
+                    <button
+                      onClick={() => setShowAddressModal(true)}
+                      className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium whitespace-nowrap"
+                    >
+                      {t('location.changeAddress')}
+                    </button>
+                  ) : (
+                    <Link
+                      to="/profile/addresses"
+                      className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium whitespace-nowrap text-center"
+                    >
+                      {t('location.addNewAddress')}
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -463,6 +467,7 @@ const Home = () => {
                   {t('empty.selectCity')}
                 </button>
               )}
+              <AreaRequestButton />
             </div>
           </div>
         ) : productsData?.products?.length === 0 ? (

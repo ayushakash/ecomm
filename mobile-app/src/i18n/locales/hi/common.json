@@ -121,5 +121,37 @@
       "chips": "गिट्टी",
       "tiles": "टाइल्स"
     }
+  },
+  "areaRequest": {
+    "button": "हमें अपने इलाके में बुलाइए",
+    "title": "आपके इलाके में जल्द आएँगे",
+    "subtitle": "बताइए आपको कहाँ सामान चाहिए। वहाँ डिलीवरी शुरू होते ही हम आपको बताएँगे।",
+    "areaLabel": "इलाका / मोहल्ला",
+    "areaPlaceholder": "जैसे कांके रोड",
+    "cityLabel": "शहर",
+    "cityPlaceholder": "जैसे रांची",
+    "pincodeLabel": "पिनकोड",
+    "pincodePlaceholder": "6 अंकों का पिनकोड",
+    "nameLabel": "आपका नाम (वैकल्पिक)",
+    "namePlaceholder": "अपना नाम लिखें",
+    "phoneLabel": "WhatsApp नंबर",
+    "phonePlaceholder": "10 अंकों का मोबाइल नंबर",
+    "itemsLabel": "आपको क्या चाहिए?",
+    "noteLabel": "नोट (वैकल्पिक)",
+    "notePlaceholder": "मात्रा, कब चाहिए, या कुछ और",
+    "submit": "अनुरोध भेजें",
+    "success": "धन्यवाद! आपके इलाके में शुरू होते ही हम WhatsApp पर बताएँगे।",
+    "failed": "अनुरोध नहीं भेजा जा सका। कृपया फिर से कोशिश करें।",
+    "cityRequired": "कृपया अपना शहर लिखें",
+    "areaRequired": "कृपया अपना इलाका या पिनकोड लिखें",
+    "invalidPhone": "सही 10 अंकों का मोबाइल नंबर डालें",
+    "items": {
+      "cement": "सीमेंट",
+      "sariya": "सरिया",
+      "balu": "बालू",
+      "eent": "ईंट",
+      "gitti": "गिट्टी",
+      "other": "अन्य"
+    }
   }
 }

@@ -129,23 +129,30 @@ export interface NoMerchantsBannerProps {
   place: string;
   canSwitch: boolean;
   onPress: () => void;
+  /** Opens the "request Chardeevari in my area" sheet. */
+  onRequest: () => void;
 }
 
 /** Selected address has no serving merchants (web Home yellow notice). */
-export function NoMerchantsBanner({ place, canSwitch, onPress }: NoMerchantsBannerProps) {
+export function NoMerchantsBanner({ place, canSwitch, onPress, onRequest }: NoMerchantsBannerProps) {
   const { t } = useTranslation('home');
   return (
     <View style={styles.warn}>
-      <Icon name="location" size={22} color="secondaryDark" />
-      <View style={styles.flex}>
-        <Text variant="label" weight="bold">
-          {t('noMerchants.title', { place })}
-        </Text>
-        <Text variant="caption" color="textSecondary">
-          {t('noMerchants.body')}
-        </Text>
+      <View style={styles.warnHead}>
+        <Icon name="location" size={22} color="secondaryDark" />
+        <View style={styles.flex}>
+          <Text variant="label" weight="bold">
+            {t('noMerchants.title', { place })}
+          </Text>
+          <Text variant="caption" color="textSecondary">
+            {t('noMerchants.body')}
+          </Text>
+        </View>
       </View>
-      <Button title={canSwitch ? t('common:actions.change') : t('noMerchants.addNew')} variant="secondary" size="sm" onPress={onPress} />
+      <View style={styles.bulkActions}>
+        <Button title={t('common:areaRequest.button')} size="sm" leftIcon="megaphone-outline" onPress={onRequest} style={styles.flex} />
+        <Button title={canSwitch ? t('common:actions.change') : t('noMerchants.addNew')} variant="secondary" size="sm" onPress={onPress} />
+      </View>
     </View>
   );
 }
@@ -201,8 +208,6 @@ const styles = StyleSheet.create({
   },
   warn: {
     marginHorizontal: SCREEN_PADDING,
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: spacing.md,
     padding: spacing.md,
     backgroundColor: colors.warningSoft,
@@ -210,4 +215,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.amber200,
   },
+  warnHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
 });

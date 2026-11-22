@@ -435,6 +435,22 @@ export interface CalculatorLeadInput {
   materials?: unknown;
 }
 
+export type AreaRequestItem = 'cement' | 'sariya' | 'balu' | 'eent' | 'gitti' | 'other';
+
+/** POST /area-requests body: city + (area or pincode) required; phone required for guests. */
+export interface AreaRequestInput {
+  area?: string;
+  city: string;
+  pincode?: string;
+  lat?: number;
+  lng?: number;
+  name?: string;
+  phone?: string;
+  items?: AreaRequestItem[];
+  note?: string;
+  source: 'web' | 'app';
+}
+
 /** Result of reverse geocoding (backend /geo — Ola, OSM fallback — or on-device OSM). */
 export interface GeocodedPlace {
   city?: string;

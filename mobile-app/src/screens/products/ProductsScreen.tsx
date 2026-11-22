@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
+import { AreaRequestSheet } from '../../components/AreaRequestSheet';
 import {
   Button,
   Chip,
@@ -74,6 +75,7 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
   const [sortBy, setSortBy] = useState<SortOption>('latest');
   const [priceRange, setPriceRange] = useState<PriceRange>(EMPTY_PRICE_RANGE);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [areaRequestOpen, setAreaRequestOpen] = useState(false);
 
   // Home category tiles deep-link here with { categoryId }; consume once so the same tile works again.
   const paramCategory = route.params?.categoryId;
@@ -228,9 +230,12 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
           icon="storefront-outline"
           title={t('noMerchants.areaTitle')}
           message={t('noMerchants.areaMessage', { place: [selectedAddress.area, selectedAddress.city].filter(Boolean).join(', ') })}
-          actionLabel={t('noMerchants.changeAddress')}
-          onAction={openLocation}
+          actionLabel={t('common:areaRequest.button')}
+          onAction={() => setAreaRequestOpen(true)}
+          secondaryLabel={t('noMerchants.changeAddress')}
+          onSecondary={openLocation}
         />
+        <AreaRequestSheet visible={areaRequestOpen} onClose={() => setAreaRequestOpen(false)} />
       </Screen>
     );
   }
@@ -244,9 +249,12 @@ export default function ProductsScreen({ navigation, route }: MainTabScreenProps
           icon="storefront-outline"
           title={t('noMerchants.cityTitle', { city: selectedCity.city })}
           message={t('noMerchants.cityMessage')}
-          actionLabel={t('noMerchants.changeLocation')}
-          onAction={openLocation}
+          actionLabel={t('common:areaRequest.button')}
+          onAction={() => setAreaRequestOpen(true)}
+          secondaryLabel={t('noMerchants.changeLocation')}
+          onSecondary={openLocation}
         />
+        <AreaRequestSheet visible={areaRequestOpen} onClose={() => setAreaRequestOpen(false)} />
       </Screen>
     );
   }

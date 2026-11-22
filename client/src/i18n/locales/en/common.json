@@ -124,5 +124,39 @@
       "positionUnavailable": "Location information unavailable",
       "timeout": "Location request timed out"
     }
+  },
+  "areaRequest": {
+    "button": "Request Chardeevari in my area",
+    "title": "We'll come to your area",
+    "subtitle": "Tell us where you are and what you need. We'll let you know as soon as we start delivering there.",
+    "noServiceInCity": "We don't deliver in {{city}} yet",
+    "noServiceHint": "Request Chardeevari and we'll reach your area soon.",
+    "area": "Area / locality",
+    "areaPlaceholder": "e.g. Kanke Road",
+    "city": "City",
+    "pincode": "Pincode",
+    "name": "Your name",
+    "phone": "WhatsApp number",
+    "phonePlaceholder": "10-digit mobile number",
+    "items": "What do you need?",
+    "note": "Anything else? (optional)",
+    "notePlaceholder": "e.g. need 200 bags cement next month",
+    "submit": "Send request",
+    "submitting": "Sending...",
+    "success": "Thanks! We'll WhatsApp you as soon as we start in your area.",
+    "errors": {
+      "city": "Please enter your city",
+      "area": "Please enter your area or pincode",
+      "phone": "Please enter a valid 10-digit mobile number",
+      "failed": "Could not send request. Please try again."
+    },
+    "itemLabels": {
+      "cement": "Cement",
+      "sariya": "Sariya",
+      "balu": "Sand",
+      "eent": "Bricks",
+      "gitti": "Gitti",
+      "other": "Other"
+    }
   }
 }

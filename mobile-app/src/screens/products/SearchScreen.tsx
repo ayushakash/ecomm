@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { AreaRequestSheet } from '../../components/AreaRequestSheet';
 import {
   CategoryTile,
   Chip,
@@ -82,6 +83,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
 
   const [text, setText] = useState(route.params?.query ?? '');
   const [categoryId, setCategoryId] = useState(route.params?.categoryId ?? '');
+  const [areaRequestOpen, setAreaRequestOpen] = useState(false);
   const search = useDebouncedValue(text.trim(), 150);
 
   const active = search.length > 0 || categoryId !== '';
@@ -172,8 +174,10 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
           icon="storefront-outline"
           title={locationName ? t('noMerchants.cityTitle', { city: locationName }) : t('noMerchants.areaTitle')}
           message={t('noMerchants.cityMessage')}
-          actionLabel={t('noMerchants.changeLocation')}
-          onAction={() => navigation.navigate('LocationPicker')}
+          actionLabel={t('common:areaRequest.button')}
+          onAction={() => setAreaRequestOpen(true)}
+          secondaryLabel={t('noMerchants.changeLocation')}
+          onSecondary={() => navigation.navigate('LocationPicker')}
         />
       );
     }
@@ -351,6 +355,7 @@ export default function SearchScreen({ navigation, route }: RootStackScreenProps
         </ScrollView>
       )}
 
+      <AreaRequestSheet visible={areaRequestOpen} onClose={() => setAreaRequestOpen(false)} />
       <FloatingCartBar />
     </Screen>
   );

@@ -10,6 +10,7 @@ import { tokenStorage } from './tokenStorage';
 import type {
   Address,
   AddressInput,
+  AreaRequestInput,
   AuthResponse,
   AuthTokens,
   AvailableCity,
@@ -287,6 +288,12 @@ export const cityAPI = {
 export const calculatorLeadAPI = {
   create: (lead: CalculatorLeadInput) =>
     api.post<{ success: boolean; id: string }>('/calculator-leads', lead, SILENT).then((r) => r.data),
+};
+
+// ─── Area requests (routes/areaRequests.js) — public; session (if any) attaches the customer ──
+export const areaRequestAPI = {
+  create: (body: AreaRequestInput) =>
+    api.post<{ success: boolean }>('/area-requests', body, SILENT).then((r) => r.data),
 };
 
 // ─── Banners (routes/banners.js) — public ────────────────────────────────────

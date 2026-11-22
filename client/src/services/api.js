@@ -304,4 +304,11 @@ export const cityAPI = {
   bulkCreateCities: (cities) => api.post('/api/cities/bulk', { cities }).then(res => res.data)
 };
 
+export const areaRequestAPI = {
+  create: (data) => api.post('/api/area-requests', data).then(res => res.data),
+  list: (params = {}) => api.get('/api/area-requests', { params }).then(res => res.data),
+  export: (params = {}) => api.get('/api/area-requests/export', { params, responseType: 'blob', timeout: 120000 }).then(res => res.data),
+  remove: (id) => api.delete(`/api/area-requests/${id}`).then(res => res.data),
+};
+
 export default api;

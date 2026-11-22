@@ -10,6 +10,7 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AreaRequestSheet } from '../../components/AreaRequestSheet';
 import { FocusAwareStatusBar } from '../../components/FocusAwareStatusBar';
 import {
   CategoryTile,
@@ -106,6 +107,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [priceRange, setPriceRange] = useState<PriceRange>(EMPTY_PRICE_RANGE);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [areaRequestOpen, setAreaRequestOpen] = useState(false);
 
   // A location is set but no merchant serves it → "No merchants in X yet" instead of the grid.
   const unserviceable = !isLoadingMerchants && activeMerchantIds === undefined && !!(selectedCity || (user && selectedAddress));
@@ -287,6 +289,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
           place={[selectedAddress.area, selectedAddress.city].filter(Boolean).join(', ')}
           canSwitch={addresses.length > 1}
           onPress={() => (addresses.length > 1 ? navigation.navigate('LocationPicker') : navigation.navigate('AddEditAddress'))}
+          onRequest={() => setAreaRequestOpen(true)}
         />
       )}
 
@@ -357,8 +360,10 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
       icon="storefront-outline"
       title={t('empty.noMerchantsTitle', { place: selectedAddress?.city || selectedCity?.city || t('empty.yourArea') })}
       message={t('empty.noMerchantsMessage')}
-      actionLabel={user ? t('empty.tryAddress') : t('empty.selectCity')}
-      onAction={() => navigation.navigate('LocationPicker')}
+      actionLabel={t('common:areaRequest.button')}
+      onAction={() => setAreaRequestOpen(true)}
+      secondaryLabel={user ? t('empty.tryAddress') : t('empty.selectCity')}
+      onSecondary={() => navigation.navigate('LocationPicker')}
       fill={false}
     />
   ) : feed.isLoading || waitingForMerchants ? (
@@ -437,6 +442,7 @@ export default function HomeScreen({ navigation }: MainTabScreenProps<'HomeTab'>
           setPriceRange(range);
         }}
       />
+      <AreaRequestSheet visible={areaRequestOpen} onClose={() => setAreaRequestOpen(false)} />
       <FloatingCartBar />
     </Screen>
   );

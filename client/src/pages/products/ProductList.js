@@ -13,6 +13,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import SEO from '../../components/SEO/SEO';
 import analytics from '../../services/analytics';
+import { AreaRequestButton } from '../../components/AreaRequestModal';
 import { useTranslation, Trans } from 'react-i18next';
 
 // ─── Shown to logged-in users with no saved address ──────────────────────────
@@ -186,7 +187,7 @@ const ProductList = () => {
     selectedAddress, merchantIds,
     selectedCity, cityMerchantIds,
     isLoadingMerchants, locationInfo,
-    fetchMerchantsByCity, requestLocationPermission,
+    fetchMerchantsByCity, requestLocationPermission, clearSelectedCity,
   } = useLocation();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -278,12 +279,39 @@ const ProductList = () => {
           />
         </p>
         <p className="text-gray-400 text-xs mb-6">{t('location.noMerchants.hint')}</p>
-        <Link
-          to="/profile/addresses"
-          className="inline-block bg-primary-700 text-white px-6 py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium"
-        >
-          {t('location.noMerchants.changeAddress')}
-        </Link>
+        <div className="flex flex-col items-center gap-3">
+          <AreaRequestButton className="w-full sm:w-auto !rounded-lg !px-6 !py-3" />
+          <Link
+            to="/profile/addresses"
+            className="inline-block bg-primary-700 text-white px-6 py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium w-full sm:w-auto"
+          >
+            {t('location.noMerchants.changeAddress')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // City (guest or GPS) selected but no merchants serve it
+  if (selectedCity && cityMerchantIds.length === 0 && merchantIds.length === 0) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 text-center">
+        <div className="bg-amber-50 rounded-full h-20 w-20 flex items-center justify-center mx-auto mb-6">
+          <MapPinIcon className="h-10 w-10 text-amber-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          {t('areaRequest.noServiceInCity', { ns: 'common', city: selectedCity.area || selectedCity.city })}
+        </h2>
+        <p className="text-gray-500 text-sm mb-6">{t('areaRequest.noServiceHint', { ns: 'common' })}</p>
+        <div className="flex flex-col items-center gap-3">
+          <AreaRequestButton className="w-full sm:w-auto !rounded-lg !px-6 !py-3" />
+          <button
+            onClick={clearSelectedCity}
+            className="inline-block border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium w-full sm:w-auto"
+          >
+            {t('list.changeCity')}
+          </button>
+        </div>
       </div>
     );
   }

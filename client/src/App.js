@@ -52,6 +52,7 @@ const AdminAnalytics = lazy(() => import('./pages/admin/Analytics'));
 const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 const AdminEarnings = lazy(() => import('./pages/admin/Earnings'));
 const AdminCalculatorLeads = lazy(() => import('./pages/admin/CalculatorLeads'));
+const AdminAreaRequests = lazy(() => import('./pages/admin/AreaRequests'));
 const AdminBanners = lazy(() => import('./pages/admin/Banners'));
 const AdminProfessionals = lazy(() => import('./pages/admin/Professionals'));
 const AdminWhatsAppBills = lazy(() => import('./pages/admin/WhatsAppBills'));
@@ -158,6 +159,7 @@ function AppRoutes() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="calculator-leads" element={<AdminCalculatorLeads />} />
+          <Route path="area-requests" element={<AdminAreaRequests />} />
           <Route path="banners" element={<AdminBanners />} />
           <Route path="professionals" element={<AdminProfessionals />} />
           <Route path="whatsapp-bills" element={<AdminWhatsAppBills />} />

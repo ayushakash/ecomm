@@ -14,7 +14,8 @@ import {
   MegaphoneIcon,
   WrenchScrewdriverIcon,
   ChatBubbleLeftRightIcon,
-  ChatBubbleOvalLeftEllipsisIcon
+  ChatBubbleOvalLeftEllipsisIcon,
+  MapPinIcon
 } from '@heroicons/react/24/outline';
 import ResponsiveDashboardLayout from './ResponsiveDashboardLayout';
 import { whatsappChatAPI } from '../../services/api';
@@ -40,6 +41,7 @@ const AdminLayout = () => {
     { name: 'WhatsApp Chat', shortName: 'Chat', href: '/admin/whatsapp-chat', icon: ChatBubbleOvalLeftEllipsisIcon, badge: unread, group: 'Customers', mobileTab: true },
     { name: 'WhatsApp Bills', shortName: 'WA Bills', href: '/admin/whatsapp-bills', icon: ChatBubbleLeftRightIcon, group: 'Customers' },
     { name: 'Calculator Leads', shortName: 'Leads', href: '/admin/calculator-leads', icon: CalculatorIcon, group: 'Customers' },
+    { name: 'Area Requests', shortName: 'Areas', href: '/admin/area-requests', icon: MapPinIcon, group: 'Customers' },
     { name: 'Campaigns', href: '/admin/campaigns', icon: MegaphoneIcon, group: 'Marketing' },
     { name: 'App Banners', shortName: 'Banners', href: '/admin/banners', icon: PhotoIcon, group: 'Marketing' },
     { name: 'Settings', href: '/admin/settings', icon: CogIcon, pinned: true },
