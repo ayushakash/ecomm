@@ -72,18 +72,18 @@
     "productCount_one": "{{count}} product",
     "productCount_other": "{{count}} products"
   },
-  "install": {
-    "title": "Install Chardeevari",
-    "subtitle": "Get the full app experience",
-    "iosTitle": "Add to iPhone / iPad:",
-    "iosStep1Before": "Tap the",
-    "iosStep1After": "Share button in Safari",
-    "iosStep2Before": "Tap",
-    "iosStep2Strong": "\"Add to Home Screen\"",
-    "iosStep3Before": "Tap",
-    "iosStep3Strong": "\"Add\"",
-    "iosStep3After": "— opens fullscreen!",
-    "button": "Install App"
+  "appPrompt": {
+    "offer": "₹50 off your first app order",
+    "offerCondition": "on orders ₹1,000+",
+    "title": "Today's rates — first on your phone 🔔",
+    "appName": "Chardeevari app",
+    "benefits": {
+      "rateAlerts": "📈 Notification as soon as rates change",
+      "calculator": "🧮 Roof/wall material calculator",
+      "tracking": "🚚 Track your order live"
+    },
+    "download": "Free download on Google Play",
+    "notNow": "Not now"
   },
   "toasts": {
     "auth": {

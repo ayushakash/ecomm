@@ -7,6 +7,7 @@ import Footer from './Footer';
 import MobileMenu from './MobileMenu';
 import LanguagePrompt from '../../i18n/LanguagePrompt';
 import LanguageSync from '../../i18n/LanguageSync';
+import AppDownloadPrompt from '../AppDownloadPrompt';
 import { useTranslation } from 'react-i18next';
 
 const PageLoader = () => (
@@ -49,7 +50,7 @@ const Layout = () => {
       />
 
       {/* Main content */}
-      <main className="flex-1 pb-16 md:pb-0">
+      <main className="flex-1">
         <Suspense fallback={<PageLoader />}>
           <Outlet />
         </Suspense>
@@ -60,6 +61,7 @@ const Layout = () => {
 
       <LanguagePrompt />
       <LanguageSync />
+      <AppDownloadPrompt />
     </div>
   );
 };

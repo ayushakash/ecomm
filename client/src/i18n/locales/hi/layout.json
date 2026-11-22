@@ -1,6 +1,9 @@
 {
   "logoAlt": "Chardeevari लोगो",
   "serviceAreas": "अभी यहाँ डिलीवरी हो रही है:",
+  "footer": {
+    "downloadApp": "ऐप डाउनलोड करें"
+  },
   "nav": {
     "home": "होम",
     "products": "प्रोडक्ट्स",

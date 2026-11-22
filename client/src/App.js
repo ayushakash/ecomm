@@ -1,6 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import 'leaflet/dist/leaflet.css';
-import InstallBanner from './components/ui/InstallBanner';
 import { Routes, Route, Navigate, useLocation as useRouterLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -227,7 +226,6 @@ function App() {
           <LocationProvider>
             <CartProvider>
               <AppContent />
-              <InstallBanner />
             </CartProvider>
           </LocationProvider>
         </AuthProvider>

@@ -1,6 +1,9 @@
 {
   "logoAlt": "Chardeevari logo",
   "serviceAreas": "Currently delivering in:",
+  "footer": {
+    "downloadApp": "Download the app"
+  },
   "nav": {
     "home": "Home",
     "products": "Products",

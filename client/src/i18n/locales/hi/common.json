@@ -72,18 +72,18 @@
     "productCount_one": "{{count}} प्रोडक्ट",
     "productCount_other": "{{count}} प्रोडक्ट्स"
   },
-  "install": {
-    "title": "Chardeevari ऐप डालें",
-    "subtitle": "पूरे ऐप जैसा मज़ा लें",
-    "iosTitle": "iPhone / iPad में जोड़ें:",
-    "iosStep1Before": "Safari में",
-    "iosStep1After": "शेयर बटन दबाएं",
-    "iosStep2Before": "दबाएं",
-    "iosStep2Strong": "\"Add to Home Screen\"",
-    "iosStep3Before": "दबाएं",
-    "iosStep3Strong": "\"Add\"",
-    "iosStep3After": "— पूरी स्क्रीन में खुलेगा!",
-    "button": "ऐप इंस्टॉल करें"
+  "appPrompt": {
+    "offer": "ऐप पर पहले ऑर्डर पर ₹50 छूट",
+    "offerCondition": "₹1,000+ के ऑर्डर पर",
+    "title": "आज का रेट — सबसे पहले आपके फ़ोन पर 🔔",
+    "appName": "Chardeevari ऐप",
+    "benefits": {
+      "rateAlerts": "📈 रेट बदलते ही नोटिफिकेशन",
+      "calculator": "🧮 छत/दीवार का मटेरियल कैलकुलेटर",
+      "tracking": "🚚 ऑर्डर को लाइव ट्रैक करें"
+    },
+    "download": "Google Play से फ्री डाउनलोड",
+    "notNow": "अभी नहीं"
   },
   "toasts": {
     "auth": {

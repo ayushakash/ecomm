@@ -13,6 +13,8 @@ import {
   UserIcon as UserIconFilled
 } from '@heroicons/react/24/solid';
 import { useTranslation } from 'react-i18next';
+import analytics from '../../services/analytics';
+import { playStoreLink } from '../../config/app';
 
 const Footer = ({ cartCount = 0 }) => {
   const location = useLocation();
@@ -42,7 +44,24 @@ const Footer = ({ cartCount = 0 }) => {
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 md:hidden">
+    <>
+    {/* Site footer — all devices; bottom padding clears the fixed mobile nav. */}
+    <footer className="border-t border-gray-200 bg-white px-4 pt-4 pb-20 md:pb-4 text-center text-sm">
+      <a
+        href={playStoreLink('footer')}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => analytics.trackEvent('app_download_click', { placement: 'footer' })}
+        className="inline-flex items-center gap-1.5 font-semibold text-green-700 hover:text-green-800"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+          <path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z" />
+        </svg>
+        {t('footer.downloadApp')}
+      </a>
+    </footer>
+
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 md:hidden">
       <div className="flex justify-around items-center h-16 max-w-7xl mx-auto w-full">
         {navItems.map((item) => {
           const active = isActive(item.href);
@@ -71,7 +90,8 @@ const Footer = ({ cartCount = 0 }) => {
           );
         })}
       </div>
-    </footer>
+    </nav>
+    </>
   );
 };
 
