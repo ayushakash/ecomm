@@ -60,34 +60,36 @@ router.post('/', optionalAuth, async (req, res) => {
     }
 
     const body = req.body || {};
-    const area = clean(body.area, 120);
+    const area = clean(body.area, 100);
+    if (area.length < 2) {
+      return res.status(400).json({ success: false, message: 'Please enter your area' });
+    }
     const city = clean(body.city, 80);
     const pincode = String(body.pincode ?? '').replace(/\D/g, '').slice(0, 6);
 
-    if (!city || (!area && !pincode)) {
-      return res.status(400).json({ success: false, message: 'City and area or pincode are required' });
-    }
-
     const user = req.user;
     const isUser = user && user.constructor?.modelName === 'User';
-    const phone = normalizePhone(body.phone) || (user ? normalizePhone(user.phone) : null);
-    if (!phone && !isUser) {
+    const hasPhone = body.phone != null && String(body.phone).trim() !== '';
+    const bodyPhone = hasPhone ? normalizePhone(body.phone) : null;
+    if (hasPhone && !bodyPhone) {
       return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number is required' });
     }
+    const phone = bodyPhone || (user ? normalizePhone(user.phone) : null);
 
     const name = clean(body.name, 80) || clean(user?.name, 80);
     const items = Array.isArray(body.items)
-      ? [...new Set(body.items.map((i) => String(i).toLowerCase()).filter((i) => AreaRequest.ITEMS.includes(i)))]
+      ? [...new Set(body.items.map((i) => clean(i, 40).toLowerCase()).filter(Boolean))].slice(0, 10)
       : [];
     const note = clean(body.note, 300);
     const source = body.source === 'app' ? 'app' : 'web';
     const lat = toNumber(body.lat);
     const lng = toNumber(body.lng);
-    const areaKey = `${normKey(city)}|${normKey(area || pincode)}`;
+    const areaKey = `${normKey(city)}|${normKey(area)}`;
 
     const identity = [];
     if (phone) identity.push({ phone });
     if (isUser) identity.push({ userId: user._id });
+    if (!identity.length) identity.push({ ip: req.ip, userId: { $exists: false }, phone: { $exists: false } });
 
     const existing = await AreaRequest.findOne({
       areaKey,

@@ -125,33 +125,12 @@
   "areaRequest": {
     "button": "Request Chardeevari in my area",
     "title": "We'll come to your area",
-    "subtitle": "Tell us where you need material. We'll let you know when we start delivering there.",
-    "areaLabel": "Area / locality",
+    "subtitle": "Tell us your area. We'll let you know when we start delivering there.",
+    "areaLabel": "Your area",
     "areaPlaceholder": "e.g. Kanke Road",
-    "cityLabel": "City",
-    "cityPlaceholder": "e.g. Ranchi",
-    "pincodeLabel": "Pincode",
-    "pincodePlaceholder": "6-digit pincode",
-    "nameLabel": "Your name (optional)",
-    "namePlaceholder": "Enter your name",
-    "phoneLabel": "WhatsApp number",
-    "phonePlaceholder": "10-digit mobile number",
-    "itemsLabel": "What do you need?",
-    "noteLabel": "Note (optional)",
-    "notePlaceholder": "Quantity, timeline, anything else",
     "submit": "Send request",
     "success": "Thanks! We'll WhatsApp you as soon as we start in your area.",
     "failed": "Couldn't send your request. Please try again.",
-    "cityRequired": "Please enter your city",
-    "areaRequired": "Please enter your area or pincode",
-    "invalidPhone": "Enter a valid 10-digit mobile number",
-    "items": {
-      "cement": "Cement",
-      "sariya": "Sariya",
-      "balu": "Sand",
-      "eent": "Bricks",
-      "gitti": "Gitti",
-      "other": "Other"
-    }
+    "areaRequired": "Please enter your area"
   }
 }

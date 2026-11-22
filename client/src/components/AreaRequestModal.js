@@ -6,27 +6,12 @@ import { areaRequestAPI } from '../services/api';
 import { useLocation } from '../contexts/LocationContext';
 import { useAuth } from '../contexts/AuthContext';
 
-const ITEMS = ['cement', 'sariya', 'balu', 'eent', 'gitti', 'other'];
-
 const normalizePhone = (value) => {
   const digits = String(value ?? '').replace(/\D/g, '').replace(/^(91|0)(?=[6-9]\d{9}$)/, '');
   return /^[6-9]\d{9}$/.test(digits) ? digits : null;
 };
 
-const buildInitial = (user, selectedAddress, selectedCity) => {
-  const place = (user && selectedAddress) || selectedCity || {};
-  return {
-    area: place.area || '',
-    city: place.city || '',
-    pincode: place.pincode || '',
-    lat: place.coordinates?.latitude,
-    lng: place.coordinates?.longitude,
-    name: user?.name || '',
-    phone: normalizePhone(user?.phone) || '',
-    items: [],
-    note: '',
-  };
-};
+const buildPlace = (user, selectedAddress, selectedCity) => (user && selectedAddress) || selectedCity || {};
 
 const inputClass = 'w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent';
 
@@ -34,43 +19,34 @@ const AreaRequestModal = ({ isOpen, onClose }) => {
   const { t } = useTranslation('common');
   const { user } = useAuth();
   const { selectedAddress, selectedCity } = useLocation();
-  const [form, setForm] = useState(() => buildInitial(user, selectedAddress, selectedCity));
+  const place = buildPlace(user, selectedAddress, selectedCity);
+  const [area, setArea] = useState(place.area || '');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isOpen) setForm(buildInitial(user, selectedAddress, selectedCity));
+    if (isOpen) setArea(buildPlace(user, selectedAddress, selectedCity).area || '');
   }, [isOpen, user, selectedAddress, selectedCity]);
 
   if (!isOpen) return null;
 
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
-  const toggleItem = (item) => setForm((f) => ({
-    ...f,
-    items: f.items.includes(item) ? f.items.filter((i) => i !== item) : [...f.items, item],
-  }));
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const city = form.city.trim();
-    const area = form.area.trim();
-    const pincode = form.pincode.replace(/\D/g, '');
-    const phone = normalizePhone(form.phone);
-    if (!city) return toast.error(t('areaRequest.errors.city'));
-    if (!area && !pincode) return toast.error(t('areaRequest.errors.area'));
-    if (!phone && !(user && !form.phone.trim())) return toast.error(t('areaRequest.errors.phone'));
+    const trimmed = area.trim();
+    if (trimmed.length < 2) return toast.error(t('areaRequest.errors.area'));
+    // Pincode/coordinates describe the prefilled place only; drop them if the customer typed a different area.
+    const samePlace = trimmed === String(place.area || '').trim();
+    const phone = normalizePhone(user?.phone);
 
     setSubmitting(true);
     try {
       await areaRequestAPI.create({
-        area,
-        city,
-        pincode: pincode || undefined,
-        lat: form.lat,
-        lng: form.lng,
-        name: form.name.trim() || undefined,
+        area: trimmed,
+        city: place.city || undefined,
+        pincode: samePlace ? place.pincode || undefined : undefined,
+        lat: samePlace ? place.coordinates?.latitude : undefined,
+        lng: samePlace ? place.coordinates?.longitude : undefined,
+        name: user?.name || undefined,
         phone: phone || undefined,
-        items: form.items,
-        note: form.note.trim() || undefined,
         source: 'web',
       });
       toast.success(t('areaRequest.success'), { duration: 6000 });
@@ -107,52 +83,9 @@ const AreaRequestModal = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-700 mb-1">{t('areaRequest.area')}</label>
-                <input type="text" value={form.area} onChange={set('area')} maxLength={120} placeholder={t('areaRequest.areaPlaceholder')} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">{t('areaRequest.city')}</label>
-                <input type="text" value={form.city} onChange={set('city')} maxLength={80} required className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">{t('areaRequest.pincode')}</label>
-                <input type="text" inputMode="numeric" value={form.pincode} onChange={set('pincode')} maxLength={6} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">{t('areaRequest.name')}</label>
-                <input type="text" value={form.name} onChange={set('name')} maxLength={80} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">{t('areaRequest.phone')}</label>
-                <input type="tel" inputMode="numeric" value={form.phone} onChange={set('phone')} maxLength={14} required={!user} placeholder={t('areaRequest.phonePlaceholder')} className={inputClass} />
-              </div>
-            </div>
-
             <div>
-              <p className="block text-xs font-medium text-gray-700 mb-2">{t('areaRequest.items')}</p>
-              <div className="flex flex-wrap gap-2">
-                {ITEMS.map((item) => {
-                  const checked = form.items.includes(item);
-                  return (
-                    <label
-                      key={item}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm cursor-pointer select-none transition-colors ${
-                        checked ? 'bg-primary-50 border-primary-500 text-primary-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <input type="checkbox" checked={checked} onChange={() => toggleItem(item)} className="h-3.5 w-3.5 rounded text-primary-600 focus:ring-primary-500" />
-                      {t(`areaRequest.itemLabels.${item}`)}
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">{t('areaRequest.note')}</label>
-              <textarea value={form.note} onChange={set('note')} maxLength={300} rows={2} placeholder={t('areaRequest.notePlaceholder')} className={inputClass} />
+              <label htmlFor="area-request-area" className="block text-xs font-medium text-gray-700 mb-1">{t('areaRequest.area')}</label>
+              <input id="area-request-area" type="text" value={area} onChange={(e) => setArea(e.target.value)} minLength={2} maxLength={100} required autoFocus placeholder={t('areaRequest.areaPlaceholder')} className={inputClass} />
             </div>
 
             <button
