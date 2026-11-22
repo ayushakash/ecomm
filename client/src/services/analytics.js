@@ -7,12 +7,20 @@
  * - REACT_APP_ANALYTICS_ENABLED: Enable/disable all tracking
  */
 
+const GOOGLE_ADS_ID = 'AW-18495016928';
+const GOOGLE_ADS_CONVERSIONS = {
+  whatsapp: `${GOOGLE_ADS_ID}/HHHXCJ6klb0dEOCfjvNE`,
+  phone: `${GOOGLE_ADS_ID}/EOdtCJmllb0dEOCfjvNE`
+};
+
 class AnalyticsService {
   constructor() {
     this.gaId = process.env.REACT_APP_GA_MEASUREMENT_ID;
     this.metaPixelId = process.env.REACT_APP_META_PIXEL_ID;
     this.enabled = process.env.REACT_APP_ANALYTICS_ENABLED === 'true';
     this.initialized = false;
+    // Captured at load so the ad click id (gclid) survives SPA navigation before the deferred tag starts.
+    this.landingUrl = window.location.href;
   }
 
   /**
@@ -64,6 +72,7 @@ class AnalyticsService {
         link_text: (a.innerText || a.getAttribute('aria-label') || '').trim().slice(0, 60)
       };
       this.ga('event', `${type}_click`, params);
+      this.ga('event', 'conversion', { send_to: GOOGLE_ADS_CONVERSIONS[type] });
       if (window.fbq) window.fbq('track', 'Contact', { content_name: type, ...params });
     }, { capture: true });
   }
@@ -89,6 +98,7 @@ class AnalyticsService {
       page_location: window.location.href,
       page_path: window.location.pathname
     });
+    window.gtag('config', GOOGLE_ADS_ID, { page_location: this.landingUrl });
     this.gaReady = true;
     (this.pendingGA || []).forEach(args => window.gtag(...args));
     this.pendingGA = [];
