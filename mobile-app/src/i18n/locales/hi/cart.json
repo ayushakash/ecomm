@@ -53,6 +53,8 @@
     "delivery": "डिलीवरी",
     "free": "फ्री",
     "platformFee": "प्लेटफ़ॉर्म फीस",
-    "gstIncludedHint": "दिखाई गई कीमत फाइनल है (GST शामिल)।"
+    "gstIncludedHint": "दिखाई गई कीमत फाइनल है (GST शामिल)।",
+    "appFirstOrder": "🎉 ऐप का पहला ऑर्डर",
+    "appOfferNudge": "{{amount}} और जोड़ें, {{discount}} छूट पाएँ"
   }
 }

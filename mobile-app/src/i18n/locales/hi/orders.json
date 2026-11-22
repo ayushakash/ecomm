@@ -50,7 +50,8 @@
     "subtotalInclGst": "सब-टोटल (GST सहित)",
     "delivery": "डिलीवरी चार्ज",
     "platformFee": "प्लेटफ़ॉर्म फ़ीस",
-    "free": "फ्री"
+    "free": "फ्री",
+    "appFirstOrder": "🎉 ऐप का पहला ऑर्डर"
   },
   "lifecycle": {
     "order_created": "ऑर्डर हो गया",

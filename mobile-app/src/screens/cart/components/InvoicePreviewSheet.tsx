@@ -125,6 +125,9 @@ export function InvoicePreviewSheet({ visible, onClose, cart, totals, address, f
               <SummaryRow label={t('invoice.deliveryCharges')} value={rupees(Math.round(totals.deliveryCharges))} />
             )}
             {totals.platformFee > 0 && <SummaryRow label={t('invoice.platformFee')} value={rupees(Math.round(totals.platformFee))} />}
+            {(totals.appFirstOrderDiscount ?? 0) > 0 && (
+              <SummaryRow label={t('cart:bill.appFirstOrder')} value={`−${rupees(totals.appFirstOrderDiscount ?? 0)}`} />
+            )}
             <View style={styles.divider} />
             <SummaryRow strong label={t('invoice.totalAmount')} value={rupees(Math.round(totals.totalAmount))} />
           </View>

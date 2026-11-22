@@ -129,6 +129,8 @@ export interface BillLine {
   emphasis?: boolean;
   /** Show "FREE" for 0. */
   free?: boolean;
+  /** Deduction: rendered as "−₹X" in green. */
+  discount?: boolean;
 }
 
 /**
@@ -137,7 +139,10 @@ export interface BillLine {
  */
 export const isGstExclusive = (order: Order): boolean =>
   (order.tax || 0) > 0 &&
-  Math.abs((order.subtotal || 0) + (order.tax || 0) + (order.deliveryCharge || 0) + (order.platformFee || 0) - (order.totalAmount || 0)) < 1;
+  Math.abs(
+    (order.subtotal || 0) + (order.tax || 0) + (order.deliveryCharge || 0) + (order.platformFee || 0) -
+      (order.appFirstOrderDiscount || 0) - (order.totalAmount || 0),
+  ) < 1;
 
 /** Price breakdown from stored order totals (server applied GST; never recomputed). CGST/SGST = tax / 2 each, as GSTInvoicePreview does. */
 export const getBillBreakdown = (order: Order): { lines: BillLine[]; total: number } => {
@@ -159,6 +164,8 @@ export const getBillBreakdown = (order: Order): { lines: BillLine[]; total: numb
   if (!exclusive) lines.push({ label: i18n.t('orders:bill.subtotalInclGst'), value: subtotal, emphasis: true });
   lines.push({ label: i18n.t('orders:bill.delivery'), value: delivery, free: true });
   if (fee > 0) lines.push({ label: i18n.t('orders:bill.platformFee'), value: fee });
+  const appDiscount = order.appFirstOrderDiscount || 0;
+  if (appDiscount > 0) lines.push({ label: i18n.t('orders:bill.appFirstOrder'), value: appDiscount, discount: true });
   return { lines, total };
 };
 

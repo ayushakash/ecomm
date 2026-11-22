@@ -4,12 +4,13 @@
  * resolves to the response BODY (never the axios response).
  */
 import axios, { AxiosError, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, APP_VERSION } from '../config';
 import { toast } from '../utils/toast';
 import { tokenStorage } from './tokenStorage';
 import type {
   Address,
   AddressInput,
+  AppOffer,
   AreaRequestInput,
   AuthResponse,
   AuthTokens,
@@ -56,7 +57,8 @@ type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
-  headers: { 'Content-Type': 'application/json' },
+  // X-Client tags orders as app orders (server uses it only for the app-first-order offer).
+  headers: { 'Content-Type': 'application/json', 'X-Client': 'app', 'X-App-Version': APP_VERSION },
 });
 
 /** Extract the backend's message (`message` or express-validator `errors[0].msg`). */
@@ -208,6 +210,8 @@ export const orderAPI = {
       .post<CartTotals>('/orders/calculate-cart-totals', { items, customerArea, addressId }, SILENT)
       .then((r) => r.data),
   createOrder: (body: CreateOrderInput) => api.post<CreateOrderResponse>('/orders', body).then((r) => r.data),
+  /** ₹50 off the first app order (customer only). Silent: the offer UI is optional. */
+  getAppOffer: () => api.get<AppOffer>('/orders/app-offer', SILENT).then((r) => r.data),
   getOrders: (params: { status?: OrderStatus; page?: number; limit?: number } = {}) =>
     api.get<OrderListResponse>('/orders', { params }).then((r) => r.data),
   getOrder: (id: string) => api.get<{ order: Order }>(`/orders/${id}`).then((r) => r.data.order),

@@ -218,6 +218,13 @@ const GSTInvoicePreview = ({ show, onHide, order }) => {
                     </div>
                   )}
 
+                  {order.appFirstOrderDiscount > 0 && (
+                    <div className="flex justify-between py-2 border-b border-gray-200">
+                      <span className="text-gray-600">{t('invoice.appFirstOrder')}:</span>
+                      <span className="font-semibold">−₹{order.appFirstOrderDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between py-3 border-t-2 border-gray-800 mt-2">
                     <span className="text-lg font-bold text-gray-800">{t('invoice.grandTotal')}:</span>
                     <span className="text-lg font-bold text-gray-800">₹{gstBreakdown.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>

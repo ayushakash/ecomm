@@ -154,6 +154,12 @@ const OrderDetail = () => {
               <span className="text-gray-600">{t('price.deliveryCharge')}{order.deliveryCharge === 0 ? ` (${t('price.free')})` : ''}:</span>
               <span className="font-medium">{order.deliveryCharge === 0 ? '₹0' : `₹${order.deliveryCharge}`}</span>
             </div>
+            {order.appFirstOrderDiscount > 0 && (
+              <div className="flex justify-between text-green-700">
+                <span>{t('price.appFirstOrder')}:</span>
+                <span className="font-medium">−₹{order.appFirstOrderDiscount}</span>
+              </div>
+            )}
             <div className="flex justify-between text-lg font-bold border-t border-gray-200 pt-2">
               <span className="text-gray-900">{t('price.total')}:</span>
               <span className="text-gray-900">₹{order.totalAmount}</span>

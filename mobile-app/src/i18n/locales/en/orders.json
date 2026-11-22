@@ -50,7 +50,8 @@
     "subtotalInclGst": "Subtotal (incl. GST)",
     "delivery": "Delivery charge",
     "platformFee": "Platform fee",
-    "free": "FREE"
+    "free": "FREE",
+    "appFirstOrder": "🎉 First app order"
   },
   "lifecycle": {
     "order_created": "Order placed",

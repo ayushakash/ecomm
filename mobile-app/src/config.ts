@@ -14,6 +14,9 @@ export const API_ORIGIN = (extra.apiUrl || 'https://chardeevari.in').replace(/\/
 /** Axios baseURL. All service paths are relative to this (no leading /api). */
 export const API_BASE_URL = `${API_ORIGIN}/api`;
 
+/** app.json `version`, sent as X-App-Version on every API request. */
+export const APP_VERSION = Constants.expoConfig?.version ?? '0.0.0';
+
 /** Google OAuth *web* client ID — idToken audience must match backend GOOGLE_CLIENT_ID. */
 export const GOOGLE_WEB_CLIENT_ID = extra.googleWebClientId || '';
 

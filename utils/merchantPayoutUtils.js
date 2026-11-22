@@ -149,7 +149,11 @@ async function calculateMerchantPayout(order, merchantId) {
   } else {
     codCollectionAmount = itemsCustomerValue + merchantDeliveryShare + platformFeeShare;
   }
-  codCollectionAmount = Math.round(codCollectionAmount * 100) / 100;
+  // Platform-funded app-first-order discount: the customer pays this merchant's share less,
+  // so the merchant collects less COD and owes the platform the same amount less — netPayout is unchanged.
+  // Split by merchantSharePercent (like delivery/platform fee) so the order applies it once in total.
+  const platformPromoShare = Math.round((order.appFirstOrderDiscount || 0) * merchantSharePercent * 100) / 100;
+  codCollectionAmount = Math.round((codCollectionAmount - platformPromoShare) * 100) / 100;
 
   // Platform's share of delivery
   const platformDeliveryShare = deliverySplit.platformShare
@@ -157,7 +161,7 @@ async function calculateMerchantPayout(order, merchantId) {
     : 0;
 
   // Amount merchant owes platform
-  const amountOwePlatform = Math.round((platformCommission + platformGSTShare + platformFeeShare + platformDeliveryShare) * 100) / 100;
+  const amountOwePlatform = Math.round((platformCommission + platformGSTShare + platformFeeShare + platformDeliveryShare - platformPromoShare) * 100) / 100;
 
   // Net payout to merchant
   const netPayout = Math.round((codCollectionAmount - amountOwePlatform) * 100) / 100;
@@ -167,6 +171,7 @@ async function calculateMerchantPayout(order, merchantId) {
   console.log(`   Merchant GST Share: ₹${merchantGSTShare} (goes to govt)`);
   console.log(`   Delivery Share: ₹${merchantDeliveryShare}`);
   console.log(`   Platform Fee Share: ₹${platformFeeShare}`);
+  if (platformPromoShare) console.log(`   App First-Order Discount (platform-funded): -₹${platformPromoShare}`);
   console.log(`   COD to Collect: ₹${codCollectionAmount}`);
   console.log(`   Platform Commission: ₹${platformCommission}`);
   console.log(`   Platform GST Share: ₹${platformGSTShare}`);
@@ -187,6 +192,7 @@ async function calculateMerchantPayout(order, merchantId) {
     gst: merchantGSTShare,
     deliveryCharge: merchantDeliveryShare,
     platformFee: platformFeeShare,
+    discount: platformPromoShare,
     totalAmount: codCollectionAmount
   };
 
@@ -199,6 +205,7 @@ async function calculateMerchantPayout(order, merchantId) {
     merchantGSTShare,
     deliveryShare: merchantDeliveryShare,
     platformFeeShare,
+    platformPromoShare,
     platformCommission: Math.round(platformCommission * 100) / 100,
     platformGSTShare,
     platformDeliveryShare,
@@ -242,6 +249,9 @@ async function calculatePlatformEarnings(order) {
 
   // Platform fee revenue (full amount goes to platform)
   const platformFeeRevenue = order.platformFee || 0;
+
+  // Platform-funded app-first-order discount (a promo cost, not a revenue line)
+  const promoCost = order.appFirstOrderDiscount || 0;
 
   console.log(`   Order Total: ₹${order.totalAmount}`);
   console.log(`   Platform GST: ₹${platformGSTRevenue}`);
@@ -323,13 +333,14 @@ async function calculatePlatformEarnings(order) {
     });
   }
 
-  const totalEarnings = totalCommission + platformGSTRevenue + deliveryRevenue + platformFeeRevenue;
+  const totalEarnings = totalCommission + platformGSTRevenue + deliveryRevenue + platformFeeRevenue - promoCost;
 
   console.log(`\n💰 Platform Total Earnings: ₹${totalEarnings}`);
   console.log(`   Commission: ₹${totalCommission}`);
   console.log(`   Platform GST: ₹${platformGSTRevenue}`);
   console.log(`   Delivery Share: ₹${deliveryRevenue}`);
   console.log(`   Platform Fee: ₹${platformFeeRevenue}`);
+  if (promoCost) console.log(`   App First-Order Discount: -₹${promoCost}`);
 
   return {
     orderId: order._id,
@@ -339,6 +350,7 @@ async function calculatePlatformEarnings(order) {
     platformGSTRevenue,
     deliveryRevenue,
     platformFeeRevenue,
+    promoCost,
     totalEarnings,
     gstMode: gstBreakdown.mode || 'no-gst',
     breakdown
@@ -357,6 +369,7 @@ async function calculateTotalPlatformEarnings(orders) {
       totalCommission: 0,
       totalDeliveryRevenue: 0,
       totalPlatformFeeRevenue: 0,
+      totalPromoCost: 0,
       totalEarnings: 0,
       orders: []
     };
@@ -371,6 +384,7 @@ async function calculateTotalPlatformEarnings(orders) {
   const totalPlatformGSTRevenue = orderEarnings.reduce((sum, e) => sum + (e.platformGSTRevenue || 0), 0);
   const totalDeliveryRevenue = orderEarnings.reduce((sum, e) => sum + e.deliveryRevenue, 0);
   const totalPlatformFeeRevenue = orderEarnings.reduce((sum, e) => sum + e.platformFeeRevenue, 0);
+  const totalPromoCost = orderEarnings.reduce((sum, e) => sum + (e.promoCost || 0), 0);
 
   return {
     totalOrders: orders.length,
@@ -378,7 +392,8 @@ async function calculateTotalPlatformEarnings(orders) {
     totalPlatformGSTRevenue,
     totalDeliveryRevenue,
     totalPlatformFeeRevenue,
-    totalEarnings: totalCommission + totalPlatformGSTRevenue + totalDeliveryRevenue + totalPlatformFeeRevenue,
+    totalPromoCost,
+    totalEarnings: totalCommission + totalPlatformGSTRevenue + totalDeliveryRevenue + totalPlatformFeeRevenue - totalPromoCost,
     orders: orderEarnings
   };
 }

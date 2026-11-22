@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { useAuthGate } from '../../hooks/useAuthGate';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
-import { useCartTotals, usePublicSettings } from '../../hooks/queries';
+import { useAppOffer, useCartTotals, usePublicSettings } from '../../hooks/queries';
 import type { MainTabScreenProps } from '../../navigation/types';
 import { colors, radii, SCREEN_PADDING, shadows, spacing } from '../../theme';
 import type { CartItem } from '../../types/models';
@@ -25,6 +25,7 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
   const { getCartWhatsAppLink, openCartWhatsApp, callNumber, callToOrder } = useBulkWhatsApp();
   const { data: settings } = usePublicSettings();
   const { data: totals, isFetching: pricingFetching } = useCartTotals();
+  const { data: appOffer } = useAppOffer();
 
   // Refresh stored line prices whenever the tab gains focus (web: on mount/login).
   const syncRef = useRef(syncCartPrices);
@@ -143,7 +144,13 @@ export default function CartScreen({ navigation }: MainTabScreenProps<'CartTab'>
           <Text variant="h3" style={styles.sectionTitle}>
             {t('billDetails')}
           </Text>
-          <BillSummary totals={totals} updating={pricingFetching} fallbackSubtotal={localTotal} itemCount={cart.length} />
+          <BillSummary
+            totals={totals}
+            updating={pricingFetching}
+            fallbackSubtotal={localTotal}
+            itemCount={cart.length}
+            appOffer={appOffer}
+          />
         </Card>
 
         {!isAuthenticated && (

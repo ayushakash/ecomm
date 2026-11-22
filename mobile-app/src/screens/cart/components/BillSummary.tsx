@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Icon, Skeleton, Text } from '../../../components/ui';
 import { colors, radii, spacing } from '../../../theme';
-import type { CartTotals } from '../../../types/models';
+import type { AppOffer, CartTotals } from '../../../types/models';
 import { formatPrice } from '../../../utils/pricing';
 
 interface FreeDeliveryInfo {
@@ -44,6 +44,8 @@ export interface BillSummaryProps {
   itemCount: number;
   /** Checkout "I need a GST invoice": forces the GST breakdown even in no-display mode. */
   requireGSTBill?: boolean;
+  /** GET /orders/app-offer; drives the "add ₹X more" nudge. The discount itself comes from `totals`. */
+  appOffer?: AppOffer;
 }
 
 function Row({ label, value, muted, valueColor, children }: {
@@ -94,7 +96,7 @@ function FreeDeliveryProgress({ info }: { info: FreeDeliveryInfo }) {
 }
 
 /** Port of the web Cart/Checkout "Order Summary" totals block. All payable numbers come from the server. */
-export function BillSummary({ totals, updating, fallbackSubtotal, itemCount, requireGSTBill = false }: BillSummaryProps) {
+export function BillSummary({ totals, updating, fallbackSubtotal, itemCount, requireGSTBill = false, appOffer }: BillSummaryProps) {
   const { t } = useTranslation('cart');
   const itemsLabel = t('bill.subtotalItems', { count: itemCount });
 
@@ -123,6 +125,11 @@ export function BillSummary({ totals, updating, fallbackSubtotal, itemCount, req
   const showGst = (gstDisplayMode !== 'no-display' || requireGSTBill) && totals.tax > 0;
   const delivery = getFreeDeliveryInfo(totals);
   const halfGst = totals.tax / 2;
+  const appDiscount = totals.appFirstOrderDiscount ?? 0;
+  const appOfferRemaining =
+    appDiscount === 0 && appOffer?.eligible && totals.subtotal < appOffer.minSubtotal
+      ? Math.ceil(appOffer.minSubtotal - totals.subtotal)
+      : 0;
 
   return (
     <View style={styles.wrap}>
@@ -151,6 +158,18 @@ export function BillSummary({ totals, updating, fallbackSubtotal, itemCount, req
       {delivery.progress !== null && delivery.threshold > 0 && <FreeDeliveryProgress info={delivery} />}
 
       {totals.platformFee > 0 && <Row label={t('bill.platformFee')} value={formatPrice(totals.platformFee)} />}
+
+      {appDiscount > 0 && (
+        <Row label={t('bill.appFirstOrder')} value={`−${formatPrice(appDiscount)}`} valueColor={colors.successDark} />
+      )}
+      {appOfferRemaining > 0 && appOffer && (
+        <View style={styles.offerNudge}>
+          <Icon name="gift-outline" size={16} color="successDark" />
+          <Text variant="caption" color="successDark" weight="semibold" style={styles.flex}>
+            {t('bill.appOfferNudge', { amount: formatPrice(appOfferRemaining), discount: formatPrice(appOffer.amount) })}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.divider} />
       <View style={styles.totalRow}>
@@ -186,6 +205,14 @@ const styles = StyleSheet.create({
   progressTrack: { height: 6, borderRadius: radii.pill, backgroundColor: colors.border, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: radii.pill, backgroundColor: colors.secondary },
   progressFillDone: { backgroundColor: colors.success },
+  offerNudge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.successSoft,
+    borderRadius: radii.sm,
+    padding: spacing.sm,
+  },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong, marginVertical: spacing.xs },
   totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   totalRight: { alignItems: 'flex-end' },

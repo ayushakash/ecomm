@@ -361,6 +361,12 @@ const OrderHistory = () => {
                           <span className="font-medium">₹{(order.platformFee || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       )}
+                      {order.appFirstOrderDiscount > 0 && (
+                        <div className="flex justify-between text-sm text-green-700">
+                          <span>{t('price.appFirstOrder')}</span>
+                          <span className="font-medium">−₹{order.appFirstOrderDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
                       <div className="border-t-2 border-gray-300 pt-2 mt-2 flex justify-between font-bold text-gray-900 text-base">
                         <span>{t('price.totalAmount')}</span>
                         <span className="text-primary-700">₹{(order.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>

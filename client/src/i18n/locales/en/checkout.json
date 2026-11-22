@@ -137,6 +137,7 @@
     "subtotalIncGst": "Subtotal (Inc. GST)",
     "deliveryCharges": "Delivery Charges",
     "platformFee": "Platform Fee",
+    "appFirstOrder": "App First-Order Discount",
     "grandTotal": "Grand Total",
     "amountInWords": "Total Amount (In Words)",
     "terms": "Terms & Conditions",

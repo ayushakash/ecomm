@@ -4,6 +4,7 @@
  */
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { analyticsAPI, bannerAPI, merchantAPI, orderAPI, productAPI, settingsAPI } from '../services/api';
 import type { CartTotalsItemInput, OrderStatus, ProductQuery } from '../types/models';
@@ -85,16 +86,23 @@ export const useCategoryCovers = () => {
  */
 export const useCartTotals = ({ addressId, customerArea }: { addressId?: string | null; customerArea?: string | null } = {}) => {
   const { cart } = useCart();
+  const { user } = useAuth();
   const items = useMemo<CartTotalsItemInput[]>(
     () => cart.map((item) => ({ productId: item._id, quantity: item.quantity, variantLabel: item.variantLabel || null })),
     [cart],
   );
   return useQuery({
-    queryKey: queryKeys.cartTotals(items, addressId),
+    queryKey: queryKeys.cartTotals(items, addressId, user?._id),
     queryFn: () => orderAPI.calculateCartTotals(items, customerArea ?? null, addressId ?? null),
     enabled: items.length > 0,
     placeholderData: keepPreviousData,
   });
+};
+
+/** GET /orders/app-offer — first-app-order ₹50 offer. Logged-in customers only. */
+export const useAppOffer = () => {
+  const { isAuthenticated } = useAuth();
+  return useQuery({ queryKey: queryKeys.appOffer, queryFn: orderAPI.getAppOffer, enabled: isAuthenticated });
 };
 
 export const useOrders = (params: { status?: OrderStatus; page?: number; limit?: number } = {}, enabled = true) =>

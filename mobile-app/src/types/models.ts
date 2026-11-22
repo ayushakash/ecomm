@@ -211,11 +211,20 @@ export interface CartTotals {
   tax: number;
   deliveryCharges: number;
   platformFee: number;
+  /** Server-applied app first-order discount (₹); already deducted from totalAmount. */
+  appFirstOrderDiscount?: number;
   totalAmount: number;
   gstBreakdown?: GstBreakdown;
   deliverySplit?: Record<string, unknown>;
   platformFeeBreakdown?: Record<string, unknown>;
   breakdown?: Record<string, unknown>;
+}
+
+/** GET /orders/app-offer — ₹`amount` off the first app order with items subtotal ≥ `minSubtotal`. */
+export interface AppOffer {
+  eligible: boolean;
+  amount: number;
+  minSubtotal: number;
 }
 
 export type OrderStatus = 'pending' | 'approved' | 'assigned' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
@@ -261,6 +270,9 @@ export interface Order {
   deliveryCharge: number;
   platformFee?: number;
   totalAmount: number;
+  source?: 'web' | 'app';
+  /** Platform-funded app first-order discount (₹); already deducted from totalAmount. */
+  appFirstOrderDiscount?: number;
   gstBreakdown?: GstBreakdown;
   orderStatus: OrderStatus;
   paymentStatus: PaymentStatus;

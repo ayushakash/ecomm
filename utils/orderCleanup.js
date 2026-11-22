@@ -140,6 +140,8 @@ function cleanOrderObject(order) {
     tax: orderObj.tax,
     deliveryCharge: orderObj.deliveryCharge,
     totalAmount: orderObj.totalAmount,
+    source: orderObj.source,
+    appFirstOrderDiscount: orderObj.appFirstOrderDiscount,
     orderStatus: orderObj.orderStatus,
     paymentStatus: orderObj.paymentStatus,
     paymentMethod: orderObj.paymentMethod,
@@ -328,6 +330,7 @@ async function recalculateMerchantPayouts() {
               merchantGSTShare: newPayout.merchantGSTShare || 0,
               platformGSTShare: newPayout.platformGSTShare || 0,
               platformDeliveryShare: newPayout.platformDeliveryShare || 0,
+              platformPromoShare: newPayout.platformPromoShare || 0,
               // Add missing GST metadata
               gstMode: newPayout.gstMode || 'no-gst',
               isDummyGST: newPayout.isDummyGST || false,

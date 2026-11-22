@@ -149,28 +149,32 @@ router.get('/summary', [verifyToken, requireAdmin], async (req, res) => {
           earnings: todayEarnings.totalEarnings,
           commission: todayEarnings.totalCommission,
           deliveryRevenue: todayEarnings.totalDeliveryRevenue,
-          platformFeeRevenue: todayEarnings.totalPlatformFeeRevenue
+          platformFeeRevenue: todayEarnings.totalPlatformFeeRevenue,
+          promoCost: todayEarnings.totalPromoCost
         },
         thisMonth: {
           orders: monthEarnings.totalOrders,
           earnings: monthEarnings.totalEarnings,
           commission: monthEarnings.totalCommission,
           deliveryRevenue: monthEarnings.totalDeliveryRevenue,
-          platformFeeRevenue: monthEarnings.totalPlatformFeeRevenue
+          platformFeeRevenue: monthEarnings.totalPlatformFeeRevenue,
+          promoCost: monthEarnings.totalPromoCost
         },
         lastMonth: {
           orders: lastMonthEarnings.totalOrders,
           earnings: lastMonthEarnings.totalEarnings,
           commission: lastMonthEarnings.totalCommission,
           deliveryRevenue: lastMonthEarnings.totalDeliveryRevenue,
-          platformFeeRevenue: lastMonthEarnings.totalPlatformFeeRevenue
+          platformFeeRevenue: lastMonthEarnings.totalPlatformFeeRevenue,
+          promoCost: lastMonthEarnings.totalPromoCost
         },
         allTime: {
           orders: allTimeEarnings.totalOrders,
           earnings: allTimeEarnings.totalEarnings,
           commission: allTimeEarnings.totalCommission,
           deliveryRevenue: allTimeEarnings.totalDeliveryRevenue,
-          platformFeeRevenue: allTimeEarnings.totalPlatformFeeRevenue
+          platformFeeRevenue: allTimeEarnings.totalPlatformFeeRevenue,
+          promoCost: allTimeEarnings.totalPromoCost
         }
       }
     });

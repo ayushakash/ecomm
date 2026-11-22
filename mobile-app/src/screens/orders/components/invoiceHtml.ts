@@ -133,6 +133,9 @@ export function buildInvoiceHtml(order: Order): string {
     ${totalRow('Subtotal (Inc. GST):', subtotalInclusive, 'sub')}
     ${order.deliveryCharge > 0 ? totalRow('Delivery Charges:', order.deliveryCharge) : ''}
     ${(order.platformFee ?? 0) > 0 ? totalRow('Platform Fee:', order.platformFee ?? 0) : ''}
+    ${(order.appFirstOrderDiscount ?? 0) > 0
+      ? `<div class="total-row"><span>App First-Order Discount:</span><span>−${formatAmount(order.appFirstOrderDiscount ?? 0)}</span></div>`
+      : ''}
     ${totalRow('Grand Total:', grandTotal, 'grand')}
     <div class="words"><p>Total Amount (In Words):</p><p>${numberToWords(Math.round(grandTotal))} Rupees Only</p></div>
   </div>

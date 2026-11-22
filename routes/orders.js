@@ -12,6 +12,13 @@ const AbandonedCartService = require('../services/AbandonedCartService');
 const EmailService = require('../services/EmailService');
 const MSG91Service = require('../services/MSG91Service');
 const { cleanOrderResponse } = require('../utils/orderCleanup');
+const {
+  APP_FIRST_ORDER_DISCOUNT,
+  APP_FIRST_ORDER_MIN_SUBTOTAL,
+  getOrderSource,
+  hasNoPriorAppOrder,
+  getAppFirstOrderDiscount
+} = require('../utils/appFirstOrderOffer');
 
 const router = express.Router();
 
@@ -155,6 +162,13 @@ router.post('/calculate-cart-totals', [
 
     const totals = pricingCalculator.calculateOrderTotals(cartItems, customerData);
 
+    // Same server-side rule as POST /orders, so the preview total matches the placed order.
+    const appFirstOrderDiscount = await getAppFirstOrderDiscount({
+      source: getOrderSource(req),
+      customerId: req.user?.role === 'customer' ? req.user._id : null,
+      subtotal: totals.subtotal
+    });
+
     // Return breakdown for checkout display
     res.json({
       success: true,
@@ -170,7 +184,8 @@ router.post('/calculate-cart-totals', [
       tax: totals.tax,
       deliveryCharges: totals.deliveryCharges,
       platformFee: totals.platformFee,
-      totalAmount: totals.totalAmount,
+      appFirstOrderDiscount,
+      totalAmount: Math.round((totals.totalAmount - appFirstOrderDiscount) * 100) / 100,
       gstBreakdown: totals.gstBreakdown,        // Include split GST breakdown
       deliverySplit: totals.deliverySplit,      // Include delivery split
       platformFeeBreakdown: totals.platformFeeBreakdown,
@@ -373,6 +388,15 @@ router.post('/', [
     
     const totals = pricingCalculator.calculateOrderTotals(orderItems, customerData);
 
+    // App first-order promo (server-authoritative; platform-funded, GST untouched)
+    const source = getOrderSource(req);
+    const appFirstOrderDiscount = await getAppFirstOrderDiscount({
+      source,
+      customerId: req.user._id,
+      subtotal: totals.subtotal
+    });
+    const totalAmount = Math.round((totals.totalAmount - appFirstOrderDiscount) * 100) / 100;
+
     // Handle address creation/update - ensure we always have an addressId
     let finalAddressId = addressId;
 
@@ -506,7 +530,9 @@ router.post('/', [
       tax: totals.tax,
       deliveryCharge: totals.deliveryCharges,
       platformFee: totals.platformFee || 0,
-      totalAmount: totals.totalAmount,
+      totalAmount,
+      source,
+      appFirstOrderDiscount,
       paymentMethod,
       deliveryInstructions,
       expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -528,7 +554,7 @@ router.post('/', [
       message: 'Order placed successfully',
       order: cleanOrderResponse(order),
       // Include pricing breakdown in response for order confirmation
-      pricingBreakdown: totals
+      pricingBreakdown: { ...totals, appFirstOrderDiscount, totalAmount }
     });
 
     // Handle all heavy operations in background (async, non-blocking)
@@ -554,7 +580,9 @@ router.post('/', [
             metadata: {
               itemCount: orderItems.length,
               totalWeight: totalWeight,
-              paymentMethod: paymentMethod
+              paymentMethod: paymentMethod,
+              source,
+              appFirstOrderDiscount
             }
           }
         );
@@ -594,6 +622,26 @@ router.post('/', [
   } catch (error) {
     console.error('Place order error:', error);
     res.status(500).json({ message: error.message || 'Server error' });
+  }
+});
+
+/**
+ * ---------------------------
+ * APP FIRST-ORDER OFFER (₹50 off the first app order ≥ ₹1,000)
+ * ---------------------------
+ * `eligible` = the customer has no prior non-cancelled app order. The subtotal
+ * threshold is applied at pricing time (calculate-cart-totals / POST /orders).
+ */
+router.get('/app-offer', [verifyToken, requireCustomer], async (req, res) => {
+  try {
+    res.json({
+      eligible: await hasNoPriorAppOrder(req.user._id),
+      amount: APP_FIRST_ORDER_DISCOUNT,
+      minSubtotal: APP_FIRST_ORDER_MIN_SUBTOTAL
+    });
+  } catch (error) {
+    console.error('App offer error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -2171,6 +2219,7 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
           deliveryShare: payout.deliveryShare,
           platformDeliveryShare: payout.platformDeliveryShare || 0,
           platformFeeShare: payout.platformFeeShare,
+          platformPromoShare: payout.platformPromoShare || 0,
           platformCommission: payout.platformCommission,
 
           // GST metadata (NEW)
@@ -2207,6 +2256,7 @@ async function assignMerchantToItem(orderId, itemId, merchantId, options = { val
           deliveryShare: payout.deliveryShare,
           platformDeliveryShare: payout.platformDeliveryShare || 0,
           platformFeeShare: payout.platformFeeShare,
+          platformPromoShare: payout.platformPromoShare || 0,
           platformCommission: payout.platformCommission,
 
           // GST metadata (NEW)

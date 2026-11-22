@@ -10,7 +10,7 @@ import { Button, Card, Icon, Image, Input, Screen, ScreenHeader, Skeleton, Text 
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { useLocation } from '../../contexts/LocationContext';
-import { useCartTotals } from '../../hooks/queries';
+import { useAppOffer, useCartTotals } from '../../hooks/queries';
 import { queryKeys } from '../../hooks/queryKeys';
 import type { RootStackScreenProps } from '../../navigation/types';
 import { getErrorMessage, orderAPI } from '../../services/api';
@@ -87,6 +87,7 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
     isFetching: pricingFetching,
     isPlaceholderData: pricingStale,
   } = useCartTotals({ addressId: selectedAddress?._id, customerArea: selectedAddress?.area });
+  const { data: appOffer } = useAppOffer();
 
   const createOrder = useMutation({
     mutationFn: (orderData: CreateOrderInput) => orderAPI.createOrder(orderData),
@@ -95,6 +96,8 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       clearCart();
       void queryClient.invalidateQueries({ queryKey: queryKeys.ordersAll });
+      // App first-order offer may be used up: re-price any cached cart totals.
+      void queryClient.invalidateQueries({ queryKey: ['cart-pricing'] });
       navigation.replace('OrderSuccess', { order: res.order });
     },
     onError: (error) => {
@@ -404,6 +407,7 @@ export default function CheckoutScreen({ navigation }: RootStackScreenProps<'Che
               fallbackSubtotal={localSubtotal}
               itemCount={cart.length}
               requireGSTBill={requireGSTBill}
+              appOffer={appOffer}
             />
             <View style={styles.gstRow}>
               <Icon name="document-text-outline" size={20} color="textSecondary" />

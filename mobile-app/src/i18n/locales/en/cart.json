@@ -53,6 +53,8 @@
     "delivery": "Delivery",
     "free": "FREE",
     "platformFee": "Platform fee",
-    "gstIncludedHint": "Prices shown are final (GST included)."
+    "gstIncludedHint": "Prices shown are final (GST included).",
+    "appFirstOrder": "🎉 First app order",
+    "appOfferNudge": "Add {{amount}} more to get {{discount}} off"
   }
 }

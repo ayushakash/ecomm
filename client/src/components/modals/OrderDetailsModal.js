@@ -253,6 +253,12 @@ const OrderDetailsModal = ({ show, onHide, order }) => {
                   <span className="font-medium">₹{order.platformFee?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               )}
+              {order.appFirstOrderDiscount > 0 && (
+                <div className="flex justify-between text-green-700">
+                  <span>{t('price.appFirstOrder')}:</span>
+                  <span className="font-medium">−₹{order.appFirstOrderDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
               <div className="border-t-2 border-gray-300 pt-2 mt-2">
                 <div className="flex justify-between text-lg font-bold text-gray-900">
                   <span>{t('price.totalAmount')}:</span>

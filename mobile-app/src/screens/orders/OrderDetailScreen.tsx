@@ -242,6 +242,10 @@ export default function OrderDetailScreen({ navigation, route }: RootStackScreen
                 <Text variant="bodySm" weight="bold" color="success">
                   {t('bill.free')}
                 </Text>
+              ) : line.discount ? (
+                <Text variant="bodySm" weight="semibold" color="successDark">
+                  −{formatAmount(line.value)}
+                </Text>
               ) : (
                 <Text variant="bodySm" weight={line.emphasis ? 'bold' : 'semibold'}>
                   {formatAmount(line.value)}

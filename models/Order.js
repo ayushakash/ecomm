@@ -147,6 +147,18 @@ const orderSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  // Where the order was placed ('app' only via the X-Client: app header; used for the app-first-order promo only)
+  source: {
+    type: String,
+    enum: ['web', 'app'],
+    default: 'web'
+  },
+  // Platform-funded ₹ off the customer's first app order (utils/appFirstOrderOffer.js). Already deducted from totalAmount.
+  appFirstOrderDiscount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   pricingBreakdown: {
     taxRate: Number,
     deliveryConfig: Object,
@@ -291,6 +303,7 @@ const orderSchema = new mongoose.Schema({
     deliveryShare: Number,                             // Merchant's share of delivery fee
     platformDeliveryShare: { type: Number, default: 0 }, // Platform's share of delivery fee
     platformFeeShare: Number,                          // Merchant's share of platform fee
+    platformPromoShare: { type: Number, default: 0 },   // Platform-funded customer discount share (not collected; deducted from amountOwePlatform)
     platformCommission: Number,                        // Platform's markup (price - cost, GST excluded)
 
     // GST metadata

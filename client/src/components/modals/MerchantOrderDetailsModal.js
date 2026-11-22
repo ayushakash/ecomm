@@ -322,6 +322,12 @@ const MerchantOrderDetailsModal = ({ show, onHide, order }) => {
                       </div>
                     </>
                   )}
+                  {order.merchantPayout.platformPromoShare > 0 && (
+                    <div className="flex justify-between text-gray-700">
+                      <span>App Discount (paid by platform):</span>
+                      <span className="font-medium">−₹{order.merchantPayout.platformPromoShare.toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="border-t-2 border-green-300 pt-2 mt-2">
                     <div className="flex justify-between text-base font-bold text-green-700">
                       <span>COD to Collect:</span>
