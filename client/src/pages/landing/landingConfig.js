@@ -19,7 +19,7 @@ export const LANDING_CONFIGS = {
     slug: 'cement-price-ranchi',
     category: 'Cement',
     breadcrumb: 'Cement Rate in Ranchi',
-    seoTitle: 'Cement Rate in Ranchi Today – ACC, Dalmia ₹/bag | Chardeevari',
+    seoTitle: 'Cement Rate in Ranchi Today – ACC, Dalmia, Concreto | Chardeevari',
     seoDescription: (from) =>
       `Today's cement rate in Ranchi: ACC, Dalmia, Concreto${from ? ` from ${from}` : ''}. 60-min delivery in ${AREA}. Cash on delivery.`,
     keywords:
@@ -55,7 +55,7 @@ export const LANDING_CONFIGS = {
     slug: 'bricks-supplier-ranchi',
     category: 'Bricks',
     breadcrumb: 'Brick (Eent) Price in Ranchi',
-    seoTitle: 'Brick Price in Ranchi – Cement Eent ₹/piece | Chardeevari',
+    seoTitle: 'Brick Price in Ranchi – Grey Cement Eent Rate | Chardeevari',
     seoDescription: (from) =>
       `Grey cement brick (eent) price in Ranchi${from ? `: ${from}` : ''}. 60-min delivery in ${AREA}. Cash on delivery.`,
     keywords:
