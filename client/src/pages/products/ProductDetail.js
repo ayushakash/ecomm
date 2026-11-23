@@ -7,6 +7,8 @@ import { useCart } from '../../contexts/CartContext';
 import { toast } from 'react-hot-toast';
 import analytics from '../../services/analytics';
 import SEO from '../../components/SEO/SEO';
+import { categoryNameOf, toSchemaProduct } from '../../utils/productSchema';
+import { landingForCategory } from '../landing/landingConfig';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
 import { useTranslation } from 'react-i18next';
@@ -94,30 +96,36 @@ const ProductDetail = () => {
 
 
   if (isLoading) {
-    return <PageSpinner />;
+    return (
+      <>
+        <SEO title="Building material price in Ranchi" />
+        <PageSpinner />
+      </>
+    );
   }
 
-  if (error) {
+  if (error || !product) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600">{t('detail.error', { message: error.message })}</p>
+        <SEO title="Product not found" noindex />
+        <p className={error ? 'text-red-600' : 'text-gray-600'}>
+          {error ? t('detail.error', { message: error.message }) : t('detail.notFound')}
+        </p>
       </div>
     );
   }
 
-  if (!product) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-600">{t('detail.notFound')}</p>
-      </div>
-    );
-  }
-
-  // Generate dynamic SEO data (category is a populated object — use its name)
-  const categoryName = product.category?.name || (typeof product.category === 'string' ? product.category : 'Construction Material');
-  const productTitle = `Buy ${product.name} Online in Ranchi | ${categoryName} | Chardeevari`;
-  const productDescription = `${product.description?.substring(0, 150) || `Buy ${product.name} online in Ranchi, Jharkhand`}. Best price Rs ${product.price}. Premium quality ${categoryName} with doorstep delivery. ${product.totalStock > 0 ? 'In Stock' : 'Limited Stock'} - Order now at Chardeevari!`;
-  const productKeywords = `buy ${product.name} Ranchi, ${product.name} price Ranchi, ${categoryName} suppliers Ranchi, ${product.name} online Jharkhand, ${categoryName} dealers Ranchi, construction materials Ranchi, ${product.name} home delivery, buy ${categoryName} online, Chardeevari ${categoryName}`;
+  // SEO copy uses the price exactly as shown below (incl. GST).
+  const rawCategory = categoryNameOf(product);
+  const categoryName = rawCategory ? rawCategory.charAt(0).toUpperCase() + rawCategory.slice(1) : 'Building material';
+  const categoryLanding = landingForCategory(rawCategory);
+  const schemaProduct = toSchemaProduct(product);
+  const shownPrice = schemaProduct
+    ? `₹${(schemaProduct.price ?? schemaProduct.lowPrice).toLocaleString('en-IN')}${schemaProduct.price ? '' : '+'}${product.unit ? `/${product.unit}` : ''}`
+    : null;
+  const productTitle = `${product.name} Price in Ranchi${shownPrice ? ` – ${shownPrice}` : ''}`;
+  const productDescription = `${product.name}${shownPrice ? ` at ${shownPrice} (incl. GST)` : ''} in Ranchi. Delivered in about 60 minutes within ~5 km of Kadru, Harmu, Ashok Nagar and Doranda. Cash on delivery.`;
+  const productKeywords = `${product.name} price Ranchi, ${product.name} rate Ranchi, ${categoryName} price Ranchi, ${categoryName} dealer Ranchi, ${categoryName} home delivery Ranchi`;
 
   return (
     <div className="bg-gray-50">
@@ -126,20 +134,13 @@ const ProductDetail = () => {
         description={productDescription}
         keywords={productKeywords}
         type="product"
-        image={(product.images && product.images[0]) || '/logo512.png'}
-        product={{
-          name: product.name,
-          description: product.description || `Buy ${product.name} online in Ranchi`,
-          image: (product.images && product.images[0]) || undefined,
-          brand: product.brand,
-          price: product.price,
-          inStock: (product.totalStock ?? product.stock ?? 0) > 0,
-          // rating intentionally omitted — reviews not live yet (no fake ratings)
-        }}
+        image={(product.images && product.images[0]) || undefined}
+        product={schemaProduct}
         breadcrumbs={[
           { name: 'Home', path: '/' },
-          { name: 'Products', path: '/products' },
-          { name: product.category || 'Product', path: `/products?category=${product.category}` },
+          categoryLanding
+            ? { name: categoryName, path: `/${categoryLanding.slug}` }
+            : { name: 'Products', path: '/products' },
           { name: product.name, path: `/products/${product._id}` }
         ]}
       />
@@ -153,7 +154,10 @@ const ProductDetail = () => {
                 <img
                   src={product.images?.[selectedImageIndex] || product.images?.[0] || '/placeholder-product.jpg'}
                   alt={`${product.name} - Image ${selectedImageIndex + 1}`}
-                  loading="lazy"
+                  width={600}
+                  height={600}
+                  loading="eager"
+                  fetchpriority="high"
                   decoding="async"
                   onClick={() => setIsFullscreen(true)}
                   className="w-full h-full object-cover hover:scale-110 transition-transform duration-700 cursor-zoom-in"
@@ -211,7 +215,9 @@ const ProductDetail = () => {
                     >
                       <img
                         src={image}
-                        alt={`${product.name} thumbnail ${index + 1}`}
+                        alt=""
+                        width={64}
+                        height={64}
                         loading="lazy"
                         decoding="async"
                         className="w-full h-full object-cover"

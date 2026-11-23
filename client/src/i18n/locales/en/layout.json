@@ -2,11 +2,19 @@
   "logoAlt": "Chardeevari logo",
   "serviceAreas": "Currently delivering in:",
   "footer": {
-    "downloadApp": "Download the app"
+    "downloadApp": "Download the app",
+    "tagline": "Building material delivery in Ranchi",
+    "area": "Delivery within about 5 km of Kadru, Harmu, Ashok Nagar and Doranda · about 60 minutes · cash on delivery",
+    "hours": "Mon–Sat, 9 AM – 6 PM (Sunday closed)",
+    "ratesTitle": "Today's rates",
+    "aajKaRate": "Aaj ka rate (all materials)",
+    "companyTitle": "Chardeevari",
+    "maps": "View on Google Maps"
   },
   "nav": {
     "home": "Home",
     "products": "Products",
+    "aajKaRate": "Aaj Ka Rate",
     "calculator": "Calculator",
     "blog": "Blog",
     "contact": "Contact",

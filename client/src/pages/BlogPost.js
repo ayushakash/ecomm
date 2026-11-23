@@ -1,17 +1,25 @@
 import React from 'react';
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import SEO from '../components/SEO/SEO';
 import { getBlogPost } from '../data/blogPosts';
+import NotFound from './NotFound';
 import { useTranslation } from 'react-i18next';
 
-// Render **bold** segments inside a paragraph.
+// Render **bold** and [label](/internal-path) segments inside a paragraph.
 const renderText = (text) => {
-  const parts = String(text).split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) =>
-    part.startsWith('**') && part.endsWith('**')
-      ? <strong key={i}>{part.slice(2, -2)}</strong>
-      : <React.Fragment key={i}>{part}</React.Fragment>
-  );
+  const parts = String(text).split(/(\*\*[^*]+\*\*|\[[^\]]+\]\([^)\s]+\))/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>;
+    const link = part.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
+    if (link) {
+      return (
+        <Link key={i} to={link[2]} className="text-primary-700 font-semibold underline underline-offset-2 hover:text-primary-800">
+          {link[1]}
+        </Link>
+      );
+    }
+    return <React.Fragment key={i}>{part}</React.Fragment>;
+  });
 };
 
 const BlogPost = () => {
@@ -19,8 +27,8 @@ const BlogPost = () => {
   const { slug } = useParams();
   const post = getBlogPost(slug);
 
-  // Unknown slug -> send back to the blog list (avoids a soft-404 dead end).
-  if (!post) return <Navigate to="/blog" replace />;
+  // Unknown slug -> noindex not-found page (a redirect to /blog is a soft 404).
+  if (!post) return <NotFound />;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,8 +139,9 @@ const BlogPost = () => {
           <h3 className="text-xl font-bold text-gray-900 mb-2">{t('post.ctaTitle')}</h3>
           <p className="text-gray-700 mb-4">{t('post.ctaText')}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/products" className="inline-block bg-primary-700 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-800 transition-colors">{t('post.browseProducts')}</Link>
+            <Link to="/aaj-ka-rate" className="inline-block bg-primary-700 text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-primary-800 transition-colors">{t('post.aajKaRate')}</Link>
             <Link to="/calculator" className="inline-block bg-white border border-primary-300 text-primary-700 font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">{t('post.freeCalculator')}</Link>
+            <Link to="/products" className="inline-block bg-white border border-primary-300 text-primary-700 font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">{t('post.browseProducts')}</Link>
           </div>
         </div>
 

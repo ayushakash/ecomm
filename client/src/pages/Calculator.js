@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate, Link } from 'react-router-dom';
 import SEO from '../components/SEO/SEO';
 import analytics from '../services/analytics';
 import api, { merchantAPI, productAPI } from '../services/api';
@@ -9,7 +10,7 @@ import { jsPDF } from 'jspdf';
 import { formatPrice } from '../utils/pricingUtils';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
-import { BUSINESS_PHONE_LABEL, BUSINESS_PHONE_TEL } from '../config/contact';
+import { BUSINESS_EMAIL, BUSINESS_PHONE_LABEL, BUSINESS_PHONE_TEL } from '../config/contact';
 
 // Maps each calculated material to a catalog search keyword + a unit-aware
 // quantity converter. Calculator units (bags / kg / cu.ft / nos) rarely match
@@ -63,12 +64,26 @@ const Calculator = () => {
   const [results, setResults] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // City & Pricing state
-  const [selectedCity, setSelectedCity] = useState('');
-  const [availableCities, setAvailableCities] = useState([]);
+  // City & Pricing state. Server data comes from react-query so the prerendered
+  // page and the first client render agree (hydration keeps the static HTML).
   const [pricingMode, setPricingMode] = useState('market'); // 'market' or 'custom'
-  const [cityPrices, setCityPrices] = useState(null);
-  const [loadingPrices, setLoadingPrices] = useState(false);
+  const { data: citiesData } = useQuery({
+    queryKey: ['available-cities'],
+    queryFn: () => merchantAPI.getAvailableCities(),
+    staleTime: 10 * 60 * 1000,
+  });
+  const availableCities = citiesData?.cities || [];
+  const [chosenCity, setSelectedCity] = useState('');
+  // Default: first serviceable city
+  const selectedCity = chosenCity || availableCities[0]?.city || '';
+
+  const { data: cityPricesData, isLoading: loadingPrices } = useQuery({
+    queryKey: ['city-prices', selectedCity],
+    queryFn: () => api.get(`/api/analytics/city-prices/${selectedCity}`).then((res) => res.data),
+    enabled: pricingMode === 'market' && Boolean(selectedCity),
+    staleTime: 10 * 60 * 1000,
+  });
+  const cityPrices = cityPricesData?.success && cityPricesData.prices ? cityPricesData : null;
 
   // Lead capture modal
   const [showLeadModal, setShowLeadModal] = useState(false);
@@ -98,67 +113,32 @@ const Calculator = () => {
     instagram: 'https://www.instagram.com/chardeevari.in/',
     linkedin: 'https://www.linkedin.com/company/chardeevari/',
     twitter: 'https://x.com/Chardeevari_in',
-    email: 'chardeevari.construction@gmail.com'
+    email: BUSINESS_EMAIL
   };
 
-  // Fetch available cities
+  // Apply the city's market prices to the form (also when switching back to
+  // market pricing) and say when some are standard estimates.
   useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        const response = await merchantAPI.getAvailableCities();
-        if (response.cities && response.cities.length > 0) {
-          setAvailableCities(response.cities);
-          // Set first city as default if no city selected
-          if (!selectedCity) {
-            setSelectedCity(response.cities[0].city);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching cities:', error);
-      }
-    };
-    fetchCities();
-  }, []);
-
-  // Fetch city prices when city or pricing mode changes
-  useEffect(() => {
-    const fetchCityPrices = async () => {
-      if (pricingMode !== 'market' || !selectedCity) return;
-
-      setLoadingPrices(true);
-      try {
-        const response = await api.get(`/api/analytics/city-prices/${selectedCity}`);
-        if (response.data.success && response.data.prices) {
-          setCityPrices(response.data);
-          const p = response.data.prices;
-          setFormData(prev => ({
-            ...prev,
-            priceCement: p.cement?.avg || 350,
-            priceSteel:  p.steel?.avg  || 72,
-            priceSand:   p.sand?.avg   || 40,
-            priceAgg:    p.aggregate?.avg || 70,
-            priceBricks: p.bricks?.avg || 10000
-          }));
-          // Inform user if falling back to defaults for some materials
-          const fallbackMaterials = Object.entries(p)
-            .filter(([, v]) => !v.isLive)
-            .map(([k]) => k);
-          if (fallbackMaterials.length === Object.keys(p).length) {
-            toast(t('toasts.noLivePrices', { city: selectedCity }), { icon: 'ℹ️' });
-          } else if (fallbackMaterials.length > 0) {
-            toast(t('toasts.somePricesStandard', { materials: fallbackMaterials.map(k => t(`materials.${k}`, { defaultValue: k })).join(', ') }), { icon: 'ℹ️' });
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching city prices:', error);
-        // Silently fall back — no toast error, custom prices still available
-      } finally {
-        setLoadingPrices(false);
-      }
-    };
-
-    fetchCityPrices();
-  }, [selectedCity, pricingMode]);
+    if (pricingMode !== 'market' || !cityPrices) return;
+    const p = cityPrices.prices;
+    setFormData(prev => ({
+      ...prev,
+      priceCement: p.cement?.avg || 350,
+      priceSteel:  p.steel?.avg  || 72,
+      priceSand:   p.sand?.avg   || 40,
+      priceAgg:    p.aggregate?.avg || 70,
+      priceBricks: p.bricks?.avg || 10000
+    }));
+    // Inform user if falling back to defaults for some materials
+    const fallbackMaterials = Object.entries(p)
+      .filter(([, v]) => !v.isLive)
+      .map(([k]) => k);
+    if (fallbackMaterials.length === Object.keys(p).length) {
+      toast(t('toasts.noLivePrices', { city: cityPrices.city || selectedCity }), { icon: 'ℹ️' });
+    } else if (fallbackMaterials.length > 0) {
+      toast(t('toasts.somePricesStandard', { materials: fallbackMaterials.map(k => t(`materials.${k}`, { defaultValue: k })).join(', ') }), { icon: 'ℹ️' });
+    }
+  }, [cityPrices, pricingMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Draw grid when results are updated
   useEffect(() => {
@@ -1209,6 +1189,21 @@ const Calculator = () => {
           )}
         </div>
       </div>
+
+      {/* How the estimate works — static, so the prerendered page explains the method */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-gray-700 leading-relaxed">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-ink-700 tracking-tight">{t('method.title')}</h2>
+        <p className="mt-3 text-sm sm:text-base">{t('method.intro')}</p>
+        <ul className="mt-3 list-disc pl-6 space-y-1.5 text-sm sm:text-base">
+          {[].concat(t('method.rules', { returnObjects: true })).map((rule, i) => <li key={i}>{rule}</li>)}
+        </ul>
+        <h3 className="mt-6 text-lg font-bold text-ink-700">{t('method.exampleTitle')}</h3>
+        <p className="mt-2 text-sm sm:text-base">{t('method.example')}</p>
+        <p className="mt-4 text-sm sm:text-base">
+          {t('method.ratesText')}{' '}
+          <Link to="/aaj-ka-rate" className="font-semibold text-primary-700 underline underline-offset-2">{t('method.ratesLink')}</Link>
+        </p>
+      </section>
 
       {/* Lead Capture Modal - Simple & Mobile-First */}
       {showLeadModal && (

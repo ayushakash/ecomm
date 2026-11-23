@@ -15,10 +15,17 @@ import {
 import { useTranslation } from 'react-i18next';
 import analytics from '../../services/analytics';
 import { playStoreLink } from '../../config/app';
+import {
+  BUSINESS_ADDRESS, BUSINESS_EMAIL, BUSINESS_MAPS_URL, BUSINESS_PHONE_LABEL, BUSINESS_PHONE_TEL, whatsappLink,
+} from '../../config/contact';
+import { LANDING_CONFIGS } from '../../pages/landing/landingConfig';
+
+const LANDING_LINKS = Object.values(LANDING_CONFIGS).map((c) => ({ key: c.key, to: `/${c.slug}` }));
 
 const Footer = ({ cartCount = 0 }) => {
   const location = useLocation();
   const { t } = useTranslation('layout');
+  const { t: tl } = useTranslation('landing');
 
   const navItems = [
     { id: 'home', name: t('nav.home'), href: '/', icon: HomeIcon, iconFilled: HomeIconFilled },
@@ -45,20 +52,63 @@ const Footer = ({ cartCount = 0 }) => {
 
   return (
     <>
-    {/* Site footer — all devices; bottom padding clears the fixed mobile nav. */}
-    <footer className="border-t border-gray-200 bg-white px-4 pt-4 pb-20 md:pb-4 text-center text-sm">
-      <a
-        href={playStoreLink('footer')}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => analytics.trackEvent('app_download_click', { placement: 'footer' })}
-        className="inline-flex items-center gap-1.5 font-semibold text-green-700 hover:text-green-800"
-      >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-          <path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z" />
-        </svg>
-        {t('footer.downloadApp')}
-      </a>
+    {/* Site footer — all devices, static (prerendered): NAP, service area and links
+        to every rate page. Bottom padding clears the fixed mobile nav. */}
+    <footer className="border-t border-gray-200 bg-white px-4 pt-8 pb-20 md:pb-8 text-sm text-gray-600">
+      <div className="max-w-7xl mx-auto grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <p className="text-base font-extrabold text-ink-700">Chardeevari <span lang="hi">(चारदीवारी)</span></p>
+          <p className="mt-1">{t('footer.tagline')}</p>
+          <address className="mt-3 not-italic leading-relaxed">{BUSINESS_ADDRESS}</address>
+          <p className="mt-2">
+            <a href={`tel:${BUSINESS_PHONE_TEL}`} className="font-semibold text-ink-700 hover:text-brand-600">{BUSINESS_PHONE_LABEL}</a>
+            {' · '}
+            <a href={whatsappLink()} target="_blank" rel="noopener noreferrer" className="font-semibold text-green-700 hover:text-green-800">WhatsApp</a>
+          </p>
+          <p className="mt-1">
+            <a href={`mailto:${BUSINESS_EMAIL}`} className="hover:text-brand-600">{BUSINESS_EMAIL}</a>
+          </p>
+          <p className="mt-1">{t('footer.hours')}</p>
+          <p className="mt-1">
+            <a href={BUSINESS_MAPS_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-600 hover:text-brand-700">{t('footer.maps')}</a>
+          </p>
+        </div>
+
+        <nav aria-label={t('footer.ratesTitle')}>
+          <p className="font-extrabold text-ink-700">{t('footer.ratesTitle')}</p>
+          <ul className="mt-2 space-y-1.5">
+            <li><Link to="/aaj-ka-rate" className="hover:text-brand-600">{t('footer.aajKaRate')}</Link></li>
+            {LANDING_LINKS.map((l) => (
+              <li key={l.to}><Link to={l.to} className="hover:text-brand-600">{tl(`pages.${l.key}.linkLabel`)}</Link></li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-label={t('footer.companyTitle')}>
+          <p className="font-extrabold text-ink-700">{t('footer.companyTitle')}</p>
+          <ul className="mt-2 space-y-1.5">
+            <li><Link to="/calculator" className="hover:text-brand-600">{t('nav.calculator')}</Link></li>
+            <li><Link to="/about" className="hover:text-brand-600">{t('nav.aboutUs')}</Link></li>
+            <li><Link to="/contact" className="hover:text-brand-600">{t('nav.contactUs')}</Link></li>
+            <li><Link to="/blog" className="hover:text-brand-600">{t('nav.blog')}</Link></li>
+            <li>
+              <a
+                href={playStoreLink('footer')}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => analytics.trackEvent('app_download_click', { placement: 'footer' })}
+                className="inline-flex items-center gap-1.5 font-semibold text-green-700 hover:text-green-800"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                  <path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z" />
+                </svg>
+                {t('footer.downloadApp')}
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      <p className="max-w-7xl mx-auto mt-6 pt-4 border-t border-gray-100 text-xs text-gray-500">{t('footer.area')}</p>
     </footer>
 
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 md:hidden">

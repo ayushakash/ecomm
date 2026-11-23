@@ -1,0 +1,39 @@
+{
+  "seoTitle": "About Chardeevari (चारदीवारी) – Building Material Delivery, Ranchi",
+  "seoDescription": "Chardeevari connects home builders in Ranchi with trusted local building-material stores. 60-min delivery near Kadru, Harmu, Ashok Nagar, Doranda. Cash on delivery.",
+  "h1": "About Chardeevari (चारदीवारी)",
+  "intro": "Chardeevari (चारदीवारी, also written Char Deevari) is a Ranchi platform that connects people building a home with trusted local building-material stores. You order cement, sariya (TMT), balu, cement eent or gitti on this website, on WhatsApp or in our Android app, and a partner store near your site delivers it — usually in about 60 minutes. You pay cash on delivery.",
+  "name": "The name चारदीवारी means “four walls” — what every home starts with.",
+  "how": {
+    "title": "How it works",
+    "steps": [
+      "Check today's rate for each material on the website or in the app.",
+      "Order online, in the app or on WhatsApp (+91 92415 14013).",
+      "A partner store near your site loads the material and delivers it, usually in about 60 minutes.",
+      "Pay cash when the material reaches your site."
+    ]
+  },
+  "area": {
+    "title": "Where we deliver",
+    "text": "Within about 5 km of Kadru, Harmu, Ashok Nagar and Doranda in Ranchi. We do not deliver outside these areas yet."
+  },
+  "materials": {
+    "title": "What we deliver",
+    "text": "ACC, Dalmia and Concreto cement; Rungta TMT sariya; river sand (balu); grey cement bricks; stone chips (gitti); and cover blocks. See today's rate for each:"
+  },
+  "team": {
+    "title": "Who runs Chardeevari",
+    "text": "Chardeevari was founded by Ayush Akash in Ranchi and works from 217, Kadru, AG Colony."
+  },
+  "contact": {
+    "title": "Contact and hours",
+    "address": "Address",
+    "phone": "Phone / WhatsApp",
+    "email": "Email",
+    "hours": "Hours",
+    "hoursValue": "Monday to Saturday, 9 AM – 6 PM (Sunday closed)",
+    "maps": "Open Chardeevari on Google Maps",
+    "app": "Get the Android app",
+    "contactPage": "Contact page"
+  }
+}

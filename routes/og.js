@@ -13,7 +13,7 @@ const esc = (s) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-const absUrl = (u) => (u && /^https?:\/\//i.test(u) ? u : `${SITE_URL}${u || '/logo512.png'}`);
+const absUrl = (u) => (u && /^https?:\/\//i.test(u) ? u : `${SITE_URL}${u || '/og-image.jpg'}`);
 
 // GET /api/og/products/:id
 // Minimal HTML for link scrapers (WhatsApp, Facebook, Twitter, Telegram...).

@@ -29,9 +29,19 @@ const stored = (() => {
   }
 })();
 
+const storedLanguage = SUPPORTED.includes(stored) ? stored : null;
+// Prerendered (react-snap) pages are English markup. Hydration must start from
+// the same language or React discards the HTML and re-renders the whole page
+// (hydration error #418/#423 → large layout shift). The stored choice is applied
+// right after hydration via applyStoredLanguage().
+const hydratingPrerender = Boolean(document.getElementById('root')?.hasChildNodes());
+
+// BCP 47 tags for <html lang>; public/index.html ships "en-IN".
+const HTML_LANG = { en: 'en-IN', hi: 'hi-IN' };
+
 i18n.use(initReactI18next).init({
   resources,
-  lng: SUPPORTED.includes(stored) ? stored : 'en',
+  lng: hydratingPrerender ? 'en' : storedLanguage || 'en',
   fallbackLng: 'en',
   supportedLngs: SUPPORTED,
   ns: Object.keys(resources.en ?? {}),
@@ -40,12 +50,20 @@ i18n.use(initReactI18next).init({
   returnNull: false,
 });
 
-document.documentElement.lang = i18n.language;
+document.documentElement.lang = HTML_LANG[i18n.language] || i18n.language;
 
-let chosen = SUPPORTED.includes(stored);
+let chosen = Boolean(storedLanguage);
 
 /** True once the visitor has picked a language (prompt or toggle). */
 export const hasChosenLanguage = () => chosen;
+
+/** Apply this browser's saved language once prerendered markup has hydrated. */
+export function applyStoredLanguage() {
+  if (storedLanguage && storedLanguage !== i18n.language) {
+    document.documentElement.lang = HTML_LANG[storedLanguage];
+    i18n.changeLanguage(storedLanguage);
+  }
+}
 
 /** Switch language and remember the choice on this browser. */
 export function setLanguage(lng) {
@@ -56,7 +74,7 @@ export function setLanguage(lng) {
   } catch {
     // Private mode: choice lasts for this session only.
   }
-  document.documentElement.lang = lng;
+  document.documentElement.lang = HTML_LANG[lng];
   i18n.changeLanguage(lng);
 }
 

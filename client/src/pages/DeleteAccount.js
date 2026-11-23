@@ -22,7 +22,7 @@ const DeleteAccount = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <SEO title="Delete your account | Chardeevari" description="Request deletion of your Chardeevari account and personal data." />
+      <SEO title="Delete your account | Chardeevari" description="Request deletion of your Chardeevari account and personal data." noindex />
       <div className="max-w-lg mx-auto px-4 py-8 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t('deletePage.title')}</h1>

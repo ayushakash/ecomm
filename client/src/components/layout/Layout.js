@@ -8,6 +8,7 @@ import MobileMenu from './MobileMenu';
 import LanguagePrompt from '../../i18n/LanguagePrompt';
 import LanguageSync from '../../i18n/LanguageSync';
 import AppDownloadPrompt from '../AppDownloadPrompt';
+import AfterHydration from '../AfterHydration';
 import { useTranslation } from 'react-i18next';
 
 const PageLoader = () => (
@@ -24,6 +25,7 @@ const Layout = () => {
   const navigation = [
     { id: 'home', name: t('nav.home'), href: '/' },
     { id: 'products', name: t('nav.products'), href: '/products' },
+    { id: 'rates', name: t('nav.aajKaRate'), href: '/aaj-ka-rate' },
     { id: 'calculator', name: t('nav.calculator'), href: '/calculator' },
     { id: 'blog', name: t('nav.blog'), href: '/blog' },
     { id: 'contact', name: t('nav.contact'), href: '/contact' },
@@ -53,6 +55,8 @@ const Layout = () => {
       <main className="flex-1">
         <Suspense fallback={<PageLoader />}>
           <Outlet />
+          {/* Last child: its effect runs only once the page itself has hydrated */}
+          <AfterHydration />
         </Suspense>
       </main>
 

@@ -1,21 +1,18 @@
-# robots.txt for Chardeevari - Construction Materials E-commerce
-# Ranchi, Jharkhand
+# robots.txt for Chardeevari — building materials delivery, Ranchi
 
 User-agent: *
 Allow: /
-Allow: /products
-Allow: /calculator
-Allow: /blog
-Allow: /contact
 
-# Disallow admin and merchant areas
+# Account, checkout and back-office areas
 Disallow: /admin
 Disallow: /merchant
 Disallow: /profile
 Disallow: /cart
 Disallow: /checkout
+Disallow: /order-success
 Disallow: /login
 Disallow: /register
+Disallow: /merchant-register
+Disallow: /pending-approval
 
-# Sitemap
 Sitemap: https://chardeevari.in/sitemap.xml

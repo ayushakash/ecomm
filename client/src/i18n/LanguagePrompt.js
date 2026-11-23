@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { hasChosenLanguage, LANGUAGES, setLanguage } from './index';
 
@@ -8,7 +8,12 @@ const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent === 
 /** One-time "choose your language" dialog on the first visit. */
 const LanguagePrompt = () => {
   const { t } = useTranslation('common');
-  const [open, setOpen] = useState(() => !isPrerender && !hasChosenLanguage());
+  // Opened after mount, never on the first render: prerendered HTML has no
+  // dialog, and markup that differs during hydration makes React re-render the page.
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!isPrerender && !hasChosenLanguage()) setOpen(true);
+  }, []);
   if (!open) return null;
 
   const choose = (lng) => {
@@ -19,10 +24,10 @@ const LanguagePrompt = () => {
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="lang-prompt-title">
       <div className="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-xl">
-        <h2 id="lang-prompt-title" className="text-lg font-bold text-gray-900">
+        <p id="lang-prompt-title" className="text-lg font-bold text-gray-900">
           Choose your language
           <span className="block text-base font-semibold text-gray-700">अपनी भाषा चुनें</span>
-        </h2>
+        </p>
         <div className="mt-5 grid gap-3">
           {LANGUAGES.map((l) => (
             <button

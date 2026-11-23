@@ -5,58 +5,73 @@ const Product = require('../models/Product');
 // Public site URL — configurable, defaults to production domain.
 const SITE_URL = (process.env.SITE_URL || process.env.CLIENT_URL || 'https://chardeevari.in').replace(/\/$/, '');
 
-// Static, crawlable public pages (must match robots.txt Allow list).
+// Indexable public pages. Keep in sync with client App.js routes, package.json
+// reactSnap.include, client/nginx.conf ($is_spa_route) and landingConfig.js.
+// `prices: true` pages show live prices: their lastmod is the latest product
+// update. Other pages carry the date their content last changed.
+// (/delete-account is intentionally absent: noindex, kept only for Play Store.)
 const STATIC_PATHS = [
-  { path: '/', changefreq: 'daily', priority: '1.0' },
-  { path: '/products', changefreq: 'daily', priority: '0.9' },
-  { path: '/calculator', changefreq: 'weekly', priority: '0.8' },
-  { path: '/blog', changefreq: 'weekly', priority: '0.6' },
-  { path: '/contact', changefreq: 'monthly', priority: '0.5' },
-  { path: '/privacy-policy', changefreq: 'yearly', priority: '0.3' },
-  { path: '/delete-account', changefreq: 'yearly', priority: '0.2' },
-  // Blog articles — keep in sync with client/src/data/blogPosts.js
-  { path: '/blog/cement-calculation-1000-sqft-ranchi', changefreq: 'monthly', priority: '0.7' },
-  { path: '/blog/msand-vs-river-sand-jharkhand', changefreq: 'monthly', priority: '0.7' },
-  { path: '/blog/best-tmt-bars-ranchi-2026', changefreq: 'monthly', priority: '0.7' },
-  // SEO landing pages — keep in sync with client App.js routes, reactSnap.include & landingConfig.js
-  { path: '/cement-price-ranchi', changefreq: 'weekly', priority: '0.8' },
-  { path: '/tmt-steel-price-ranchi', changefreq: 'weekly', priority: '0.8' },
-  { path: '/bricks-supplier-ranchi', changefreq: 'weekly', priority: '0.8' },
-  { path: '/sand-supplier-ranchi', changefreq: 'weekly', priority: '0.8' },
-  { path: '/construction-materials-ranchi', changefreq: 'weekly', priority: '0.8' },
+  { path: '/', prices: true },
+  { path: '/products', prices: true },
+  { path: '/aaj-ka-rate', prices: true },
+  { path: '/cement-price-ranchi', prices: true },
+  { path: '/tmt-steel-price-ranchi', prices: true },
+  { path: '/bricks-supplier-ranchi', prices: true },
+  { path: '/sand-supplier-ranchi', prices: true },
+  { path: '/gitti-rate-ranchi', prices: true },
+  { path: '/construction-materials-ranchi', prices: true },
+  { path: '/calculator', lastmod: '2026-11-23' },
+  { path: '/about', lastmod: '2026-11-23' },
+  { path: '/contact', lastmod: '2026-11-23' },
+  { path: '/blog', lastmod: '2026-11-23' },
+  { path: '/privacy-policy', lastmod: '2026-11-23' },
+  // Blog articles — keep in sync with client/src/data/blogPosts.js (dateModified)
+  { path: '/blog/cement-calculation-1000-sqft-ranchi', lastmod: '2026-11-23' },
+  { path: '/blog/msand-vs-river-sand-jharkhand', lastmod: '2026-11-23' },
+  { path: '/blog/best-tmt-bars-ranchi-2026', lastmod: '2026-11-23' },
 ];
 
-const xmlEscape = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const xmlEscape = (s) =>
+  String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+const day = (date) => new Date(date).toISOString().split('T')[0];
+
+const urlEntry = (loc, lastmod, images = []) =>
+  `  <url>\n    <loc>${xmlEscape(loc)}</loc>\n` +
+  (lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : '') +
+  images.map((src) => `    <image:image><image:loc>${xmlEscape(src)}</image:loc></image:image>\n`).join('') +
+  `  </url>`;
 
 // GET /sitemap.xml — dynamic sitemap of static pages + all enabled products.
 router.get('/sitemap.xml', async (req, res) => {
   try {
     const products = await Product.find({ enabled: true })
-      .select('_id updatedAt')
+      .select('_id updatedAt images')
       .sort({ updatedAt: -1 })
       .limit(5000)
       .lean();
 
-    const urls = [];
+    const latestPriceChange = products[0]?.updatedAt ? day(products[0].updatedAt) : null;
 
-    for (const p of STATIC_PATHS) {
-      urls.push(
-        `  <url>\n    <loc>${SITE_URL}${p.path}</loc>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`
-      );
-    }
+    const urls = STATIC_PATHS.map((p) =>
+      urlEntry(`${SITE_URL}${p.path}`, p.prices ? latestPriceChange : p.lastmod)
+    );
 
     for (const prod of products) {
-      const lastmod = prod.updatedAt ? new Date(prod.updatedAt).toISOString().split('T')[0] : null;
+      const images = (prod.images || []).filter((src) => /^https?:\/\//i.test(src));
       urls.push(
-        `  <url>\n    <loc>${SITE_URL}/products/${xmlEscape(prod._id)}</loc>\n` +
-        (lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : '') +
-        `    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`
+        urlEntry(`${SITE_URL}/products/${prod._id}`, prod.updatedAt ? day(prod.updatedAt) : null, images)
       );
     }
 
     const xml =
       `<?xml version="1.0" encoding="UTF-8"?>\n` +
-      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n` +
       urls.join('\n') +
       `\n</urlset>`;
 

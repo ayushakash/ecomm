@@ -92,6 +92,8 @@ const ProductCard = ({ product, priority = false }) => {
             <img
               src={product.images[0]}
               alt={product.name}
+              width={320}
+              height={320}
               loading={priority ? 'eager' : 'lazy'}
               decoding={priority ? 'sync' : 'async'}
               fetchpriority={priority ? 'high' : 'auto'}

@@ -1,6 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import 'leaflet/dist/leaflet.css';
-import { Routes, Route, Navigate, useLocation as useRouterLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, matchPath, useLocation as useRouterLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -9,29 +9,68 @@ import { LocationProvider } from './contexts/LocationContext';
 import GoogleOneTap from './components/GoogleOneTap';
 import analytics from './services/analytics';
 import { LANDING_CONFIGS } from './pages/landing/landingConfig';
+import NotFound from './pages/NotFound';
 
 // Layout Components (not lazy — needed immediately)
 import Layout from './components/layout/Layout';
 import AdminLayout from './components/layout/AdminLayout';
 import MerchantLayout from './components/layout/MerchantLayout';
 
+/**
+ * React.lazy page that can also be loaded ahead of render. index.js preloads the
+ * page of the current URL before hydrating prerendered HTML, so hydration never
+ * suspends (which would replace the prerendered page with a spinner).
+ */
+function lazyPage(factory) {
+  const Lazy = lazy(factory);
+  let Loaded = null;
+  const Page = (props) => (Loaded ? <Loaded {...props} /> : <Lazy {...props} />);
+  Page.preload = () => factory().then((module) => { Loaded = module.default; });
+  return Page;
+}
+
 // Public Pages — lazy loaded
-const Home = lazy(() => import('./pages/Home'));
+const Home = lazyPage(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
 const MerchantRegister = lazy(() => import('./pages/auth/MerchantRegister'));
 const PendingApproval = lazy(() => import('./pages/auth/PendingApproval'));
-const ProductList = lazy(() => import('./pages/products/ProductList'));
-const ProductDetail = lazy(() => import('./pages/products/ProductDetail'));
+const ProductList = lazyPage(() => import('./pages/products/ProductList'));
+const ProductDetail = lazyPage(() => import('./pages/products/ProductDetail'));
 const Cart = lazy(() => import('./pages/cart/Cart'));
 const Checkout = lazy(() => import('./pages/cart/Checkout'));
-const Contact = lazy(() => import('./pages/Contact'));
-const DeleteAccount = lazy(() => import('./pages/DeleteAccount'));
-const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
-const Calculator = lazy(() => import('./pages/Calculator'));
-const Blog = lazy(() => import('./pages/Blog'));
-const BlogPost = lazy(() => import('./pages/BlogPost'));
-const MaterialLanding = lazy(() => import('./pages/landing/MaterialLanding'));
+const Contact = lazyPage(() => import('./pages/Contact'));
+const DeleteAccount = lazyPage(() => import('./pages/DeleteAccount'));
+const PrivacyPolicy = lazyPage(() => import('./pages/PrivacyPolicy'));
+const Calculator = lazyPage(() => import('./pages/Calculator'));
+const Blog = lazyPage(() => import('./pages/Blog'));
+const BlogPost = lazyPage(() => import('./pages/BlogPost'));
+const MaterialLanding = lazyPage(() => import('./pages/landing/MaterialLanding'));
+const About = lazyPage(() => import('./pages/About'));
+const AajKaRate = lazyPage(() => import('./pages/AajKaRate'));
+
+// Prerendered (react-snap) public routes → page component, for preloadRoute().
+// Unknown paths render NotFound, which is bundled eagerly.
+const PRERENDERED_PAGES = [
+  ['/', Home],
+  ['/products', ProductList],
+  ['/products/:id', ProductDetail],
+  ['/contact', Contact],
+  ['/delete-account', DeleteAccount],
+  ['/privacy-policy', PrivacyPolicy],
+  ['/calculator', Calculator],
+  ['/blog', Blog],
+  ['/blog/:slug', BlogPost],
+  ['/about', About],
+  ['/aaj-ka-rate', AajKaRate],
+  ...Object.values(LANDING_CONFIGS).map((c) => [`/${c.slug}`, MaterialLanding]),
+];
+
+/** Load the page chunk for `pathname` (resolves immediately if none). */
+export const preloadRoute = (pathname) => {
+  const match = PRERENDERED_PAGES.find(([pattern]) => matchPath(pattern, pathname));
+  return match ? match[1].preload() : Promise.resolve();
+};
 
 // Protected Pages — lazy loaded
 const Profile = lazy(() => import('./pages/profile/Profile'));
@@ -114,12 +153,14 @@ function AppRoutes() {
           <Route path="calculator" element={<Calculator />} />
           <Route path="blog" element={<Blog />} />
           <Route path="blog/:slug" element={<BlogPost />} />
-          {/* SEO landing pages — high-intent Ranchi material searches */}
-          <Route path="cement-price-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.cement} />} />
-          <Route path="tmt-steel-price-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.steel} />} />
-          <Route path="bricks-supplier-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.bricks} />} />
-          <Route path="sand-supplier-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.sand} />} />
-          <Route path="construction-materials-ranchi" element={<MaterialLanding config={LANDING_CONFIGS.all} />} />
+          <Route path="about" element={<About />} />
+          <Route path="aaj-ka-rate" element={<AajKaRate />} />
+          {/* SEO landing pages — high-intent Ranchi material searches (slugs from landingConfig.js) */}
+          {Object.values(LANDING_CONFIGS).map((config) => (
+            <Route key={config.slug} path={config.slug} element={<MaterialLanding config={config} />} />
+          ))}
+          {/* Unknown URLs: real "not found" page (noindex), never a redirect to home */}
+          <Route path="*" element={<NotFound />} />
         </Route>
 
         <Route path="/pending-approval" element={<PendingApproval />} />
@@ -183,8 +224,6 @@ function AppRoutes() {
           <Route path="profile" element={<MerchantProfile />} />
           <Route path="analytics" element={<MerchantAnalytics />} />
         </Route>
-
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );

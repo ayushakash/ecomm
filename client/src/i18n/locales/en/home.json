@@ -1,21 +1,22 @@
 {
   "hero": {
-    "badge": "★ Trusted since 2000 · Ranchi ka bharosa",
+    "badge": "📍 Kadru · Harmu · Ashok Nagar · Doranda",
     "titlePrefix": "Order Building Materials Online in ",
     "titleCity": "Ranchi",
     "titleSuffix": "",
-    "subtitle": "Cement, TMT steel (sariya), sand, bricks & aggregates — apne hi fleet se same-day delivery, ghar tak.",
-    "fastDelivery": "⚡ 60-min delivery · Own fleet"
+    "subtitle": "Cement, sariya (TMT), balu, eent aur gitti — aaj ke rate par, paas ki partner dukaan se lagbhag 60 minute mein site tak. Cash on delivery.",
+    "fastDelivery": "⚡ About 60-min delivery · Cash on delivery",
+    "aajKaRate": "See today's rates →"
   },
   "trust": {
-    "years": {
-      "value": "25+",
-      "line1": "Years in",
-      "line2": "business"
+    "fast": {
+      "value": "~60 min",
+      "line1": "Delivery from",
+      "line2": "stores near you"
     },
-    "onTime": {
-      "value": "On-time",
-      "line1": "Own-fleet",
+    "cod": {
+      "value": "COD",
+      "line1": "Cash on",
       "line2": "delivery"
     },
     "genuine": {
@@ -53,11 +54,12 @@
     "addNewAddress": "Add New Address"
   },
   "categories": {
-    "title": "Categories",
-    "all": "All Products"
+    "title": "Cement, Sariya, Balu, Eent & Gitti in Ranchi",
+    "all": "All Products",
+    "aajKaRate": "Aaj ka rate"
   },
   "results": {
-    "allMaterials": "All Building Materials",
+    "allMaterials": "Building Materials in Ranchi – Today's Rates",
     "products": "Products",
     "found_one": "{{count}} product found",
     "found_other": "{{count}} products found"

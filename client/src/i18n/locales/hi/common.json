@@ -62,7 +62,7 @@
     "off": "छूट",
     "sizesAvailable_one": "{{count}} साइज़ मिलेगा",
     "sizesAvailable_other": "{{count}} साइज़ मिलेंगे",
-    "deliveryNote": "उसी दिन डिलीवरी · डिलीवरी पर भुगतान",
+    "deliveryNote": "~60 मिनट में डिलीवरी · डिलीवरी पर नकद",
     "bulk": "थोक में? {{qty}}+ {{unit}}",
     "chooseOptions": "विकल्प चुनें",
     "quantity": "मात्रा",

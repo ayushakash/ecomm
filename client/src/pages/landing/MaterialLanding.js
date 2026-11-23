@@ -1,56 +1,75 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { productAPI } from '../../services/api';
 import ProductCard from '../../components/products/ProductCard';
 import ProductCardSkeleton from '../../components/products/ProductCardSkeleton';
 import SEO from '../../components/SEO/SEO';
+import RateTable from '../../components/rates/RateTable';
+import ServiceAreaNote from '../../components/rates/ServiceAreaNote';
 import { useTranslation } from 'react-i18next';
+import { useRateProducts } from '../../hooks/useRateProducts';
+import {
+  rateRows, isRateable, lastRevised, formatRateDate, priceRange, rateList, rowPrice, cheapestRow, groupByCategory, CATEGORY_ORDER,
+} from '../../utils/rates';
+import { toSchemaProduct } from '../../utils/productSchema';
 import { LANDING_CONFIGS } from './landingConfig';
 
 // Other landing pages to cross-link from each page (internal linking signal).
 const ALL_LINKS = Object.values(LANDING_CONFIGS).map((c) => ({ key: c.key, to: `/${c.slug}` }));
 
 const MaterialLanding = ({ config }) => {
-  const { t } = useTranslation('landing');
-  const { key, slug, category, h1, seoTitle, seoDescription, keywords, faqs } = config;
-  const pageH1 = t(`pages.${key}.h1`);
-  const pageIntro = t(`pages.${key}.intro`, { returnObjects: true });
-  const pageFaqs = t(`pages.${key}.faqs`, { returnObjects: true });
+  const { t, i18n } = useTranslation('landing');
+  const { t: tr } = useTranslation('rates');
+  const { key, slug, category, breadcrumb, seoTitle, seoDescription, keywords } = config;
+  const page = (k, opts) => t(`pages.${key}.${k}`, opts);
+  const intro = page('intro', { returnObjects: true });
+  const guide = page('guide', { returnObjects: true });
 
-  // Resolve the category name -> live category id, then fetch its products.
-  const { data: categoriesData } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => productAPI.getCategories(),
-    staleTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const { products, isLoading, isError } = useRateProducts(category);
+  const allRows = rateRows(products);
+  const rows = category ? allRows : groupByCategory(allRows).flatMap((g) => g.rows);
+  const date = formatRateDate(lastRevised(products), i18n.language);
+  const unitLabel = (u) => tr(`units.${u}`, { defaultValue: u });
 
-  const categoryId = category
-    ? categoriesData?.find((c) => c.name?.toLowerCase() === category.toLowerCase())?._id
-    : undefined;
+  // The "all" page summarises the cheapest rate per category; the others list every row.
+  const list = category
+    ? rateList(rows, unitLabel)
+    : groupByCategory(rows)
+        .map((g) => {
+          const lc = g.category.toLowerCase();
+          return t(`categorySummary.${CATEGORY_ORDER.includes(lc) ? lc : 'other'}`, {
+            name: g.category,
+            price: rowPrice(cheapestRow(g.rows), unitLabel),
+          });
+        })
+        .join('; ');
 
-  const { data: productsData, isLoading } = useQuery({
-    queryKey: ['landing-products', slug, categoryId],
-    queryFn: () => productAPI.getProducts({ category: categoryId, sortBy: 'name' }),
-    enabled: category ? !!categoryId : true, // wait for the id when a category is configured
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const priceFaq = rows.length
+    ? { question: page('priceFaq.question'), answer: page('priceFaq.answer', { range: priceRange(rows), list, date }) }
+    : null;
+  const pageFaqs = page('faqs', { returnObjects: true });
+  const faqs = [
+    priceFaq,
+    ...(Array.isArray(pageFaqs) ? pageFaqs : []),
+    t('common.areaFaq', { returnObjects: true }),
+    t('common.codFaq', { returnObjects: true }),
+  ].filter((f) => f && f.question);
 
-  const products = productsData?.products || [];
+  // Meta stays English (prerendered for crawlers); the live lowest rate is added once loaded.
+  const cheapest = cheapestRow(rows);
+  const description = seoDescription(cheapest ? rowPrice(cheapest) : undefined);
   const relatedLinks = ALL_LINKS.filter((l) => l.to !== `/${slug}`);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <SEO
         title={seoTitle}
-        description={seoDescription}
+        description={description}
         keywords={keywords}
+        itemList={products.filter(isRateable).map(toSchemaProduct).filter(Boolean)}
         faqs={faqs}
         breadcrumbs={[
           { name: 'Home', path: '/' },
-          { name: h1.split(' — ')[0], path: `/${slug}` },
+          { name: breadcrumb, path: `/${slug}` },
         ]}
       />
 
@@ -68,13 +87,14 @@ const MaterialLanding = ({ config }) => {
             <span className="inline-flex items-center gap-1.5 bg-brand-500/15 border border-brand-500/40 text-brand-300 text-[11px] font-bold px-2.5 py-1.5 rounded-full tracking-wide">
               {t('hero.badge')}
             </span>
-            <h1 className="mt-3 text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight">{pageH1}</h1>
-            {Array.isArray(pageIntro) && pageIntro.map((para, i) => (
+            <h1 className="mt-3 text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight">{page('h1')}</h1>
+            {Array.isArray(intro) && intro.map((para, i) => (
               <p key={i} className="mt-3 text-sm sm:text-base text-[#B7C0CC] leading-relaxed">{para}</p>
             ))}
+            <p className="mt-3 text-sm sm:text-base text-[#B7C0CC] leading-relaxed">{t('common.deliveryIntro')}</p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <Link to="/products" className="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold shadow-[0_8px_18px_-8px_rgba(241,140,52,0.85)] transition-colors">
-                {t('cta.browseAll')}
+              <Link to="/aaj-ka-rate" className="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold shadow-[0_8px_18px_-8px_rgba(241,140,52,0.85)] transition-colors">
+                {t('cta.aajKaRate')}
               </Link>
               <Link to="/calculator" className="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white text-sm font-bold transition-colors">
                 {t('cta.calculator')}
@@ -84,18 +104,29 @@ const MaterialLanding = ({ config }) => {
         </div>
       </div>
 
+      {/* Dated rate table (crawlable; filled from the products query at prerender) */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-ink-700 tracking-tight">{page('rateHeading')}</h2>
+        <div className="mt-3">
+          {rows.length > 0 ? (
+            <RateTable rows={rows} caption={date ? tr('table.caption', { date }) : undefined} />
+          ) : (
+            <p className="text-sm text-gray-500">{isLoading && !isError ? t('rates.loading') : t('rates.unavailable')}</p>
+          )}
+        </div>
+        <ServiceAreaNote className="mt-4" />
+      </section>
+
       {/* Products */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        <h2 className="text-xl sm:text-2xl font-extrabold text-ink-700 tracking-tight">
-          {t(`pages.${key}.productsHeading`)}
-        </h2>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-ink-700 tracking-tight">{page('productsHeading')}</h2>
         <p className="text-sm text-gray-500 mt-1">{t('products.subtitle')}</p>
 
         <div className="grid gap-3 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-5">
           {isLoading ? (
             [...Array(4)].map((_, i) => <ProductCardSkeleton key={i} />)
-          ) : products.length > 0 ? (
-            products.slice(0, 12).map((product, index) => (
+          ) : products.some(isRateable) ? (
+            products.filter(isRateable).slice(0, 12).map((product, index) => (
               <ProductCard key={product._id} product={product} priority={index === 0} />
             ))
           ) : (
@@ -108,12 +139,22 @@ const MaterialLanding = ({ config }) => {
         </div>
       </div>
 
+      {/* Buying guide — unique per material */}
+      {Array.isArray(guide) && guide.length > 0 && (
+        <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-ink-700 tracking-tight">{page('guideHeading')}</h2>
+          {guide.map((para, i) => (
+            <p key={i} className="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed">{para}</p>
+          ))}
+        </section>
+      )}
+
       {/* FAQ (visible + emitted as FAQPage schema via <SEO faqs>) */}
-      {Array.isArray(pageFaqs) && pageFaqs.length > 0 && (
+      {faqs.length > 0 && (
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
           <h2 className="text-xl sm:text-2xl font-extrabold text-ink-700 tracking-tight">{t('faq.title')}</h2>
           <div className="mt-4 space-y-3">
-            {pageFaqs.map((f, i) => (
+            {faqs.map((f, i) => (
               <details key={i} className="group bg-white border border-[#E7E9ED] rounded-2xl px-5 py-4">
                 <summary className="cursor-pointer list-none font-bold text-ink-700 flex items-center justify-between">
                   {f.question}
@@ -130,6 +171,9 @@ const MaterialLanding = ({ config }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h2 className="text-base font-extrabold text-ink-700 tracking-tight mb-3">{t('related.title')}</h2>
         <div className="flex flex-wrap gap-2.5">
+          <Link to="/aaj-ka-rate" className="px-4 py-2.5 rounded-full text-sm font-bold border border-brand-500/40 bg-white text-brand-600 hover:bg-gray-50 transition-colors">
+            {t('related.aajKaRate')}
+          </Link>
           {relatedLinks.map((l) => (
             <Link key={l.to} to={l.to} className="px-4 py-2.5 rounded-full text-sm font-bold border border-[#E7E9ED] bg-white text-gray-600 hover:bg-gray-50 hover:text-ink-700 transition-colors">
               {t(`pages.${l.key}.linkLabel`)}

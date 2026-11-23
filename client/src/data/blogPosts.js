@@ -24,7 +24,7 @@ export const blogPosts = [
       'A simple guide to calculating cement requirements for a 1000 sq ft construction in Ranchi — thumb rules, the formula, bag counts and cost.',
     category: 'Construction Guides',
     date: '2026-01-01',
-    dateModified: '2026-06-07',
+    dateModified: '2026-11-23',
     readTime: '6 min read',
     body: [
       { type: 'p', text: 'Planning to build a 1000 sq ft house in Ranchi and wondering **how many bags of cement** you will need? Getting this number right helps you budget accurately and avoid both shortages and costly over-ordering. This guide gives you a quick answer, the exact formula, and current cement prices in Ranchi.' },
@@ -57,26 +57,26 @@ export const blogPosts = [
         ],
       },
 
-      { type: 'h2', text: 'Cement price in Ranchi (2026)' },
-      { type: 'p', text: 'Cement prices in Ranchi typically range from **₹350 to ₹420 per 50 kg bag**, depending on the brand (ACC, UltraTech, Ambuja, Dalmia, etc.), grade (OPC vs PPC) and order quantity. Buying in bulk for a full house usually gets you a better per-bag rate.' },
+      { type: 'h2', text: 'Cement price in Ranchi' },
+      { type: 'p', text: 'The per-bag cement rate changes with brand, grade and the market, so it is not printed here. Chardeevari lists the current rate for ACC, Dalmia and Concreto cement on its [cement rate in Ranchi](/cement-price-ranchi) page, and every material on [aaj ka rate](/aaj-ka-rate). Multiply your bag count by that rate to get your cement cost.' },
       {
         type: 'table',
-        headers: ['Quantity', 'Est. cement cost (at ₹385/bag)'],
+        headers: ['Quantity', 'How to estimate the cost'],
         rows: [
-          ['1000 sq ft (≈ 450 bags)', '₹1,73,250'],
-          ['2000 sq ft (≈ 900 bags)', '₹3,46,500'],
+          ['1000 sq ft (≈ 450 bags)', '450 × today\'s per-bag rate'],
+          ['2000 sq ft (≈ 900 bags)', '900 × today\'s per-bag rate'],
         ],
       },
-      { type: 'p', text: '*Prices are indicative for the Ranchi market and change with demand — always confirm the live rate before ordering.' },
+      { type: 'p', text: '*Buying in bulk for a full house? Send your quantity on WhatsApp and ask for the bulk rate before ordering.' },
 
       { type: 'cta', text: 'Want the exact cement, steel, sand and brick quantities and cost for YOUR plot size? Use our free calculator — just enter your area.', label: 'Calculate My Materials', href: '/calculator' },
 
       { type: 'h2', text: 'Order cement online in Ranchi' },
-      { type: 'p', text: 'Once you know your quantity, you can compare verified merchant prices and order cement online for doorstep delivery in Ranchi at Chardeevari — no need to visit multiple shops.' },
+      { type: 'p', text: 'Once you know your quantity, check [today\'s cement rate](/cement-price-ranchi) and order on the website, in the Chardeevari app or on WhatsApp. Delivery is in about 60 minutes within about 5 km of Kadru, Harmu, Ashok Nagar and Doranda, and you pay cash on delivery.' },
     ],
     faqs: [
       { question: 'How many bags of cement are required for a 1000 sq ft house?', answer: 'A 1000 sq ft single-floor house needs approximately 400 to 450 bags of cement, based on the thumb rule of 0.4–0.45 bags per square foot covering all construction stages.' },
-      { question: 'What is the cement price in Ranchi today?', answer: 'Cement in Ranchi generally costs between ₹350 and ₹420 per 50 kg bag depending on brand, grade and quantity. Bulk orders usually get a lower per-bag rate.' },
+      { question: 'What is the cement price in Ranchi today?', answer: 'It changes with brand and market. Chardeevari publishes today\'s per-bag rate for ACC, Dalmia and Concreto cement on chardeevari.in/cement-price-ranchi, with delivery in about 60 minutes near Kadru, Harmu, Ashok Nagar and Doranda.' },
       { question: 'Which cement is best for house construction?', answer: 'PPC (Portland Pozzolana Cement) is commonly preferred for residential construction in India for durability and workability, while OPC 53 grade is used where higher early strength is needed. Always choose ISI/BIS-marked cement.' },
       { question: 'How do I calculate cement for two floors?', answer: 'Multiply the per-floor estimate by the number of floors. For 1000 sq ft per floor over two floors, that is roughly 800–900 bags, plus extra for foundation footings.' },
     ],
@@ -94,7 +94,7 @@ export const blogPosts = [
       'A clear comparison of M-Sand and River Sand for construction in Jharkhand — strength, cost, availability and which to use where.',
     category: 'Material Comparison',
     date: '2025-12-28',
-    dateModified: '2026-06-07',
+    dateModified: '2026-11-23',
     readTime: '5 min read',
     body: [
       { type: 'p', text: 'Choosing between **M-Sand (manufactured sand)** and **river sand** is one of the first decisions in any construction project in Jharkhand. With river sand becoming scarcer and costlier, M-Sand is now a popular alternative. Here is a straight comparison to help you decide.' },
@@ -128,13 +128,13 @@ export const blogPosts = [
         ],
       },
 
-      { type: 'h2', text: 'Sand price in Ranchi (2026)' },
-      { type: 'p', text: 'Sand prices vary with season and transport distance. As a rough guide in the Ranchi area, M-Sand is typically more affordable and stable than river sand, which spikes during monsoon and mining restrictions. Always confirm the current per-unit (cubic feet / brass) rate before ordering.' },
+      { type: 'h2', text: 'Sand price in Ranchi' },
+      { type: 'p', text: 'Sand prices vary with season and transport distance; river sand often costs more during the monsoon and mining restrictions. Always compare the rate per cft (or per brass, 100 cft), not per trip. Chardeevari delivers river sand (balu) by the tempo load — see [today\'s balu rate in Ranchi](/sand-supplier-ranchi).' },
 
       { type: 'cta', text: 'Not sure how much sand your project needs? Our calculator estimates sand, cement, steel and bricks for your area in seconds.', label: 'Estimate My Sand', href: '/calculator' },
 
-      { type: 'h2', text: 'Buy quality sand in Ranchi' },
-      { type: 'p', text: 'Whether you choose M-Sand or river sand, sourcing from verified suppliers ensures the right gradation and low silt content. Compare prices and order sand online for doorstep delivery in Ranchi at Chardeevari.' },
+      { type: 'h2', text: 'Buying sand in Ranchi' },
+      { type: 'p', text: 'Whichever sand you choose, check the gradation and silt content before it is used for plaster. Chardeevari currently supplies river sand only (no M-sand), delivered in about 60 minutes within about 5 km of Kadru, Harmu, Ashok Nagar and Doranda, cash on delivery. See [today\'s balu rate](/sand-supplier-ranchi).' },
     ],
     faqs: [
       { question: 'Is M-Sand better than river sand?', answer: 'For concrete and RCC work, M-Sand often performs better due to its angular grains, higher strength and very low impurities. River sand gives a smoother finish for plastering. M-Sand is also more sustainable and usually cheaper.' },
@@ -151,12 +151,12 @@ export const blogPosts = [
     metaDescription:
       'Looking for the best TMT bars in Ranchi? Compare TMT grades (Fe500, Fe550D), top brands, how to choose, and current TMT steel prices in Ranchi for 2026.',
     keywords:
-      'best TMT bars Ranchi, TMT steel price Ranchi, TMT bars for house construction, Fe500 vs Fe550D, buy TMT bars online Ranchi, cheap steel in Ranchi',
+      'best TMT bars Ranchi, sariya rate Ranchi, TMT steel price Ranchi, TMT bars for house construction, Fe500 vs Fe550D, Rungta TMT Ranchi',
     excerpt:
       'A buyer’s guide to choosing the best TMT bars in Ranchi — grades, top brands, how to choose and current steel prices.',
     category: 'Product Reviews',
     date: '2025-12-25',
-    dateModified: '2026-06-07',
+    dateModified: '2026-11-23',
     readTime: '6 min read',
     body: [
       { type: 'p', text: 'TMT (Thermo-Mechanically Treated) bars are the backbone of any RCC structure. Choosing the right **grade and brand** directly affects the strength and safety of your building. Here is how to pick the best TMT bars in Ranchi and what to expect on price in 2026.' },
@@ -172,7 +172,7 @@ export const blogPosts = [
           ['Fe550 / Fe550D', 'High-rise & heavy structural loads'],
         ],
       },
-      { type: 'p', text: 'For a typical house in Ranchi, **Fe500 or Fe500D** offers the right balance of strength and ductility. Jharkhand falls in a moderate seismic zone, so the **“D” (ductile) grades** are a sensible choice.' },
+      { type: 'p', text: 'For a typical house in Ranchi, **Fe500 or Fe500D** offers the right balance of strength and ductility. Ranchi is listed in Seismic Zone II in IS 1893 (Part 1): 2016, the lowest-hazard zone, but the **“D” (ductile) grades** are still a sensible extra margin.' },
 
       { type: 'h2', text: 'How to choose the best TMT bars' },
       {
@@ -180,35 +180,35 @@ export const blogPosts = [
         items: [
           'BIS/ISI mark — always insist on IS 1786 certified bars.',
           'Brand reputation — established brands offer consistent quality.',
-          'Grade match — Fe500D for homes in seismic areas like Jharkhand.',
+          'Grade match — Fe500D adds ductility for earthquake safety.',
           'Rib pattern & uniformity — proper ribs improve bonding with concrete.',
           'Corrosion resistance — important for Ranchi’s monsoon climate.',
         ],
       },
 
-      { type: 'h2', text: 'Top TMT brands available in Ranchi' },
-      { type: 'p', text: 'Commonly available TMT brands in the Ranchi market include TATA Tiscon, JSW, SAIL, Vizag, Rashmi and other reputed regional brands. Availability and price vary, so it is worth comparing rates across verified suppliers before ordering.' },
+      { type: 'h2', text: 'TMT brands available in Ranchi' },
+      { type: 'p', text: 'TMT brands commonly found in the Ranchi market include TATA Tiscon, JSW, SAIL and several regional makers. Chardeevari currently delivers [Rungta TMT bars](/products/6ad5a54a84b9cc5940815c8d) — Rungta is a Jharkhand steel brand — in 8 mm, 10 mm, 12 mm and 16 mm.' },
 
-      { type: 'h2', text: 'TMT steel price in Ranchi (2026)' },
-      { type: 'p', text: 'TMT steel in Ranchi typically ranges from **₹65 to ₹80 per kg** (₹65,000–₹80,000 per tonne) depending on brand, grade and quantity. Bulk orders for a full house usually attract better rates.' },
+      { type: 'h2', text: 'TMT steel price in Ranchi' },
+      { type: 'p', text: 'Market quotes for TMT steel in Ranchi are usually per kg, roughly **₹65 to ₹80 per kg** depending on brand, grade and quantity. Chardeevari lists sariya per piece — see [today\'s sariya rate in Ranchi](/tmt-steel-price-ranchi). To compare, divide the piece rate by the bar weight: a 12 m bar weighs about 4.7 kg (8 mm), 7.4 kg (10 mm), 10.7 kg (12 mm) or 19 kg (16 mm).' },
       {
         type: 'table',
-        headers: ['Build size', 'Approx. steel needed', 'Est. cost (at ₹72/kg)'],
+        headers: ['Build size', 'Approx. steel needed', 'Example cost (at ₹72/kg)'],
         rows: [
           ['1000 sq ft (≈ 3.3 kg/sq ft)', '≈ 3,300 kg', '≈ ₹2,37,600'],
           ['2000 sq ft', '≈ 6,600 kg', '≈ ₹4,75,200'],
         ],
       },
-      { type: 'p', text: '*Steel prices are volatile — confirm the live rate before purchase.' },
+      { type: 'p', text: '*Steel prices are volatile — check [today\'s sariya rate](/tmt-steel-price-ranchi) before you buy.' },
 
       { type: 'cta', text: 'Find out exactly how much TMT steel your project needs and what it will cost — free, instant.', label: 'Calculate Steel Requirement', href: '/calculator' },
 
-      { type: 'h2', text: 'Buy TMT bars online in Ranchi' },
-      { type: 'p', text: 'Compare verified merchant prices on top TMT brands and order steel online for doorstep delivery in Ranchi at Chardeevari — quality-assured, at competitive rates.' },
+      { type: 'h2', text: 'Order sariya in Ranchi' },
+      { type: 'p', text: 'Order Rungta TMT sariya on the website, in the Chardeevari app or on WhatsApp. Delivery is in about 60 minutes within about 5 km of Kadru, Harmu, Ashok Nagar and Doranda, and you pay cash on delivery. See [today\'s sariya rate](/tmt-steel-price-ranchi).' },
     ],
     faqs: [
-      { question: 'Which TMT bar is best for house construction in Ranchi?', answer: 'Fe500 or Fe500D grade TMT bars are best for most homes in Ranchi. Since Jharkhand is a moderate seismic zone, the ductile “D” grades (Fe500D) are recommended for better earthquake resistance.' },
-      { question: 'What is the TMT steel price in Ranchi in 2026?', answer: 'TMT steel in Ranchi typically costs between ₹65 and ₹80 per kg (₹65,000–₹80,000 per tonne), depending on brand, grade and order quantity. Bulk orders usually get better rates.' },
+      { question: 'Which TMT bar is best for house construction in Ranchi?', answer: 'Fe500 or Fe500D grade TMT bars suit most homes in Ranchi. Ranchi is listed in Seismic Zone II in IS 1893 (Part 1): 2016; the ductile “D” grade (Fe500D) still adds a useful margin for earthquake resistance.' },
+      { question: 'What is the TMT steel price in Ranchi?', answer: 'Market quotes are usually ₹65–₹80 per kg depending on brand, grade and quantity. Chardeevari lists today\'s per-piece rate for Rungta TMT bars (8–16 mm) at chardeevari.in/tmt-steel-price-ranchi; divide by the bar weight (about 4.7 kg for a 12 m 8 mm bar, 10.7 kg for 12 mm) to compare per kg.' },
       { question: 'How much steel is required for a 1000 sq ft house?', answer: 'A 1000 sq ft house needs roughly 3.3 kg of steel per sq ft, or about 3,300 kg in total. The exact amount depends on the structural design and number of floors.' },
       { question: 'What is the difference between Fe500 and Fe550D?', answer: 'Fe550/Fe550D bars have higher tensile strength suited to high-rise and heavy-load structures, while Fe500/Fe500D are ideal for residential buildings. The “D” suffix indicates higher ductility, which is better for seismic zones.' },
     ],

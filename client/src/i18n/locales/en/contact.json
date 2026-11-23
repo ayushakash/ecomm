@@ -1,32 +1,34 @@
 {
   "header": {
-    "title": "Get in Touch",
-    "subtitle": "Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible."
+    "title": "Contact Chardeevari – Building Materials, Kadru, Ranchi",
+    "subtitle": "Call or WhatsApp us for today's rate, an order or delivery help. We deliver within about 5 km of Kadru, Harmu, Ashok Nagar and Doranda."
   },
   "info": {
     "title": "Contact Information",
-    "subtitle": "Reach out to us through any of the following channels. We're here to help!",
-    "phone": "Phone",
-    "hours": "Mon-Sat, 9AM - 6PM IST",
-    "headOffice": "Head Office",
+    "subtitle": "Reach us by phone, WhatsApp or email, or visit us in Kadru.",
+    "phone": "Phone / WhatsApp",
+    "whatsapp": "Chat on WhatsApp",
+    "hours": "Mon–Sat, 9 AM – 6 PM (Sunday closed)",
+    "email": "Email",
+    "headOffice": "Address",
     "directions": "Get Directions",
-    "openMaps": "Open in Google Maps",
+    "openMaps": "Open Chardeevari on Google Maps",
     "followUs": "Follow Us"
   },
   "why": {
-    "title": "Why Choose Chardeevari?",
-    "text": "We are your trusted partner for construction materials. With quality products, reliable delivery, and exceptional customer service, we make building easier.",
+    "title": "Why order from Chardeevari?",
+    "text": "We connect you with trusted local building-material stores near your site in Kadru, Harmu, Ashok Nagar and Doranda, so material reaches you fast at the rate shown on the site.",
     "quality": {
-      "title": "Quality Products",
-      "text": "Premium construction materials from trusted brands"
+      "title": "Genuine brands",
+      "text": "ACC, Dalmia and Concreto cement and Rungta TMT sariya, at the rate shown on the site"
     },
     "delivery": {
-      "title": "Fast Delivery",
-      "text": "Quick and reliable delivery to your doorstep"
+      "title": "About 60-minute delivery",
+      "text": "From a partner store within about 5 km of your site"
     },
     "support": {
-      "title": "Customer Support",
-      "text": "Dedicated support team ready to help you"
+      "title": "Cash on delivery",
+      "text": "Pay when the material reaches your site; call or WhatsApp us with any question"
     }
   }
 }

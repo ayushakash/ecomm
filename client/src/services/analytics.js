@@ -28,7 +28,8 @@ class AnalyticsService {
    * Call this once when the app loads
    */
   initialize() {
-    if (!this.enabled || this.initialized) return;
+    // Never during react-snap: injected tags would be baked into the static HTML.
+    if (!this.enabled || this.initialized || navigator.userAgent === 'ReactSnap') return;
     this.initialized = true;
     this.trackContactClicks();
 

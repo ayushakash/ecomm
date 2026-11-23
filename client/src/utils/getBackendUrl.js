@@ -124,6 +124,11 @@ export const getBackendUrl = async () => {
  * (Better for initial axios setup)
  */
 export const getBackendUrlSync = () => {
+  // react-snap prerender: scripts/prerender.js proxies /api on the snapshot
+  // server to the live API, so pages are saved with real products and prices.
+  if (typeof navigator !== 'undefined' && navigator.userAgent === 'ReactSnap') {
+    return '';
+  }
   // ALWAYS use environment variable if set (highest priority)
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;

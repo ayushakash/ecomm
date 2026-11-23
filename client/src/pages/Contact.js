@@ -7,7 +7,12 @@ import {
 } from '@heroicons/react/24/outline';
 import SEO from '../components/SEO/SEO';
 import { useTranslation } from 'react-i18next';
-import { BUSINESS_PHONE_LABEL, BUSINESS_PHONE_TEL } from '../config/contact';
+import {
+  BUSINESS_ADDRESS, BUSINESS_EMAIL, BUSINESS_MAPS_URL, BUSINESS_PHONE_LABEL, BUSINESS_PHONE_TEL, whatsappLink,
+} from '../config/contact';
+
+// Named-place embed (resolves to the Chardeevari Google Maps listing, not a bare pin).
+const MAP_EMBED_URL = 'https://www.google.com/maps?q=Chardeevari,+217+Kadru,+AG+Colony,+Ranchi&output=embed';
 
 const Contact = () => {
   const { t } = useTranslation('contact');
@@ -34,7 +39,7 @@ const Contact = () => {
     },
     {
       name: 'LinkedIn',
-      url: 'https://www.linkedin.com/company/80425263/admin/dashboard/',
+      url: 'https://www.linkedin.com/company/chardeevari',
       icon: (
         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
           <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
@@ -57,9 +62,9 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <SEO
-        title="Contact Chardeevari - Construction Materials in Ranchi"
-        description="Contact Chardeevari for cement, steel, sand and construction materials in Ranchi, Jharkhand. Call or WhatsApp us for dealer rates and 60-minute doorstep delivery."
-        keywords="contact construction material supplier Ranchi, cement dealer Ranchi contact, building material shop Ranchi, Chardeevari contact"
+        title="Contact Chardeevari – Building Materials, Kadru, Ranchi"
+        description="Chardeevari, 217, Kadru, AG Colony, Ranchi 834002. Call or WhatsApp +91 92415 14013 for today's rate. Open Mon–Sat 9 AM–6 PM. Cash on delivery."
+        keywords="Chardeevari contact, Chardeevari Kadru, building material shop Kadru Ranchi, cement shop Ranchi phone number"
       />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
@@ -95,7 +100,31 @@ const Contact = () => {
                 >
                   {BUSINESS_PHONE_LABEL}
                 </a>
+                {' · '}
+                <a
+                  href={whatsappLink()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-700 hover:text-green-800 font-medium transition-colors"
+                >
+                  {t('info.whatsapp')}
+                </a>
                 <p className="text-sm text-gray-500 mt-1">{t('info.hours')}</p>
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <EnvelopeIcon className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('info.email')}</h3>
+                <a href={`mailto:${BUSINESS_EMAIL}`} className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                  {BUSINESS_EMAIL}
+                </a>
               </div>
             </div>
 
@@ -108,11 +137,7 @@ const Contact = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('info.headOffice')}</h3>
-                <p className="text-gray-600">
-                  Kadru, AG Colony<br />
-                  Jharkhand 834002<br />
-                  India
-                </p>
+                <address className="not-italic text-gray-600">Chardeevari, {BUSINESS_ADDRESS}</address>
               </div>
             </div>
 
@@ -126,7 +151,7 @@ const Contact = () => {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('info.directions')}</h3>
                 <a
-                  href="https://www.google.com/maps?q=23.35708709274134,85.31314123434679"
+                  href={BUSINESS_MAPS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors"
@@ -163,7 +188,7 @@ const Contact = () => {
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
             <div className="h-full min-h-[500px]">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3662.6860823456789!2d85.31314123434679!3d23.35708709274134!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjPCsDIxJzI1LjUiTiA4NcKwMTgnNDcuMyJF!5e0!3m2!1sen!2sin!4v1234567890"
+                src={MAP_EMBED_URL}
                 width="100%"
                 height="100%"
                 style={{ border: 0, minHeight: '500px' }}

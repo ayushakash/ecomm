@@ -1,0 +1,48 @@
+{
+  "table": {
+    "material": "Material",
+    "size": "Size / load",
+    "rate": "Rate (incl. GST)",
+    "caption": "Ranchi rate on Chardeevari, last revised {{date}}"
+  },
+  "units": {
+    "bag": "bag",
+    "piece": "piece",
+    "cubic-meter": "cubic metre",
+    "tempo load": "tempo load",
+    "auto load": "auto load",
+    "kg": "kg",
+    "ton": "ton"
+  },
+  "area": {
+    "title": "Delivery area, timing & payment",
+    "text": "We deliver within about 5 km of Kadru, Harmu, Ashok Nagar and Doranda in Ranchi, usually in about 60 minutes, from partner stores near your site. Pay cash on delivery.",
+    "hours": "Open Monday to Saturday, 9 AM – 6 PM (Sunday closed).",
+    "whatsapp": "Get rate on WhatsApp",
+    "whatsappMessage": "Hi Chardeevari, please share today's rate and delivery time for my site.",
+    "call": "Call {{phone}}"
+  },
+  "aajKaRate": {
+    "seoTitle": "Aaj Ka Rate Ranchi – Cement, Sariya, Balu, Eent, Gitti | Chardeevari",
+    "seoDescription": "Today's building material rate in Ranchi: cement, sariya, balu, eent, gitti. 60-min delivery in Kadru, Harmu, Ashok Nagar, Doranda. Cash on delivery.",
+    "h1": "Aaj Ka Rate – Building Material Rate in Ranchi Today",
+    "hindiHeading": "आज का रेट – सीमेंट, सरिया, बालू, ईंट, गिट्टी",
+    "intro": "Every building material we deliver in Ranchi, with the listed rate per unit. Rates come straight from our live catalogue — the same price shown on each product in the app and on this website.",
+    "revised": "Rates last revised: {{date}}",
+    "loading": "Loading today's rates…",
+    "unavailable": "Rates could not be loaded right now. Message us on WhatsApp for today's rate.",
+    "groups": {
+      "cement": "Cement rate (सीमेंट)",
+      "steel": "Sariya / TMT rate (सरिया)",
+      "sand": "Balu / river sand rate (बालू)",
+      "bricks": "Brick (eent) price (ईंट)",
+      "aggregate": "Gitti / stone chips rate (गिट्टी)",
+      "other": "Other materials"
+    },
+    "groupLink": "More about this rate →",
+    "ctaTitle": "Order at today's rate",
+    "ctaText": "Send your list on WhatsApp or order in the Chardeevari app. Delivered in about 60 minutes within our area; pay cash on delivery.",
+    "app": "Get the Android app",
+    "calculator": "Estimate quantities with the calculator"
+  }
+}

@@ -1,157 +1,231 @@
 {
   "hero": {
-    "badge": "★ Same-day site delivery · Own fleet"
+    "badge": "⚡ About 60-min delivery · Cash on delivery"
   },
   "cta": {
     "browseAll": "Browse all products",
-    "calculator": "Material calculator"
+    "calculator": "Material calculator",
+    "aajKaRate": "All rates today"
   },
   "products": {
-    "subtitle": "Live prices · pay on delivery · own-fleet delivery",
+    "subtitle": "Live rates · cash on delivery · delivered from partner stores near you",
     "empty": "No items listed here right now",
     "browseAllArrow": "Browse all products →"
+  },
+  "rates": {
+    "loading": "Loading today's rates…",
+    "unavailable": "Rates could not be loaded right now. Message us on WhatsApp at +91 92415 14013 for today's rate."
   },
   "faq": {
     "title": "Frequently asked questions"
   },
   "related": {
-    "title": "More building materials in Ranchi"
+    "title": "More building material rates in Ranchi",
+    "aajKaRate": "Aaj ka rate (all materials)"
+  },
+  "common": {
+    "deliveryIntro": "Delivered in about 60 minutes from a partner store near your site, within about 5 km of Kadru, Harmu, Ashok Nagar or Doranda in Ranchi. Pay cash on delivery.",
+    "areaFaq": {
+      "question": "Which areas of Ranchi do you deliver to?",
+      "answer": "We deliver within about 5 km of Kadru, Harmu, Ashok Nagar and Doranda, usually in about 60 minutes, from a partner store near your site. We are open Monday to Saturday, 9 AM – 6 PM."
+    },
+    "codFaq": {
+      "question": "Can I pay cash on delivery?",
+      "answer": "Yes. Every order is cash on delivery — you pay when the material reaches your site."
+    }
   },
   "pages": {
     "cement": {
-      "h1": "Cement Price in Ranchi — Buy Cement Online",
-      "linkLabel": "Cement Price in Ranchi",
-      "productsHeading": "Cement available in Ranchi",
+      "h1": "Cement Rate in Ranchi Today (सीमेंट रेट)",
+      "linkLabel": "Cement rate",
       "intro": [
-        "Buy genuine, branded cement online in Ranchi at transparent prices and get it delivered to your site the same day — through our own delivery fleet, not third-party transporters.",
-        "Compare live prices on OPC and PPC cement from trusted brands, order by the bag or in bulk, and pay on delivery. Building a wall, a slab or a full house, we deliver across Ranchi and nearby Jharkhand."
+        "Today's cement rate in Ranchi for ACC, Dalmia and Concreto cement, per 50 kg bag, straight from our live catalogue. Order a few bags or a full slab's worth."
       ],
+      "rateHeading": "Cement rate per bag today",
+      "productsHeading": "Cement brands we deliver – ACC, Dalmia, Concreto",
+      "guideHeading": "Which cement for which work",
+      "guide": [
+        "PPC and composite cement are the usual choice for brickwork, plaster and general house work. OPC 43/53 grade is used where early strength matters, such as slabs, beams and columns. Check the grade and the BIS mark printed on the bag (IS 269 for OPC, IS 1489 for PPC).",
+        "Thumb rule: a house needs about 0.4–0.45 bags of cement per sq ft of built-up area — roughly 400–450 bags for a 1,000 sq ft single floor. Our material calculator uses 0.45 bags per sq ft and adds the footings."
+      ],
+      "priceFaq": {
+        "question": "What is the cement rate in Ranchi today?",
+        "answer": "On Chardeevari the cement rate is {{range}} per bag today: {{list}}. Rates last revised {{date}}."
+      },
       "faqs": [
         {
-          "question": "What is the cement price in Ranchi today?",
-          "answer": "Cement prices change with brand and demand. The live per-bag price for every brand we stock is shown on the product cards above — that is the current Ranchi rate, inclusive of delivery options at checkout."
+          "question": "Which cement brands do you deliver in Ranchi?",
+          "answer": "ACC (HPC and F2R), Dalmia (including DSP and Weather365) and Concreto. The rate for each is in the table on this page."
         },
         {
-          "question": "Do you deliver cement to my site in Ranchi?",
-          "answer": "Yes. We deliver to sites across Ranchi and surrounding Jharkhand areas using our own fleet, usually the same day for in-stock items."
-        },
-        {
-          "question": "Can I order cement in bulk for a construction project?",
-          "answer": "Yes. Bulk orders get better rates — tap the \"Bulk?\" option on any product or contact us, and we will arrange site delivery and pricing."
+          "question": "Can I order cement in bulk?",
+          "answer": "Yes. Use the \"Bulk?\" option on any cement product or send your quantity on WhatsApp (+91 92415 14013) and we will confirm the rate and delivery time."
         },
         {
           "question": "Which cement is best for house construction?",
-          "answer": "PPC is commonly used for general house construction (plaster, brickwork) while OPC 43/53 grade is preferred for slabs and structural work. Our calculator can estimate how many bags your project needs."
+          "answer": "PPC or composite cement is commonly used for brickwork and plaster, while OPC 43/53 grade is preferred for slabs and structural work. Always buy BIS-marked bags."
+        },
+        {
+          "question": "How many bags of cement do I need for 1000 sq ft?",
+          "answer": "About 400–450 bags for a 1,000 sq ft single floor, using the thumb rule of 0.4–0.45 bags per sq ft. Use our material calculator for your exact plan."
         }
       ]
     },
     "steel": {
-      "h1": "TMT Steel Price in Ranchi — Buy Sariya Online",
-      "linkLabel": "TMT Steel Price in Ranchi",
-      "productsHeading": "Steel available in Ranchi",
+      "h1": "Sariya / TMT Rate in Ranchi Today (सरिया रेट)",
+      "linkLabel": "Sariya (TMT) rate",
       "intro": [
-        "Order TMT steel bars (sariya) online in Ranchi at live, transparent prices — available in common sizes like 8mm, 10mm and 12mm for footings, columns, beams and slabs.",
-        "Pick your size, see the per-piece or per-ton rate, and get it delivered to your site through our own fleet. Bulk tonnage orders are welcome with better pricing."
+        "Today's sariya (TMT bar) rate in Ranchi by size, per piece, straight from our live catalogue. Rungta TMT bars — a Jharkhand steel brand — in 8 mm, 10 mm, 12 mm and 16 mm for footings, columns, beams and slabs."
       ],
+      "rateHeading": "Sariya rate per piece today",
+      "productsHeading": "Sariya (TMT) sizes – Rungta 8, 10, 12, 16 mm",
+      "guideHeading": "Sariya rate per piece vs per kg",
+      "guide": [
+        "Sariya is priced per piece (one bar). To compare with a per-kg rate, divide the piece rate by the bar's weight. Weight per metre = d² ÷ 162 kg, where d is the diameter in mm: about 0.395 kg/m for 8 mm, 0.617 kg/m for 10 mm, 0.888 kg/m for 12 mm and 1.58 kg/m for 16 mm. A standard 12 m bar therefore weighs about 4.7 kg (8 mm), 7.4 kg (10 mm), 10.7 kg (12 mm) and 19 kg (16 mm). Confirm the bar length with us before you compare.",
+        "Fe500 or Fe500D grade is the usual choice for houses; the D grade bends more before it breaks. Thumb rule: about 3.3 kg of steel per sq ft of built-up area (3.0–3.5 kg range) — roughly 3,300 kg for 1,000 sq ft. Our material calculator uses the same figure."
+      ],
+      "priceFaq": {
+        "question": "What is the sariya rate in Ranchi today?",
+        "answer": "On Chardeevari today's sariya (TMT bar) rate per piece is: {{list}}. Rates last revised {{date}}."
+      },
       "faqs": [
         {
-          "question": "What is the TMT steel / sariya price in Ranchi today?",
-          "answer": "TMT prices move with the market and the bar size. The current rate for every size we stock is shown on the product cards above for Ranchi delivery."
+          "question": "What is the sariya rate per kg?",
+          "answer": "We sell sariya per piece. Divide the piece rate by the bar weight: a 12 m bar weighs about 4.7 kg (8 mm), 7.4 kg (10 mm), 10.7 kg (12 mm) or 19 kg (16 mm)."
         },
         {
-          "question": "Which TMT bar sizes can I buy?",
-          "answer": "We stock the sizes most used in residential and commercial construction — typically 8mm, 10mm and 12mm. Select your size on the product page before adding to cart."
-        },
-        {
-          "question": "Do you deliver TMT steel to construction sites in Ranchi?",
-          "answer": "Yes — same-day site delivery across Ranchi and nearby Jharkhand using our own fleet, including bulk tonnage orders."
+          "question": "Which sariya sizes can I buy?",
+          "answer": "8 mm, 10 mm, 12 mm and 16 mm Rungta TMT bars. Pick the size on the product page before adding it to your cart."
         },
         {
           "question": "How much steel do I need for my house?",
-          "answer": "A rough thumb-rule is around 4 kg of steel per sq.ft of built-up area, but it varies with design. Use our material calculator for an estimate tailored to your project."
-        }
-      ]
-    },
-    "bricks": {
-      "h1": "Bricks Supplier in Ranchi — Order Bricks Online",
-      "linkLabel": "Bricks Supplier in Ranchi",
-      "productsHeading": "Bricks available in Ranchi",
-      "intro": [
-        "Order quality red bricks online in Ranchi at clear per-piece prices, with same-day delivery to your site through our own fleet.",
-        "Whether you need a few thousand bricks for a boundary wall or a large bulk load for a full build, you can order online and pay on delivery."
-      ],
-      "faqs": [
-        {
-          "question": "What is the price of bricks in Ranchi?",
-          "answer": "The current per-piece brick price for Ranchi is shown on the product cards above and updates with availability."
-        },
-        {
-          "question": "Can I order bricks in bulk?",
-          "answer": "Yes. Bulk brick orders get better per-piece pricing and scheduled site delivery — use the bulk option or contact us with your quantity."
-        },
-        {
-          "question": "How many bricks do I need for a 1000 sq ft house?",
-          "answer": "A common estimate is roughly 8 bricks per sq.ft of wall, but it depends on wall thickness and design. Our calculator gives a project-specific estimate."
-        },
-        {
-          "question": "Do you deliver bricks across Ranchi?",
-          "answer": "Yes — same-day site delivery across Ranchi and nearby Jharkhand using our own delivery fleet."
+          "answer": "About 3.3 kg of steel per sq ft of built-up area (3.0–3.5 kg range), so roughly 3,300 kg for a 1,000 sq ft floor. The material calculator gives an estimate for your plan."
         }
       ]
     },
     "sand": {
-      "h1": "Sand Supplier in Ranchi — Buy River & M-Sand",
-      "linkLabel": "Sand Supplier in Ranchi",
-      "productsHeading": "Sand available in Ranchi",
+      "h1": "Balu (River Sand) Rate in Ranchi (बालू रेट)",
+      "linkLabel": "Balu (sand) rate",
       "intro": [
-        "Order construction sand online in Ranchi — river sand for plaster and finishing, and M-sand (manufactured sand) for concrete work — at transparent prices.",
-        "Choose your quantity, see the live rate, and get it delivered to your site the same day through our own fleet. Bulk loads are available for larger projects."
+        "Today's balu rate in Ranchi: river sand delivered by the tempo load, straight from our live catalogue. Used for plaster, brickwork mortar and concrete."
       ],
+      "rateHeading": "Balu rate per tempo load today",
+      "productsHeading": "River sand (balu) – by the tempo load",
+      "guideHeading": "Buying balu: load size and quality",
+      "guide": [
+        "We supply river sand (balu) only, sold per tempo load. The amount in a load depends on the vehicle, so ask us on WhatsApp for the cft in the load and compare rates per cft, not per trip.",
+        "Thumb rule: about 1.0–1.2 cft of sand per sq ft of built-up area (our calculator uses 1.1). For a quick silt check, shake some sand with water in a glass and let it settle — a thick layer of mud on top means the sand needs washing before plaster work."
+      ],
+      "priceFaq": {
+        "question": "What is the balu rate in Ranchi today?",
+        "answer": "On Chardeevari river sand (balu) costs {{list}} today. Rates last revised {{date}}."
+      },
       "faqs": [
         {
-          "question": "What is the sand price in Ranchi today?",
-          "answer": "The current rate for each sand type we supply is shown on the product cards above for Ranchi delivery."
+          "question": "Do you sell M-sand?",
+          "answer": "No. We currently supply river sand only. Our blog has a guide comparing M-sand and river sand."
         },
         {
-          "question": "What is the difference between river sand and M-sand?",
-          "answer": "River sand is natural and often used for plastering and finishing; M-sand (manufactured/crushed sand) is engineered and widely used for concrete and masonry. Both are used in house construction."
+          "question": "How much balu do I need for my construction?",
+          "answer": "About 1.0–1.2 cft of sand per sq ft of built-up area for a typical house. The material calculator estimates sand for your built-up area."
+        }
+      ]
+    },
+    "bricks": {
+      "h1": "Brick (Eent) Price in Ranchi (ईंट रेट)",
+      "linkLabel": "Brick (eent) price",
+      "intro": [
+        "Today's eent price in Ranchi: grey cement bricks per piece, straight from our live catalogue. For boundary walls, partition walls and full builds."
+      ],
+      "rateHeading": "Brick price per piece today",
+      "productsHeading": "Grey cement bricks (eent)",
+      "guideHeading": "How many bricks do you need?",
+      "guide": [
+        "We supply grey cement bricks only; we do not sell red clay bricks at the moment.",
+        "Per sq ft of wall: about 5 bricks for a 4.5-inch wall and about 10 for a 9-inch wall, for a standard 9 × 4.5 × 3-inch brick with 10 mm mortar. Add about 5% for breakage. For a whole house, our material calculator uses about 7.5 bricks per sq ft of built-up area."
+      ],
+      "priceFaq": {
+        "question": "What is the brick price in Ranchi today?",
+        "answer": "On Chardeevari grey cement bricks cost {{list}} today. Rates last revised {{date}}."
+      },
+      "faqs": [
+        {
+          "question": "Do you sell red bricks?",
+          "answer": "Not at the moment. We deliver grey cement bricks only."
         },
         {
-          "question": "Do you deliver sand in bulk across Ranchi?",
-          "answer": "Yes — bulk sand delivery to sites across Ranchi and nearby Jharkhand through our own fleet, usually same day."
+          "question": "Can I order bricks in bulk?",
+          "answer": "Yes. Use the \"Bulk?\" option on the product or send your quantity on WhatsApp (+91 92415 14013) and we will confirm the rate and delivery time."
         },
         {
-          "question": "How much sand do I need for my construction?",
-          "answer": "Sand quantity depends on the work (plaster, concrete, brickwork). Use our material calculator for an estimate based on your built-up area."
+          "question": "How many bricks do I need for a wall?",
+          "answer": "About 5 bricks per sq ft for a 4.5-inch wall and about 10 per sq ft for a 9-inch wall, plus about 5% for breakage."
+        }
+      ]
+    },
+    "gitti": {
+      "h1": "Gitti (Stone Chips) Rate in Ranchi (गिट्टी रेट)",
+      "linkLabel": "Gitti rate",
+      "intro": [
+        "Today's gitti rate in Ranchi: stone chips in ½-inch and ¾-inch sizes, delivered by the auto load, straight from our live catalogue."
+      ],
+      "rateHeading": "Gitti rate per auto load today",
+      "productsHeading": "Gitti (stone chips) – ½″ and ¾″",
+      "guideHeading": "Which gitti size for which work",
+      "guide": [
+        "¾-inch (20 mm) gitti is the usual size for RCC slabs, beams, columns and footings. ½-inch gitti suits thinner sections such as lintels, and PCC or flooring work.",
+        "Thumb rule: about 1.5–1.7 cft of gitti per sq ft of built-up area (our calculator uses 1.6). The amount in an auto load depends on the vehicle, so ask us on WhatsApp for the cft before you compare rates."
+      ],
+      "priceFaq": {
+        "question": "What is the gitti rate in Ranchi today?",
+        "answer": "On Chardeevari gitti (stone chips) costs {{list}} today. Rates last revised {{date}}."
+      },
+      "faqs": [
+        {
+          "question": "Which gitti size should I order for a slab?",
+          "answer": "¾-inch (20 mm) gitti is the usual size for RCC slabs, beams and columns. ½-inch suits thinner sections and PCC."
+        },
+        {
+          "question": "How much gitti do I need?",
+          "answer": "About 1.5–1.7 cft per sq ft of built-up area for a typical house. The material calculator gives an estimate for your plan."
         }
       ]
     },
     "all": {
-      "h1": "Construction Materials in Ranchi — Cement, Steel, Sand & Bricks",
-      "linkLabel": "Construction Materials in Ranchi",
-      "productsHeading": "Building materials available in Ranchi",
+      "h1": "Building Material Shop in Ranchi – Delivered in 60 Min",
+      "linkLabel": "All building materials",
       "intro": [
-        "Chardeevari is your online building-materials store for Ranchi — order cement, TMT steel (sariya), sand, bricks and aggregates in one place, at transparent prices.",
-        "Everything is delivered to your site through our own fleet, often the same day, with bulk pricing for larger projects and pay-on-delivery. One platform for every material your construction needs."
+        "Chardeevari (चारदीवारी) is a Ranchi building-material delivery service: cement, sariya (TMT), balu, cement eent and gitti, ordered online or on WhatsApp at today's listed rate."
       ],
+      "rateHeading": "Building material rate in Ranchi today",
+      "productsHeading": "Building materials we deliver",
+      "guideHeading": "What we deliver",
+      "guide": [
+        "ACC, Dalmia and Concreto cement; Rungta TMT sariya in 8–16 mm; river sand (balu) by the tempo load; grey cement bricks; stone chips (gitti) in ½-inch and ¾-inch; and cover blocks.",
+        "Not sure how much you need? The free material calculator estimates cement, steel, sand, gitti and bricks from your built-up area."
+      ],
+      "priceFaq": {
+        "question": "What is the building material rate in Ranchi today?",
+        "answer": "On Chardeevari today: {{list}}. Rates last revised {{date}}."
+      },
       "faqs": [
         {
-          "question": "What construction materials can I buy online in Ranchi?",
-          "answer": "You can order cement, TMT steel (sariya), sand, bricks and aggregates online, by the unit or in bulk, with delivery across Ranchi and nearby Jharkhand."
-        },
-        {
-          "question": "Do you deliver building materials to my site?",
-          "answer": "Yes — we deliver to sites across Ranchi and surrounding Jharkhand using our own fleet, usually the same day for in-stock items."
-        },
-        {
-          "question": "Can I get bulk pricing for a full construction project?",
-          "answer": "Yes. Bulk orders across cement, steel, sand and bricks get better rates and scheduled site delivery — order online or contact us with your requirement."
+          "question": "What building materials can I order in Ranchi?",
+          "answer": "Cement (ACC, Dalmia, Concreto), Rungta TMT sariya, river sand (balu), grey cement bricks, gitti (stone chips) and cover blocks — by the unit or in bulk."
         },
         {
           "question": "How do I estimate how much material I need?",
-          "answer": "Use our free material calculator — enter your built-up area and it estimates the cement, steel, sand, bricks and aggregate your project needs."
+          "answer": "Use the free material calculator: enter your built-up area and it estimates cement, steel, sand, gitti and bricks."
         }
       ]
     }
+  },
+  "categorySummary": {
+    "cement": "cement from {{price}}",
+    "steel": "sariya from {{price}}",
+    "sand": "balu from {{price}}",
+    "bricks": "bricks from {{price}}",
+    "aggregate": "gitti from {{price}}",
+    "other": "{{name}} from {{price}}"
   }
 }

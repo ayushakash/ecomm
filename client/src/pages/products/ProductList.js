@@ -233,12 +233,26 @@ const ProductList = () => {
     }
   };
 
+  // SEO renders in every state below (react-snap may snapshot any of them).
+  const seo = (
+    <SEO
+      title="Building Materials Price in Ranchi – Cement, Sariya, Balu, Bricks, Gitti"
+      description="Today's rates for cement (ACC, Dalmia, Concreto), Rungta TMT sariya, balu, grey cement bricks and gitti in Ranchi. 60-minute delivery near Kadru, Harmu, Ashok Nagar and Doranda. Cash on delivery."
+      keywords="building materials price Ranchi, cement price Ranchi, ACC cement Ranchi, Dalmia cement Ranchi, Concreto cement Ranchi, Rungta TMT Ranchi, sariya rate Ranchi, balu price Ranchi, cement bricks Ranchi, gitti rate Ranchi"
+      breadcrumbs={[
+        { name: 'Home', path: '/' },
+        { name: 'Products', path: '/products' }
+      ]}
+    />
+  );
+
   // Loading state — also covers the window while auth resolves and the guest
   // default city (Ranchi — see DEFAULT_GUEST_CITY in LocationContext.js) is
   // being applied. Guests must NEVER flash the city-picker wall on landing.
   if (isLoadingMerchants || authLoading) {
     return (
       <div className="flex flex-col justify-center items-center py-16">
+        {seo}
         <PageSpinner />
         <p className="mt-2 text-sm text-gray-400">{t('location.findingMerchants')}</p>
       </div>
@@ -250,22 +264,31 @@ const ProductList = () => {
   // the user explicitly cleared their city. It must never be the landing UX.
   if (!user && !selectedCity) {
     return (
-      <CitySelectorScreen
-        fetchMerchantsByCity={fetchMerchantsByCity}
-        requestLocationPermission={requestLocationPermission}
-      />
+      <>
+        {seo}
+        <CitySelectorScreen
+          fetchMerchantsByCity={fetchMerchantsByCity}
+          requestLocationPermission={requestLocationPermission}
+        />
+      </>
     );
   }
 
   // Auth user with no address — prompt to add address (with GPS browse option)
   if (user && !selectedAddress && cityMerchantIds.length === 0) {
-    return <NoAddressScreen requestLocationPermission={requestLocationPermission} />;
+    return (
+      <>
+        {seo}
+        <NoAddressScreen requestLocationPermission={requestLocationPermission} />
+      </>
+    );
   }
 
   // Auth user has address but no merchants in area
   if (user && selectedAddress && merchantIds.length === 0) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
+        {seo}
         <div className="bg-amber-50 rounded-full h-20 w-20 flex items-center justify-center mx-auto mb-6">
           <MapPinIcon className="h-10 w-10 text-amber-500" />
         </div>
@@ -296,6 +319,7 @@ const ProductList = () => {
   if (selectedCity && cityMerchantIds.length === 0 && merchantIds.length === 0) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
+        {seo}
         <div className="bg-amber-50 rounded-full h-20 w-20 flex items-center justify-center mx-auto mb-6">
           <MapPinIcon className="h-10 w-10 text-amber-500" />
         </div>
@@ -319,6 +343,7 @@ const ProductList = () => {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {seo}
         <div className="grid gap-3 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(8)].map((_, i) => <ProductCardSkeleton key={i} />)}
         </div>
@@ -329,6 +354,7 @@ const ProductList = () => {
   if (error) {
     return (
       <div className="text-center py-12">
+        {seo}
         <p className="text-red-600">{t('list.error', { message: error.message })}</p>
       </div>
     );
@@ -336,15 +362,7 @@ const ProductList = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <SEO
-        title="Buy Construction Materials Online in Ranchi | Cement, Steel, Sand, Bricks | Chardeevari"
-        description="Buy premium quality construction materials online in Ranchi, Jharkhand. Order cement (ACC, UltraTech), TMT steel bars (Tata, Jindal), M-sand, bricks, aggregates with doorstep delivery. Best prices guaranteed. Shop now at Chardeevari!"
-        keywords="buy construction materials Ranchi, cement dealers Ranchi, TMT steel suppliers Jharkhand, M-sand online Ranchi, building materials Ranchi, brick suppliers Ranchi, aggregate dealers Jharkhand, construction material shop near me, cement price Ranchi, steel bars online Jharkhand, building supplies delivery Ranchi, construction materials wholesale Ranchi, ACC cement Ranchi, UltraTech cement dealers, Tata steel TMT bars, Jindal TMT Ranchi, cheap construction materials Ranchi, best building material suppliers Jharkhand, online building materials store, construction materials home delivery, buy cement online India, Chardeevari Ranchi"
-        breadcrumbs={[
-          { name: 'Home', path: '/' },
-          { name: 'Products', path: '/products' }
-        ]}
-      />
+      {seo}
 
       {/* Nudge logged-in user with no saved address to add one */}
       {user && !selectedAddress && selectedCity && (

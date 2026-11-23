@@ -2,13 +2,14 @@
 <html lang="en-IN">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/webp" href="%PUBLIC_URL%/logo.webp?v=4" />
-    <link rel="shortcut icon" type="image/webp" href="%PUBLIC_URL%/logo.webp?v=4" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" href="%PUBLIC_URL%/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/png" href="%PUBLIC_URL%/logo192.png" sizes="192x192" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0ea5e9" />
 
     <!-- PWA Meta Tags -->
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -17,14 +18,14 @@
     <meta name="msapplication-TileColor" content="#0ea5e9" />
     <meta name="msapplication-config" content="%PUBLIC_URL%/browserconfig.xml" />
 
-    <!-- Google Fonts: preconnect + non-blocking load -->
+    <!-- Google Fonts: preconnect + non-blocking load. No <noscript> fallback:
+         react-snap serialises it into a real render-blocking stylesheet. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
 
-    <title>Chardeevari - Buy Construction Materials Online in Ranchi, Jharkhand</title>
+    <title>Chardeevari – Building Materials Delivery in Ranchi</title>
 
   </head>
   <body>

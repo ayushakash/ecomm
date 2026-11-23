@@ -17,8 +17,10 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('accessToken'));
+  // Only a stored token needs checking. Guests are "loaded" from the first
+  // render, which also matches the prerendered (guest) HTML during hydration.
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem('accessToken')));
   // Admin "login as merchant": the admin's own tokens are parked here until they switch back
   const [impersonating, setImpersonating] = useState(!!localStorage.getItem('adminAccessToken'));
   const navigate = useNavigate();

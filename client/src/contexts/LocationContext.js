@@ -19,6 +19,16 @@ import { normalizeCityName } from '../utils/cityNameMapping';
 // picker, or share GPS for precise per-merchant serviceability matching.
 export const DEFAULT_GUEST_CITY = { city: 'Ranchi', state: 'Jharkhand' };
 
+// react-snap prerender support. The static HTML is rendered after the guest
+// default city has loaded; the snapshot also saves that state (see
+// getPrerenderLocationState / index.js) so the first client render starts from
+// it and hydration matches the HTML instead of flashing the location spinner.
+const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent === 'ReactSnap';
+const prerenderedLocation = typeof window !== 'undefined' ? window.__LOCATION_STATE__ : undefined;
+let latestGuestLocation = null;
+/** Guest location state to embed in the prerendered page. */
+export const getPrerenderLocationState = () => latestGuestLocation;
+
 const LocationContext = createContext();
 
 export const useLocation = () => {
@@ -35,10 +45,14 @@ export const LocationProvider = ({ children }) => {
   const [nearbyMerchants, setNearbyMerchants] = useState([]);
   const [merchantIds, setMerchantIds] = useState([]);
   const [isLoadingMerchants, setIsLoadingMerchants] = useState(false);
-  const [locationInfo, setLocationInfo] = useState(null);
+  const [locationInfo, setLocationInfo] = useState(prerenderedLocation?.locationInfo ?? null);
   const [addresses, setAddresses] = useState([]);
-  const [selectedCity, setSelectedCity] = useState(null);
-  const [cityMerchantIds, setCityMerchantIds] = useState([]);
+  const [selectedCity, setSelectedCity] = useState(prerenderedLocation?.selectedCity ?? null);
+  const [cityMerchantIds, setCityMerchantIds] = useState(prerenderedLocation?.cityMerchantIds ?? []);
+
+  useEffect(() => {
+    if (isPrerender) latestGuestLocation = { selectedCity, cityMerchantIds, locationInfo };
+  }, [selectedCity, cityMerchantIds, locationInfo]);
 
   // Fetch user addresses when user logs in
   useEffect(() => {
@@ -60,6 +74,9 @@ export const LocationProvider = ({ children }) => {
   // instantly. Both fetches are silent: no toasts on plain page load.
   useEffect(() => {
     if (!authLoading && !user) {
+      // Prerendered page: its catalogue is already on screen — refresh it in the
+      // background instead of swapping it for the location spinner.
+      const background = Boolean(prerenderedLocation);
       const savedCity = localStorage.getItem('selectedCity');
       if (savedCity) {
         try {
@@ -70,7 +87,7 @@ export const LocationProvider = ({ children }) => {
           if (cityData.coordinates?.latitude && cityData.coordinates?.longitude) {
             fetchMerchantsByCoordinates(cityData, { silent: true });
           } else {
-            fetchMerchantsByCity(cityData.city, cityData.state, { silent: true });
+            fetchMerchantsByCity(cityData.city, cityData.state, { silent: true, background });
           }
           return;
         } catch {
@@ -88,13 +105,13 @@ export const LocationProvider = ({ children }) => {
             null
           );
           if (best) {
-            fetchMerchantsByCity(best.city, best.state, { silent: true });
+            fetchMerchantsByCity(best.city, best.state, { silent: true, background });
             return;
           }
         } catch (error) {
           console.error('Failed to load available cities for guest default:', error);
         }
-        fetchMerchantsByCity(DEFAULT_GUEST_CITY.city, DEFAULT_GUEST_CITY.state, { silent: true });
+        fetchMerchantsByCity(DEFAULT_GUEST_CITY.city, DEFAULT_GUEST_CITY.state, { silent: true, background });
       })();
     }
   }, [authLoading, user]);
@@ -190,8 +207,10 @@ export const LocationProvider = ({ children }) => {
   // `silent: true` = automatic/background call (e.g. the Ranchi guest default
   // on page load) — suppresses all toasts so landing visitors aren't nagged.
   // Explicit user actions (header picker, city selector) stay noisy (default).
-  const fetchMerchantsByCity = async (cityName, stateName, { silent = false } = {}) => {
-    setIsLoadingMerchants(true);
+  // `background: true` = keep the current catalogue on screen (no loading state,
+  // keep it on failure) — used to refresh a prerendered page after hydration.
+  const fetchMerchantsByCity = async (cityName, stateName, { silent = false, background = false } = {}) => {
+    if (!background) setIsLoadingMerchants(true);
     try {
       const response = await merchantAPI.getMerchants({
         city: cityName,
@@ -225,9 +244,9 @@ export const LocationProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to fetch merchants by city:', error);
       if (!silent) toast.error(i18n.t('common:toasts.location.loadFailed'));
-      setCityMerchantIds([]);
+      if (!background) setCityMerchantIds([]);
     } finally {
-      setIsLoadingMerchants(false);
+      if (!background) setIsLoadingMerchants(false);
     }
   };
 

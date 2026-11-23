@@ -2,11 +2,19 @@
   "logoAlt": "Chardeevari लोगो",
   "serviceAreas": "अभी यहाँ डिलीवरी हो रही है:",
   "footer": {
-    "downloadApp": "ऐप डाउनलोड करें"
+    "downloadApp": "ऐप डाउनलोड करें",
+    "tagline": "रांची में बिल्डिंग मटीरियल डिलीवरी",
+    "area": "डिलीवरी: कडरू, हरमू, अशोक नगर और डोरंडा के लगभग 5 किमी के अंदर · लगभग 60 मिनट · डिलीवरी पर नकद भुगतान",
+    "hours": "सोम–शनि, सुबह 9 – शाम 6 बजे (रविवार बंद)",
+    "ratesTitle": "आज का रेट",
+    "aajKaRate": "आज का रेट (सभी मटीरियल)",
+    "companyTitle": "Chardeevari",
+    "maps": "Google Maps पर देखें"
   },
   "nav": {
     "home": "होम",
     "products": "प्रोडक्ट्स",
+    "aajKaRate": "आज का रेट",
     "calculator": "कैलकुलेटर",
     "blog": "ब्लॉग",
     "contact": "संपर्क",

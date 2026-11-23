@@ -1,209 +1,225 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { BUSINESS_GEO, BUSINESS_PHONE_SCHEMA } from '../../config/contact';
+import {
+  BUSINESS_ALT_NAMES,
+  BUSINESS_CITY,
+  BUSINESS_EMAIL,
+  BUSINESS_GEO,
+  BUSINESS_MAPS_URL,
+  BUSINESS_NAME,
+  BUSINESS_PHONE_SCHEMA,
+  BUSINESS_POSTCODE,
+  BUSINESS_REGION,
+  BUSINESS_STREET,
+  SERVICE_AREAS,
+} from '../../config/contact';
+import { PLAY_STORE_URL } from '../../config/app';
 
 // Configurable via env so OG images / canonical / JSON-LD point at the real site.
-const SITE_URL = (process.env.REACT_APP_SITE_URL || 'https://chardeevari.in').replace(/\/$/, '');
-// Must match the Google Business Profile exactly (NAP consistency).
-const BUSINESS_PHONE = BUSINESS_PHONE_SCHEMA;
+export const SITE_URL = (process.env.REACT_APP_SITE_URL || 'https://chardeevari.in').replace(/\/$/, '');
+// One entity for the business, referenced by @id from every other node
+// (WebSite publisher, Product seller, BlogPosting publisher).
+export const BUSINESS_ID = `${SITE_URL}/#business`;
+const WEBSITE_ID = `${SITE_URL}/#website`;
+const DEFAULT_IMAGE = '/og-image.jpg'; // 1200×630
+const DELIVERY_RADIUS_M = 5000;
+
 const SAME_AS = [
+  BUSINESS_MAPS_URL,
+  'https://www.facebook.com/chardeevari.in',
   'https://www.instagram.com/chardeevari.in/',
-  'https://www.facebook.com/chardeevari.in'
+  PLAY_STORE_URL,
+  'https://www.linkedin.com/company/chardeevari',
+  'https://www.openstreetmap.org/node/14338761989',
 ];
-const BUSINESS_ADDRESS = {
-  '@type': 'PostalAddress',
-  streetAddress: 'New AG Co-operative Colony, Kadru',
-  addressLocality: 'Ranchi',
-  addressRegion: 'Jharkhand',
-  postalCode: '834002',
-  addressCountry: 'IN'
+
+/** Delivery area: the four localities plus the ~5 km radius around the store. */
+export const AREA_SERVED = [
+  ...SERVICE_AREAS.map((area) => ({ '@type': 'Place', name: `${area}, ${BUSINESS_CITY}` })),
+  {
+    '@type': 'GeoCircle',
+    geoMidpoint: { '@type': 'GeoCoordinates', latitude: BUSINESS_GEO.latitude, longitude: BUSINESS_GEO.longitude },
+    geoRadius: DELIVERY_RADIUS_M,
+  },
+];
+
+const absolute = (src) => (/^https?:\/\//.test(src) ? src : `${SITE_URL}${src.startsWith('/') ? '' : '/'}${src}`);
+
+const BUSINESS_NODE = {
+  '@type': 'HardwareStore',
+  '@id': BUSINESS_ID,
+  name: BUSINESS_NAME,
+  alternateName: BUSINESS_ALT_NAMES,
+  description:
+    'Building-materials delivery in Ranchi: cement, TMT sariya, balu (river sand), grey cement bricks and gitti (stone chips), delivered in about 60 minutes by partner stores within about 5 km of Kadru, Harmu, Ashok Nagar and Doranda. Cash on delivery.',
+  url: `${SITE_URL}/`,
+  logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo512.png`, width: 512, height: 512 },
+  image: `${SITE_URL}${DEFAULT_IMAGE}`,
+  telephone: BUSINESS_PHONE_SCHEMA,
+  email: BUSINESS_EMAIL,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: BUSINESS_STREET,
+    addressLocality: BUSINESS_CITY,
+    addressRegion: BUSINESS_REGION,
+    postalCode: BUSINESS_POSTCODE,
+    addressCountry: 'IN',
+  },
+  geo: { '@type': 'GeoCoordinates', latitude: BUSINESS_GEO.latitude, longitude: BUSINESS_GEO.longitude },
+  hasMap: BUSINESS_MAPS_URL,
+  areaServed: AREA_SERVED,
+  openingHoursSpecification: [
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      opens: '09:00',
+      closes: '18:00',
+    },
+  ],
+  paymentAccepted: 'Cash',
+  currenciesAccepted: 'INR',
+  priceRange: '₹₹',
+  knowsLanguage: ['en', 'hi'],
+  sameAs: SAME_AS,
+};
+
+const WEBSITE_NODE = {
+  '@type': 'WebSite',
+  '@id': WEBSITE_ID,
+  name: BUSINESS_NAME,
+  alternateName: BUSINESS_ALT_NAMES,
+  url: `${SITE_URL}/`,
+  inLanguage: 'en-IN',
+  publisher: { '@id': BUSINESS_ID },
+};
+
+/** Price quotes are refreshed on every rebuild; valid for 30 days from render. */
+const priceValidUntil = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().split('T')[0];
+};
+
+/**
+ * Product + Offer/AggregateOffer. `product`:
+ * { name, description, images[], sku, brand, category, unit, inStock,
+ *   price | (lowPrice, highPrice, offerCount) }  — prices as shown (incl. GST).
+ */
+const productNode = (product, url) => {
+  const shared = {
+    priceCurrency: 'INR',
+    availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    itemCondition: 'https://schema.org/NewCondition',
+    url,
+    priceValidUntil: priceValidUntil(),
+    seller: { '@id': BUSINESS_ID },
+    areaServed: AREA_SERVED,
+  };
+  const offers = product.price
+    ? {
+        '@type': 'Offer',
+        price: product.price,
+        ...shared,
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: product.price,
+          priceCurrency: 'INR',
+          valueAddedTaxIncluded: true,
+          ...(product.unit && { unitText: product.unit }),
+        },
+      }
+    : {
+        '@type': 'AggregateOffer',
+        lowPrice: product.lowPrice,
+        highPrice: product.highPrice,
+        offerCount: product.offerCount,
+        ...shared,
+      };
+  return {
+    '@type': 'Product',
+    '@id': `${url}#product`,
+    name: product.name,
+    description: product.description,
+    image: (product.images?.length ? product.images : [DEFAULT_IMAGE]).map(absolute),
+    ...(product.sku && { sku: product.sku }),
+    ...(product.brand && { brand: { '@type': 'Brand', name: product.brand } }),
+    ...(product.category && { category: product.category }),
+    offers,
+  };
 };
 
 const SEO = ({
-  title = 'Construction Materials in Ranchi - Cement, Steel, Sand, Bricks',
-  description = 'Buy construction materials online in Ranchi, Jharkhand at dealer rates. Cement, TMT steel (sariya), sand, aggregates & bricks with 60-minute delivery, cash on delivery and GST bill.',
-  keywords = 'cement price in Ranchi, cement dealer Ranchi, TMT steel price Ranchi, sariya rate Ranchi, sand price Ranchi, bricks Ranchi, building materials online Ranchi, construction materials Jharkhand',
-  image = '/logo512.png',
+  title = 'Construction Materials in Ranchi - Cement, Sariya, Balu, Bricks, Gitti',
+  description = 'Cement, TMT sariya, balu, grey cement bricks and gitti delivered in about 60 minutes near Kadru, Harmu, Ashok Nagar and Doranda, Ranchi. Cash on delivery.',
+  keywords = 'cement price in Ranchi, cement dealer Ranchi, TMT sariya rate Ranchi, balu price Ranchi, cement bricks Ranchi, gitti rate Ranchi, building materials Kadru, building materials Harmu, building materials Doranda, building materials Ashok Nagar',
+  image = DEFAULT_IMAGE,
   // Canonical: always SITE_URL + path. Never window.location.href — it bakes the
   // react-snap prerender origin (localhost:45678) into static HTML and lets
   // query strings (?category=...) declare themselves canonical.
-  url = typeof window !== 'undefined' ? `${SITE_URL}${window.location.pathname}` : SITE_URL,
+  url = typeof window !== 'undefined' ? `${SITE_URL}${window.location.pathname.replace(/(.)\/+$/, '$1')}` : `${SITE_URL}/`,
   type = 'website',
   noindex = false,
-  product = null, // Product schema data
-  breadcrumbs = null, // Breadcrumb schema data
+  product = null, // see productNode()
+  itemList = null, // [{ ...productNode fields, url }] -> ItemList of Products (rate tables)
+  breadcrumbs = null, // [{ name, path }] -> BreadcrumbList (only with 2+ levels)
   faqs = null, // [{ question, answer }] -> FAQPage schema
   article = null // { datePublished, dateModified, author } -> BlogPosting schema
 }) => {
-  const siteUrl = SITE_URL;
-  const siteName = 'Chardeevari';
-  const fullTitle = title.includes(siteName) ? title : `${title} | ${siteName}`;
+  const fullTitle = title.includes(BUSINESS_NAME) ? title : `${title} | ${BUSINESS_NAME}`;
+  const imageUrl = absolute(image);
 
-  // Generate JSON-LD structured data
-  const generateStructuredData = () => {
-    const structuredData = [];
+  const graph = [BUSINESS_NODE, WEBSITE_NODE];
 
-    // Organization Schema
-    structuredData.push({
-      '@context': 'https://schema.org',
-      '@type': 'Organization',
-      name: siteName,
-      url: siteUrl,
-      logo: `${siteUrl}/logo512.png`,
-      description: 'Leading construction materials supplier in Ranchi, Jharkhand',
-      address: BUSINESS_ADDRESS,
-      areaServed: {
-        '@type': 'City',
-        name: 'Ranchi'
-      },
-      priceRange: '₹₹',
-      sameAs: SAME_AS,
-      ...(BUSINESS_PHONE && { telephone: BUSINESS_PHONE })
+  if (product) graph.push(productNode(product, url));
+
+  if (itemList && itemList.length) {
+    graph.push({
+      '@type': 'ItemList',
+      itemListElement: itemList.map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: productNode(item, absolute(item.url)),
+      })),
     });
+  }
 
-    // LocalBusiness (HardwareStore) Schema — key for "near me" / local Ranchi search
-    structuredData.push({
-      '@context': 'https://schema.org',
-      '@type': 'HardwareStore',
-      name: siteName,
-      image: `${siteUrl}/logo512.png`,
-      url: siteUrl,
-      description: 'Cement, TMT steel, sand, aggregates and bricks in Ranchi at dealer rates with 60-minute doorstep delivery.',
-      address: BUSINESS_ADDRESS,
-      geo: {
-        '@type': 'GeoCoordinates',
-        latitude: BUSINESS_GEO.latitude,
-        longitude: BUSINESS_GEO.longitude
-      },
-      areaServed: {
-        '@type': 'City',
-        name: 'Ranchi'
-      },
-      priceRange: '₹₹',
-      // Matches GBP hours: Mon–Sat 10:00–19:00, Sun 10:00–14:00
-      openingHoursSpecification: [
-        {
-          '@type': 'OpeningHoursSpecification',
-          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-          opens: '10:00',
-          closes: '19:00'
-        },
-        {
-          '@type': 'OpeningHoursSpecification',
-          dayOfWeek: 'Sunday',
-          opens: '10:00',
-          closes: '14:00'
-        }
-      ],
-      ...(BUSINESS_PHONE && { telephone: BUSINESS_PHONE })
+  if (breadcrumbs && breadcrumbs.length > 1) {
+    graph.push({
+      '@type': 'BreadcrumbList',
+      itemListElement: breadcrumbs.map((crumb, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: crumb.name,
+        item: absolute(crumb.path),
+      })),
     });
+  }
 
-    // Website Schema
-    structuredData.push({
-      '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      name: siteName,
-      url: siteUrl,
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: `${siteUrl}/search?q={search_term_string}`,
-        'query-input': 'required name=search_term_string'
-      }
+  // FAQ rich results are limited to gov/health sites; kept for answer engines.
+  if (faqs && faqs.length) {
+    graph.push({
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((f) => ({
+        '@type': 'Question',
+        name: f.question,
+        acceptedAnswer: { '@type': 'Answer', text: f.answer },
+      })),
     });
+  }
 
-    // Product Schema (if product data is provided)
-    if (product) {
-      structuredData.push({
-        '@context': 'https://schema.org',
-        '@type': 'Product',
-        name: product.name,
-        description: product.description,
-        image: product.image || image,
-        brand: {
-          '@type': 'Brand',
-          name: product.brand || 'Chardeevari'
-        },
-        offers: {
-          '@type': 'Offer',
-          price: product.price,
-          priceCurrency: 'INR',
-          availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-          seller: {
-            '@type': 'Organization',
-            name: siteName
-          },
-          areaServed: {
-            '@type': 'City',
-            name: 'Ranchi'
-          }
-        },
-        ...(product.rating && {
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: product.rating.value,
-            reviewCount: product.rating.count
-          }
-        })
-      });
-    }
-
-    // Breadcrumb Schema
-    if (breadcrumbs) {
-      structuredData.push({
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement: breadcrumbs.map((crumb, index) => ({
-          '@type': 'ListItem',
-          position: index + 1,
-          name: crumb.name,
-          item: `${siteUrl}${crumb.path}`
-        }))
-      });
-    }
-
-    // FAQ Schema — drives "People also ask" / featured snippets
-    if (faqs && faqs.length) {
-      structuredData.push({
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: faqs.map((f) => ({
-          '@type': 'Question',
-          name: f.question,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: f.answer
-          }
-        }))
-      });
-    }
-
-    // Article / BlogPosting Schema — for blog post rich results
-    if (article) {
-      structuredData.push({
-        '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
-        headline: title,
-        description,
-        image: image.startsWith('http') ? image : `${siteUrl}${image}`,
-        datePublished: article.datePublished,
-        dateModified: article.dateModified || article.datePublished,
-        author: {
-          '@type': 'Organization',
-          name: article.author || siteName
-        },
-        publisher: {
-          '@type': 'Organization',
-          name: siteName,
-          logo: { '@type': 'ImageObject', url: `${siteUrl}/logo512.png` }
-        },
-        mainEntityOfPage: { '@type': 'WebPage', '@id': url }
-      });
-    }
-
-    return structuredData;
-  };
-
-  const structuredData = generateStructuredData();
+  if (article) {
+    graph.push({
+      '@type': 'BlogPosting',
+      headline: title,
+      description,
+      image: imageUrl,
+      datePublished: article.datePublished,
+      dateModified: article.dateModified || article.datePublished,
+      author: { '@type': 'Organization', name: article.author || BUSINESS_NAME },
+      publisher: { '@id': BUSINESS_ID },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    });
+  }
 
   return (
     // defer={false}: apply head tags synchronously. The default rAF-deferred
@@ -214,23 +230,25 @@ const SEO = ({
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
 
-      {/* Robots Meta */}
+      {/* Robots Meta — not-found / account pages stay out of the index */}
       {noindex ? (
-        <meta name="robots" content="noindex, nofollow" />
+        <meta name="robots" content="noindex, follow" />
       ) : (
         <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
       )}
 
-      {/* Canonical URL */}
-      <link rel="canonical" href={url} />
+      {/* Canonical URL (none on noindex pages) */}
+      {!noindex && <link rel="canonical" href={url} />}
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content={type} />
       <meta property="og:url" content={url} />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
-      <meta property="og:image" content={image.startsWith('http') ? image : `${siteUrl}${image}`} />
-      <meta property="og:site_name" content={siteName} />
+      <meta property="og:image" content={imageUrl} />
+      {image === DEFAULT_IMAGE && <meta property="og:image:width" content="1200" />}
+      {image === DEFAULT_IMAGE && <meta property="og:image:height" content="630" />}
+      <meta property="og:site_name" content={BUSINESS_NAME} />
       <meta property="og:locale" content="en_IN" />
 
       {/* Twitter Card */}
@@ -238,11 +256,11 @@ const SEO = ({
       <meta name="twitter:url" content={url} />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={image.startsWith('http') ? image : `${siteUrl}${image}`} />
+      <meta name="twitter:image" content={imageUrl} />
 
       {/* Geographic Meta Tags for Local SEO */}
       <meta name="geo.region" content="IN-JH" />
-      <meta name="geo.placename" content="Ranchi" />
+      <meta name="geo.placename" content={BUSINESS_CITY} />
       <meta name="geo.position" content={`${BUSINESS_GEO.latitude};${BUSINESS_GEO.longitude}`} />
       <meta name="ICBM" content={`${BUSINESS_GEO.latitude}, ${BUSINESS_GEO.longitude}`} />
 
@@ -251,12 +269,10 @@ const SEO = ({
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-      {/* Structured Data (JSON-LD) */}
-      {structuredData.map((data, index) => (
-        <script key={index} type="application/ld+json">
-          {JSON.stringify(data)}
-        </script>
-      ))}
+      {/* Structured Data (JSON-LD): one linked graph per page */}
+      <script type="application/ld+json">
+        {JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })}
+      </script>
     </Helmet>
   );
 };

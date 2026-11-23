@@ -37,7 +37,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "postbuild": "if [ \"$PRERENDER\" = \"false\" ]; then echo '⏭️  react-snap prerender skipped (PRERENDER=false)'; else react-snap; PAGES=$(find build -name index.html | wc -l); if [ \"$PAGES\" -ge 13 ] && grep -q 'rel=\"canonical\"' build/index.html && [ -z \"$(find build -name '*.html' -exec grep -l localhost:45678 {} +)\" ]; then echo \"✅ prerender verified: $PAGES pages, canonical present, no localhost leakage\"; else echo \"❌ prerender output INVALID — pages=$PAGES (need 13), or missing canonical, or localhost:45678 leaked. Set PRERENDER=false to skip intentionally.\"; exit 1; fi; fi",
+    "postbuild": "if [ \"$PRERENDER\" = \"false\" ]; then echo '⏭️  react-snap prerender skipped (PRERENDER=false)'; else node scripts/prerender.js; fi",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -56,12 +56,24 @@
       "/bricks-supplier-ranchi",
       "/sand-supplier-ranchi",
       "/construction-materials-ranchi",
+      "/gitti-rate-ranchi",
+      "/aaj-ka-rate",
+      "/about",
+      "/delete-account",
       "/products"
     ],
     "crawl": false,
     "concurrency": 8,
     "skipThirdPartyRequests": true,
     "inlineCss": false,
+    "minifyHtml": {
+      "collapseWhitespace": false,
+      "collapseBooleanAttributes": true,
+      "decodeEntities": true,
+      "keepClosingSlash": true,
+      "sortAttributes": true,
+      "sortClassName": false
+    },
     "puppeteerExecutablePath": "/usr/bin/chromium-browser",
     "puppeteerArgs": [
       "--no-sandbox",

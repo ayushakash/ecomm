@@ -19,9 +19,11 @@ import SEO from '../components/SEO/SEO';
 import { useBulkWhatsApp } from '../hooks/useBulkWhatsApp';
 import { AreaRequestButton } from '../components/AreaRequestModal';
 import { useTranslation } from 'react-i18next';
+import { landingForCategory } from './landing/landingConfig';
 
 const Home = () => {
   const { t } = useTranslation('home');
+  const { t: tl } = useTranslation('landing');
   const { user } = useAuth();
   const { number: bulkPhone } = useBulkWhatsApp();
   const { selectedAddress, merchantIds, isLoadingMerchants, locationInfo, selectedCity, cityMerchantIds, addresses, setSelectedAddress, requestLocationPermission } = useLocation();
@@ -113,12 +115,9 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SEO
-        title="Chardeevari - Buy Construction Materials Online in Ranchi, Jharkhand"
-        description="Best online store for construction materials in Ranchi. Buy cement, sand, bricks, TMT bars, aggregates with doorstep delivery. Quality products at competitive prices."
-        keywords="construction materials Ranchi, buy cement online Ranchi, building materials Jharkhand, M-Sand Ranchi, TMT bars online, bricks delivery Ranchi, construction supplies Ranchi, aggregates Jharkhand"
-        breadcrumbs={[
-          { name: 'Home', path: '/' }
-        ]}
+        title="Building Material Ranchi – 60 Min Delivery, COD | Chardeevari"
+        description="Order cement, sariya, balu, eent and gitti in Ranchi at today's rate. About 60-min delivery in Kadru, Harmu, Ashok Nagar, Doranda. Cash on delivery."
+        keywords="building material Ranchi, cement rate Ranchi, sariya rate Ranchi, balu rate Ranchi, gitti rate Ranchi, building material Kadru, building material Harmu, building material Doranda, building material Ashok Nagar"
       />
       {/* Hero Banner */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
@@ -141,9 +140,12 @@ const Home = () => {
             <p className="mt-2 text-sm sm:text-base text-[#B7C0CC] leading-relaxed">
               {t('hero.subtitle')}
             </p>
-            <div className="mt-3.5 inline-flex items-center gap-2 bg-success-400/15 border border-success-500/45 px-3 py-1.5 rounded-xl">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 13h11V6H3v7Zm11-4h4l3 3v2h-7V9Z" stroke="#4ADE80" strokeWidth="1.8" strokeLinejoin="round"/><circle cx="7" cy="17.5" r="2" stroke="#4ADE80" strokeWidth="1.8"/><circle cx="17.5" cy="17.5" r="2" stroke="#4ADE80" strokeWidth="1.8"/></svg>
-              <span className="text-xs font-bold text-success-300">{t('hero.fastDelivery')}</span>
+            <div className="mt-3.5 flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 bg-success-400/15 border border-success-500/45 px-3 py-1.5 rounded-xl">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 13h11V6H3v7Zm11-4h4l3 3v2h-7V9Z" stroke="#4ADE80" strokeWidth="1.8" strokeLinejoin="round"/><circle cx="7" cy="17.5" r="2" stroke="#4ADE80" strokeWidth="1.8"/><circle cx="17.5" cy="17.5" r="2" stroke="#4ADE80" strokeWidth="1.8"/></svg>
+                <span className="text-xs font-bold text-success-300">{t('hero.fastDelivery')}</span>
+              </div>
+              <Link to="/aaj-ka-rate" className="text-xs sm:text-sm font-bold text-brand-300 hover:text-brand-200">{t('hero.aajKaRate')}</Link>
             </div>
           </div>
         </div>
@@ -151,8 +153,8 @@ const Home = () => {
         {/* trust strip */}
         <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
           {[
-            { id: 'years', c: 'text-ink-700' },
-            { id: 'onTime', c: 'text-success-600' },
+            { id: 'fast', c: 'text-success-600' },
+            { id: 'cod', c: 'text-ink-700' },
             { id: 'genuine', c: 'text-ink-700' },
           ].map((s) => (
             <div key={s.id} className="bg-white border border-[#E7E9ED] rounded-2xl py-2.5 px-2 text-center">
@@ -400,20 +402,41 @@ const Home = () => {
                 {t('categories.all')}
               </button>
 
-              {/* Category Buttons */}
-              {categoriesData?.map((category) => (
-                <button
-                  key={category._id}
-                  onClick={() => handleCategoryChange(category._id)}
-                  className={`px-4 py-2.5 rounded-full text-sm font-bold transition-all flex-shrink-0 whitespace-nowrap border ${
-                    selectedCategory === category._id
-                      ? 'bg-ink-700 border-ink-700 text-white'
-                      : 'bg-white border-[#E7E9ED] text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {category.name}
-                </button>
-              ))}
+              {/* Aaj ka rate + categories that have a rate page are real links (crawlable);
+                  the rest filter this list in place. */}
+              <Link
+                to="/aaj-ka-rate"
+                className="px-4 py-2.5 rounded-full text-sm font-bold transition-all flex-shrink-0 whitespace-nowrap border bg-white border-brand-500/40 text-brand-600 hover:bg-gray-50"
+              >
+                {t('categories.aajKaRate')}
+              </Link>
+              {categoriesData?.map((category) => {
+                const landing = landingForCategory(category.name);
+                if (landing) {
+                  return (
+                    <Link
+                      key={category._id}
+                      to={`/${landing.slug}`}
+                      className="px-4 py-2.5 rounded-full text-sm font-bold transition-all flex-shrink-0 whitespace-nowrap border bg-white border-[#E7E9ED] text-gray-600 hover:bg-gray-50"
+                    >
+                      {tl(`pages.${landing.key}.linkLabel`)}
+                    </Link>
+                  );
+                }
+                return (
+                  <button
+                    key={category._id}
+                    onClick={() => handleCategoryChange(category._id)}
+                    className={`px-4 py-2.5 rounded-full text-sm font-bold transition-all flex-shrink-0 whitespace-nowrap border capitalize ${
+                      selectedCategory === category._id
+                        ? 'bg-ink-700 border-ink-700 text-white'
+                        : 'bg-white border-[#E7E9ED] text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

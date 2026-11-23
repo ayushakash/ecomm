@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
 import { merchantAPI, settingsAPI } from '../../services/api';
+import { SERVICE_AREAS } from '../../config/contact';
 import {
   ShoppingCartIcon,
   UserIcon,
@@ -24,14 +26,17 @@ const Header = ({ navigation, user, isAuthenticated, cartCount }) => {
   const [availableCities, setAvailableCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
-  const [serviceAreasNote, setServiceAreasNote] = useState('');
 
-  // Fetch public settings for the service-areas strip (silent on failure)
-  useEffect(() => {
-    settingsAPI.getPublic()
-      .then((data) => setServiceAreasNote(data.serviceAreasNote || ''))
-      .catch(() => {});
-  }, []);
+  // Service-areas strip: admin text from public settings (same query as
+  // useBulkWhatsApp, so it is in the prerender snapshot), with the known
+  // delivery areas as default so the strip is never missing from static HTML.
+  const { data: publicSettings } = useQuery({
+    queryKey: ['public-settings'],
+    queryFn: () => settingsAPI.getPublic(),
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+  const serviceAreasNote = publicSettings?.serviceAreasNote || `${SERVICE_AREAS.join(', ')} — 60-min delivery`;
 
   // Fetch available cities on component mount
   useEffect(() => {

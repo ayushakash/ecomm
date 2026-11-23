@@ -5,7 +5,7 @@
     "steelTmt": "Steel/TMT",
     "steelTmtBars": "Steel (TMT Bars)",
     "sand": "Sand",
-    "sandMSand": "Sand (M-Sand)",
+    "sandMSand": "Sand (balu)",
     "aggregate": "Aggregate",
     "aggregate20mm": "Aggregate (20mm)",
     "bricks": "Bricks"
@@ -115,5 +115,20 @@
     "phonePlaceholder": "10-digit mobile number",
     "cancel": "Cancel",
     "download": "Download"
+  },
+  "method": {
+    "title": "How the calculator estimates materials",
+    "intro": "The estimate uses common Indian civil-engineering thumb rules for a residential RCC-frame house, applied to your built-up area and number of floors. Footings are added per column, with one column roughly every 12 ft in each direction.",
+    "rules": [
+      "Cement: 0.45 bags (50 kg) per sq ft of built-up area per floor (thumb rule 0.40–0.45), plus 4 bags per column footing.",
+      "Steel (sariya): 3.3 kg per sq ft (thumb rule 3.0–3.5 kg), plus 50 kg per column footing.",
+      "Sand (balu): 1.1 cft per sq ft (thumb rule 1.0–1.2 cft), plus about 7.5 cft per footing.",
+      "Gitti (aggregate): 1.6 cft per sq ft (thumb rule 1.5–1.7 cft), plus about 14.5 cft per footing.",
+      "Bricks: about 7.5 bricks per sq ft of built-up area."
+    ],
+    "exampleTitle": "Example: 1,000 sq ft, single floor",
+    "example": "About 450 bags of cement, 3,300 kg of steel, 1,100 cft of sand, 1,600 cft of gitti and 7,500 bricks, before footings. A civil engineer should confirm final quantities for your design.",
+    "ratesText": "To turn quantities into cost, use the current Ranchi rates:",
+    "ratesLink": "aaj ka rate"
   }
 }

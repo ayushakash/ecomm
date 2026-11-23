@@ -62,7 +62,7 @@
     "off": "OFF",
     "sizesAvailable_one": "{{count}} size available",
     "sizesAvailable_other": "{{count}} sizes available",
-    "deliveryNote": "Same-day delivery · Pay on Delivery",
+    "deliveryNote": "~60-min delivery · Cash on delivery",
     "bulk": "Bulk? {{qty}}+ {{unit}}",
     "chooseOptions": "Choose Options",
     "quantity": "Quantity",
