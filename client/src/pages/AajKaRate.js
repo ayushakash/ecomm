@@ -18,19 +18,28 @@ const AajKaRate = () => {
   const { products, isLoading, isError } = useRateProducts();
   const groups = groupByCategory(rateRows(products));
   const date = formatRateDate(lastRevised(products), i18n.language);
+  // Each section is stamped with its own products' latest update, not the page-wide one.
+  const groupDate = (category) =>
+    formatRateDate(
+      lastRevised(products.filter((p) => (p.category?.name || '').toLowerCase() === category.toLowerCase())),
+      i18n.language
+    );
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <SEO
-        title={t('aajKaRate.seoTitle', { lng: 'en' })}
-        description={t('aajKaRate.seoDescription', { lng: 'en' })}
-        keywords="aaj ka rate Ranchi, building material rate Ranchi today, cement rate Ranchi, sariya rate Ranchi, balu rate Ranchi, gitti rate Ranchi, ईंट रेट रांची"
-        itemList={products.filter(isRateable).map(toSchemaProduct).filter(Boolean)}
-        breadcrumbs={[
-          { name: 'Home', path: '/' },
-          { name: 'Aaj Ka Rate', path: '/aaj-ka-rate' },
-        ]}
-      />
+      {/* Not during loading: a pre-data snapshot would add a second JSON-LD graph. */}
+      {!isLoading && (
+        <SEO
+          title={t('aajKaRate.seoTitle', { lng: 'en' })}
+          description={t('aajKaRate.seoDescription', { lng: 'en' })}
+          keywords="aaj ka rate Ranchi, building material rate Ranchi today, cement rate Ranchi, sariya rate Ranchi, balu rate Ranchi, gitti rate Ranchi, ईंट रेट रांची"
+          itemList={products.filter(isRateable).map(toSchemaProduct).filter(Boolean)}
+          breadcrumbs={[
+            { name: 'Home', path: '/' },
+            { name: 'Aaj Ka Rate', path: '/aaj-ka-rate' },
+          ]}
+        />
+      )}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl sm:text-4xl font-extrabold text-ink-700 leading-tight tracking-tight">{t('aajKaRate.h1')}</h1>
@@ -45,12 +54,13 @@ const AajKaRate = () => {
             groups.map((g) => {
               const lc = g.category.toLowerCase();
               const landing = landingForCategory(g.category);
+              const sectionDate = groupDate(g.category);
               return (
                 <section key={g.category}>
                   <h2 className="text-lg sm:text-xl font-extrabold text-ink-700 tracking-tight mb-3">
                     {CATEGORY_ORDER.includes(lc) ? t(`aajKaRate.groups.${lc}`) : `${t('aajKaRate.groups.other')}: ${g.category}`}
                   </h2>
-                  <RateTable rows={g.rows} caption={date ? t('table.caption', { date }) : undefined} />
+                  <RateTable rows={g.rows} caption={sectionDate ? t('table.caption', { date: sectionDate }) : undefined} />
                   {landing && (
                     <Link to={`/${landing.slug}`} className="inline-block mt-2 text-sm font-semibold text-brand-600 hover:text-brand-700">
                       {t('aajKaRate.groupLink')}

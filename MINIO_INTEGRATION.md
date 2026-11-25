@@ -81,12 +81,25 @@ Response:
 {
   "message": "3 image(s) uploaded successfully",
   "urls": [
-    "https://storage.chardeevari.in/product-images/1234567890-abc.jpg",
-    "https://storage.chardeevari.in/product-images/1234567891-def.jpg",
-    "https://storage.chardeevari.in/product-images/1234567892-ghi.jpg"
+    "https://storage.chardeevari.in/product-images/r/1234567890-abc.jpg",
+    "https://storage.chardeevari.in/product-images/r/1234567891-def.jpg",
+    "https://storage.chardeevari.in/product-images/r/1234567892-ghi.jpg"
   ]
 }
 ```
+
+Both product-image endpoints also store resized WebP copies next to each
+original (`services/ProductImageService.js`, via sharp):
+`r/<name>-160w.webp`, `r/<name>-400w.webp`, `r/<name>-800w.webp` (never
+upscaled). The web client builds `srcset` for any URL under
+`product-images/r/` (`client/src/utils/productImage.js`). Files sharp cannot
+read are stored without variants, outside `r/`, and are shown without srcset.
+Deleting an `r/` original also deletes its variants.
+
+Images uploaded before variants existed: run
+`node scripts/backfillProductImageVariants.js` (dry run) and then with
+`--apply`. It copies each image into `r/` with variants and updates
+`product.images`. Old objects are kept.
 
 ### Upload Single Image
 ```

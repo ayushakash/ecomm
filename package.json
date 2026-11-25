@@ -44,6 +44,7 @@
     "nodemailer": "^8.0.1",
     "react-query": "^4.0.0",
     "response-time": "^2.3.4",
+    "sharp": "^0.34.5",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {

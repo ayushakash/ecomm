@@ -2,13 +2,51 @@
 // the landing pages and /aaj-ka-rate. Prices are exactly what the product cards
 // show (variant price for sized products, otherwise product.price).
 
-/** Products with no base price (placeholders such as unpriced variants) are not quoted. */
-export const isRateable = (product) => Number(product?.price) > 0;
+const positive = (n) => Number(n) > 0;
+
+/** Products priced either directly or through at least one priced variant are quoted. */
+export const isRateable = (product) =>
+  positive(product?.price) || (product?.variants || []).some((v) => positive(v?.price));
+
+/** Lowest positive price across product.price and variants[].price, or null when unpriced. */
+export const effectivePrice = (product) => {
+  const prices = [product?.price, ...(product?.variants || []).map((v) => v?.price)]
+    .filter(positive)
+    .map(Number);
+  return prices.length ? Math.min(...prices) : null;
+};
 
 // "1/2 inch - Auto Load" -> { size: '1/2 inch', unit: 'auto load' }; "Tempo Load" -> { size: '', unit: 'tempo load' }
 const splitLoadLabel = (label) => {
-  const m = String(label).match(/^(.*?)[\s-]*(\b\w+\s+load)$/i);
+  const m = String(label || '').match(/^(.*?)[\s-]*(\b\w+\s+load)$/i);
   return m ? { size: m[1].trim(), unit: m[2].toLowerCase() } : null;
+};
+
+/** Cheapest priced variant, or undefined. */
+export const cheapestVariant = (product) =>
+  (product?.variants || [])
+    .filter((v) => positive(v?.price))
+    .reduce((min, v) => (!min || Number(v.price) < Number(min.price) ? v : min), undefined);
+
+/**
+ * Unit the shown price is per. A variant labelled "... Tempo Load" is priced per
+ * load, not per product.unit (e.g. River Sand stored as cubic-meter). Without a
+ * selected variant, the unit follows whichever price effectivePrice() picked.
+ */
+export const priceUnit = (product, variant) => {
+  let v = variant;
+  if (!v && !positive(product?.price)) v = cheapestVariant(product);
+  const load = v && splitLoadLabel(v.label);
+  return load ? load.unit : product?.unit || '';
+};
+
+/** "₹1,700/tempo load" (with "+" for a from-price), or '' when no positive price exists. */
+export const priceText = (product, variant) => {
+  const price = positive(variant?.price) ? Number(variant.price) : effectivePrice(product);
+  if (!price) return '';
+  const from = !positive(variant?.price) && !positive(product?.price) && (product?.variants || []).filter((v) => positive(v?.price)).length > 1;
+  const unit = priceUnit(product, positive(variant?.price) ? variant : undefined);
+  return `${formatINR(price)}${from ? '+' : ''}${unit ? `/${unit}` : ''}`;
 };
 
 /** One row per priced product/variant: { id, productId, name, size, unit, price, category }. */

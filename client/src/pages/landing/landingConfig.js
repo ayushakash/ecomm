@@ -10,6 +10,9 @@
 //
 // seoDescription(from) receives the live lowest rate ("₹330/bag") once products
 // load (they do at prerender), or undefined.
+//
+// guideSlug: the matching /blog/<slug> buying guide (anchor text: landing
+// i18n pages.<key>.guideLink), linked from the landing and product pages.
 
 const AREA = 'Kadru, Harmu, Ashok Nagar, Doranda';
 
@@ -19,6 +22,7 @@ export const LANDING_CONFIGS = {
     slug: 'cement-price-ranchi',
     category: 'Cement',
     breadcrumb: 'Cement Rate in Ranchi',
+    guideSlug: 'cement-calculation-1000-sqft-ranchi',
     seoTitle: 'Cement Rate in Ranchi Today – ACC, Dalmia, Concreto | Chardeevari',
     seoDescription: (from) =>
       `Today's cement rate in Ranchi: ACC, Dalmia, Concreto${from ? ` from ${from}` : ''}. 60-min delivery in ${AREA}. Cash on delivery.`,
@@ -31,6 +35,7 @@ export const LANDING_CONFIGS = {
     slug: 'tmt-steel-price-ranchi',
     category: 'Steel',
     breadcrumb: 'Sariya Rate in Ranchi',
+    guideSlug: 'best-tmt-bars-ranchi-2026',
     seoTitle: 'Sariya Rate in Ranchi Today – TMT Bar Price | Chardeevari',
     seoDescription: (from) =>
       `Sariya (TMT bar) rate in Ranchi today: Rungta TMT 8–16 mm${from ? ` from ${from}` : ''}. 60-min delivery in ${AREA}. Cash on delivery.`,
@@ -43,6 +48,7 @@ export const LANDING_CONFIGS = {
     slug: 'sand-supplier-ranchi',
     category: 'Sand',
     breadcrumb: 'Balu Rate in Ranchi',
+    guideSlug: 'msand-vs-river-sand-jharkhand',
     seoTitle: 'Balu Rate in Ranchi Today – River Sand Delivery | Chardeevari',
     seoDescription: (from) =>
       `Balu (river sand) rate in Ranchi today${from ? `: ${from}` : ''}. Tempo-load delivery in about 60 min in ${AREA}. Cash on delivery.`,

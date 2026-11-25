@@ -2,7 +2,6 @@ import React, { useEffect, Suspense, lazy } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { Routes, Route, Navigate, matchPath, useLocation as useRouterLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { LocationProvider } from './contexts/LocationContext';
@@ -258,18 +257,18 @@ function AppContent() {
 }
 
 function App() {
+  // No root GoogleOAuthProvider: the Google script loads only where sign-in is
+  // offered (Login/Register pages, and GoogleOneTap once its gate opens).
   return (
-    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''}>
-      <HelmetProvider>
-        <AuthProvider>
-          <LocationProvider>
-            <CartProvider>
-              <AppContent />
-            </CartProvider>
-          </LocationProvider>
-        </AuthProvider>
-      </HelmetProvider>
-    </GoogleOAuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <LocationProvider>
+          <CartProvider>
+            <AppContent />
+          </CartProvider>
+        </LocationProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 

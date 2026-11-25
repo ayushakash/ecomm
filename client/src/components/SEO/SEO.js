@@ -5,6 +5,7 @@ import {
   BUSINESS_CITY,
   BUSINESS_EMAIL,
   BUSINESS_GEO,
+  BUSINESS_HOURS,
   BUSINESS_MAPS_URL,
   BUSINESS_NAME,
   BUSINESS_PHONE_SCHEMA,
@@ -68,14 +69,12 @@ const BUSINESS_NODE = {
   geo: { '@type': 'GeoCoordinates', latitude: BUSINESS_GEO.latitude, longitude: BUSINESS_GEO.longitude },
   hasMap: BUSINESS_MAPS_URL,
   areaServed: AREA_SERVED,
-  openingHoursSpecification: [
-    {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-      opens: '09:00',
-      closes: '18:00',
-    },
-  ],
+  openingHoursSpecification: BUSINESS_HOURS.map(({ days, opens, closes }) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: days,
+    opens,
+    closes,
+  })),
   paymentAccepted: 'Cash',
   currenciesAccepted: 'INR',
   priceRange: '₹₹',
@@ -100,51 +99,94 @@ const priceValidUntil = () => {
   return d.toISOString().split('T')[0];
 };
 
+const MAX_TITLE = 60;
+const MAX_DESCRIPTION = 160;
+const BRAND_SUFFIX_RE = new RegExp(`\\s*\\|\\s*${BUSINESS_NAME}\\s*$`);
+
+/** Title without a trailing " | Chardeevari" (also the BlogPosting headline). */
+const baseTitle = (title) => title.replace(BRAND_SUFFIX_RE, '');
+
+/** Brand suffix only when the result still fits in MAX_TITLE characters. */
+export const fullTitleOf = (title) => {
+  const base = baseTitle(title);
+  const branded = `${base} | ${BUSINESS_NAME}`;
+  return base.includes(BUSINESS_NAME) || branded.length > MAX_TITLE ? base : branded;
+};
+
+/** Clips at a word boundary so the snippet ends cleanly (≤ MAX_DESCRIPTION chars). */
+export const clampDescription = (text) => {
+  if (!text || text.length <= MAX_DESCRIPTION) return text;
+  const cut = text.slice(0, MAX_DESCRIPTION - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > 100 ? cut.slice(0, space) : cut).replace(/[\s,.;:–-]+$/, '')}…`;
+};
+
+/** Offer for one admin price (incl. GST) per `unit`. */
+const offerNode = ({ price, unit, inStock }, url) => ({
+  '@type': 'Offer',
+  price,
+  priceCurrency: 'INR',
+  availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+  itemCondition: 'https://schema.org/NewCondition',
+  url,
+  priceValidUntil: priceValidUntil(),
+  seller: { '@id': BUSINESS_ID },
+  areaServed: AREA_SERVED,
+  priceSpecification: {
+    '@type': 'UnitPriceSpecification',
+    price,
+    priceCurrency: 'INR',
+    valueAddedTaxIncluded: true,
+    ...(unit && { unitText: unit }),
+  },
+});
+
 /**
- * Product + Offer/AggregateOffer. `product`:
- * { name, description, images[], sku, brand, category, unit, inStock,
- *   price | (lowPrice, highPrice, offerCount) }  — prices as shown (incl. GST).
+ * Product + Offer, or ProductGroup + hasVariant (one Product/Offer per sized
+ * variant). `product` comes from toSchemaProduct():
+ * { name, description, images[], sku, brand, category, inStock,
+ *   price, unit, size? | variants[{ label, price, unit, sku, inStock }] }
+ * — prices as shown (admin price, incl. GST).
  */
 const productNode = (product, url) => {
+  const image = (product.images?.length ? product.images : [DEFAULT_IMAGE]).map(absolute);
   const shared = {
-    priceCurrency: 'INR',
-    availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-    itemCondition: 'https://schema.org/NewCondition',
-    url,
-    priceValidUntil: priceValidUntil(),
-    seller: { '@id': BUSINESS_ID },
-    areaServed: AREA_SERVED,
+    name: product.name,
+    description: product.description,
+    image,
+    ...(product.brand && { brand: { '@type': 'Brand', name: product.brand } }),
+    ...(product.category && { category: product.category }),
   };
-  const offers = product.price
-    ? {
-        '@type': 'Offer',
-        price: product.price,
-        ...shared,
-        priceSpecification: {
-          '@type': 'UnitPriceSpecification',
-          price: product.price,
-          priceCurrency: 'INR',
-          valueAddedTaxIncluded: true,
-          ...(product.unit && { unitText: product.unit }),
-        },
-      }
-    : {
-        '@type': 'AggregateOffer',
-        lowPrice: product.lowPrice,
-        highPrice: product.highPrice,
-        offerCount: product.offerCount,
-        ...shared,
-      };
+  if (product.variants?.length) {
+    const groupId = product.sku || url;
+    return {
+      '@type': 'ProductGroup',
+      '@id': `${url}#product`,
+      ...shared,
+      ...(product.sku && { sku: product.sku }),
+      productGroupID: groupId,
+      variesBy: 'https://schema.org/size',
+      url,
+      hasVariant: product.variants.map((v, i) => ({
+        '@type': 'Product',
+        '@id': `${url}#variant-${i + 1}`,
+        name: `${product.name} ${v.label}`,
+        description: product.description,
+        image,
+        ...(v.sku && { sku: v.sku }),
+        size: v.label,
+        inProductGroupWithID: groupId,
+        offers: offerNode(v, url),
+      })),
+    };
+  }
   return {
     '@type': 'Product',
     '@id': `${url}#product`,
-    name: product.name,
-    description: product.description,
-    image: (product.images?.length ? product.images : [DEFAULT_IMAGE]).map(absolute),
+    ...shared,
     ...(product.sku && { sku: product.sku }),
-    ...(product.brand && { brand: { '@type': 'Brand', name: product.brand } }),
-    ...(product.category && { category: product.category }),
-    offers,
+    ...(product.size && { size: product.size }),
+    offers: offerNode(product, url),
   };
 };
 
@@ -165,7 +207,8 @@ const SEO = ({
   faqs = null, // [{ question, answer }] -> FAQPage schema
   article = null // { datePublished, dateModified, author } -> BlogPosting schema
 }) => {
-  const fullTitle = title.includes(BUSINESS_NAME) ? title : `${title} | ${BUSINESS_NAME}`;
+  const fullTitle = fullTitleOf(title);
+  const metaDescription = clampDescription(description);
   const imageUrl = absolute(image);
 
   const graph = [BUSINESS_NODE, WEBSITE_NODE];
@@ -210,8 +253,8 @@ const SEO = ({
   if (article) {
     graph.push({
       '@type': 'BlogPosting',
-      headline: title,
-      description,
+      headline: baseTitle(title),
+      description: metaDescription,
       image: imageUrl,
       datePublished: article.datePublished,
       dateModified: article.dateModified || article.datePublished,
@@ -227,7 +270,7 @@ const SEO = ({
     <Helmet defer={false}>
       {/* Basic Meta Tags */}
       <title>{fullTitle}</title>
-      <meta name="description" content={description} />
+      <meta name="description" content={metaDescription} />
       <meta name="keywords" content={keywords} />
 
       {/* Robots Meta — not-found / account pages stay out of the index */}
@@ -244,7 +287,7 @@ const SEO = ({
       <meta property="og:type" content={type} />
       <meta property="og:url" content={url} />
       <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description} />
+      <meta property="og:description" content={metaDescription} />
       <meta property="og:image" content={imageUrl} />
       {image === DEFAULT_IMAGE && <meta property="og:image:width" content="1200" />}
       {image === DEFAULT_IMAGE && <meta property="og:image:height" content="630" />}
@@ -255,7 +298,7 @@ const SEO = ({
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:url" content={url} />
       <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description} />
+      <meta name="twitter:description" content={metaDescription} />
       <meta name="twitter:image" content={imageUrl} />
 
       {/* Geographic Meta Tags for Local SEO */}

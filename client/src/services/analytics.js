@@ -33,20 +33,17 @@ class AnalyticsService {
     this.initialized = true;
     this.trackContactClicks();
 
-    // Meta Pixel fires quickly (800ms) so paid-ad clicks are attributed even when
-    // a visitor bounces within a few seconds — the script is async, so this costs
-    // little. Google Analytics stays deferred to 5s to protect LCP/FCP.
-    const startPixel = () => {
-      if (this.metaPixelId && this.metaPixelId !== '000000000000000') this.initializeMetaPixel();
-    };
+    // Meta Pixel: the fbq queue exists from the start, so every event (including
+    // the first PageView from trackPageView) is kept, but the ~200 KB of Meta
+    // scripts are fetched only on the first user interaction — not during page
+    // load, where they cost up to ~1 s of main-thread time.
+    if (this.metaPixelId && this.metaPixelId !== '000000000000000') this.initializeMetaPixel();
+
+    // Google Analytics stays deferred to 5s to protect LCP/FCP.
     const startGA = () => {
       if (this.gaId && this.gaId !== 'G-XXXXXXXXXX') this.initializeGoogleAnalytics();
     };
-
-    const schedule = () => {
-      setTimeout(startPixel, 800);
-      setTimeout(startGA, 5000);
-    };
+    const schedule = () => setTimeout(startGA, 5000);
 
     if (document.readyState === 'complete') {
       schedule();
@@ -114,32 +111,53 @@ class AnalyticsService {
   }
 
   /**
-   * Initialize Meta (Facebook) Pixel
+   * Initialize Meta (Facebook) Pixel: install the standard fbq queue stub now and
+   * load fbevents.js on the first pointer/key/scroll interaction. Queued calls
+   * are replayed by fbevents.js when it arrives.
    */
   initializeMetaPixel() {
-    // Meta Pixel initialization code
-    // eslint-disable-next-line no-unused-expressions
-    !function(f,b,e,v,n,t,s) {
-      if(f.fbq) return;
-      n = f.fbq = function() {
-        n.callMethod ? n.callMethod.apply(n,arguments) : n.queue.push(arguments)
-      };
-      if(!f._fbq) f._fbq = n;
-      n.push = n;
-      n.loaded = !0;
-      n.version = '2.0';
-      n.queue = [];
-      t = b.createElement(e);
-      t.async = !0;
-      t.src = v;
-      s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s);
-    }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+    if (window.fbq) return;
+    const fbq = function() {
+      if (fbq.callMethod) fbq.callMethod.apply(fbq, arguments);
+      else fbq.queue.push(arguments);
+    };
+    window.fbq = fbq;
+    if (!window._fbq) window._fbq = fbq;
+    fbq.push = fbq;
+    fbq.loaded = true;
+    fbq.version = '2.0';
+    fbq.queue = [];
 
-    window.fbq('init', this.metaPixelId);
-    window.fbq('track', 'PageView');
+    this.persistFbclid();
+    fbq('init', this.metaPixelId);
+    // The initial PageView comes from trackPageView() on the first route render.
 
-    console.log('✅ Meta Pixel initialized:', this.metaPixelId);
+    const events = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
+    const load = () => {
+      events.forEach((type) => window.removeEventListener(type, load, true));
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://connect.facebook.net/en_US/fbevents.js';
+      document.head.appendChild(script);
+      console.log('✅ Meta Pixel loading:', this.metaPixelId);
+    };
+    events.forEach((type) => window.addEventListener(type, load, { capture: true, passive: true }));
+  }
+
+  /**
+   * The pixel normally turns ?fbclid= into the _fbc click-id cookie when it loads.
+   * It now loads on first interaction — often a tap that navigates away from the
+   * landing URL — so store the click id up front (Meta's documented
+   * fb.<subdomainIndex>.<creationTime>.<fbclid> format) to keep ad attribution.
+   */
+  persistFbclid() {
+    const fbclid = new URL(this.landingUrl).searchParams.get('fbclid');
+    // Meta requires the raw value; anything outside its URL-safe alphabet is not a real click id.
+    if (!fbclid || !/^[\w-]+$/.test(fbclid)) return;
+    const current = document.cookie.match(/(?:^|;\s*)_fbc=([^;]*)/);
+    if (current && current[1].endsWith(`.${fbclid}`)) return;
+    const maxAge = 90 * 24 * 60 * 60; // Meta's _fbc lifetime
+    document.cookie = `_fbc=fb.1.${Date.now()}.${fbclid}; max-age=${maxAge}; path=/; SameSite=Lax`;
   }
 
   /**

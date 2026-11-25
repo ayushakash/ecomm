@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './index.css';
-import './i18n';
+import { i18nReady } from './i18n';
 import { prerenderBoot } from './components/AfterHydration';
 import App, { preloadRoute } from './App';
 import { getPrerenderLocationState } from './contexts/LocationContext';
@@ -95,7 +95,8 @@ if (rootElement.hasChildNodes()) {
     .catch(() => {})
     .then(() => ReactDOM.hydrateRoot(rootElement, appTree));
 } else {
-  ReactDOM.createRoot(rootElement).render(appTree);
+  // A saved Hindi choice loads its translation chunk before the first paint.
+  i18nReady.then(() => ReactDOM.createRoot(rootElement).render(appTree));
 }
 
 

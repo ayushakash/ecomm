@@ -38,6 +38,7 @@
     "cement": {
       "h1": "Cement Rate in Ranchi Today (सीमेंट रेट)",
       "linkLabel": "Cement rate",
+      "guideLink": "Guide: how much cement a 1,000 sq ft house needs →",
       "intro": [
         "Today's cement rate in Ranchi for ACC, Dalmia and Concreto cement, per 50 kg bag, straight from our live catalogue. Order a few bags or a full slab's worth."
       ],
@@ -74,6 +75,7 @@
     "steel": {
       "h1": "Sariya / TMT Rate in Ranchi Today (सरिया रेट)",
       "linkLabel": "Sariya (TMT) rate",
+      "guideLink": "Guide: choosing good quality TMT bars in Ranchi →",
       "intro": [
         "Today's sariya (TMT bar) rate in Ranchi by size, per piece, straight from our live catalogue. Rungta TMT bars — a Jharkhand steel brand — in 8 mm, 10 mm, 12 mm and 16 mm for footings, columns, beams and slabs."
       ],
@@ -106,6 +108,7 @@
     "sand": {
       "h1": "Balu (River Sand) Rate in Ranchi (बालू रेट)",
       "linkLabel": "Balu (sand) rate",
+      "guideLink": "Guide: M-sand vs river sand for construction in Jharkhand →",
       "intro": [
         "Today's balu rate in Ranchi: river sand delivered by the tempo load, straight from our live catalogue. Used for plaster, brickwork mortar and concrete."
       ],

@@ -19,7 +19,7 @@ const ALL_LINKS = Object.values(LANDING_CONFIGS).map((c) => ({ key: c.key, to: `
 const MaterialLanding = ({ config }) => {
   const { t, i18n } = useTranslation('landing');
   const { t: tr } = useTranslation('rates');
-  const { key, slug, category, breadcrumb, seoTitle, seoDescription, keywords } = config;
+  const { key, slug, category, breadcrumb, seoTitle, seoDescription, keywords, guideSlug } = config;
   const page = (k, opts) => t(`pages.${key}.${k}`, opts);
   const intro = page('intro', { returnObjects: true });
   const guide = page('guide', { returnObjects: true });
@@ -61,17 +61,20 @@ const MaterialLanding = ({ config }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <SEO
-        title={seoTitle}
-        description={description}
-        keywords={keywords}
-        itemList={products.filter(isRateable).map(toSchemaProduct).filter(Boolean)}
-        faqs={faqs}
-        breadcrumbs={[
-          { name: 'Home', path: '/' },
-          { name: breadcrumb, path: `/${slug}` },
-        ]}
-      />
+      {/* Not during loading: a pre-data snapshot would add a second JSON-LD graph. */}
+      {!isLoading && (
+        <SEO
+          title={seoTitle}
+          description={description}
+          keywords={keywords}
+          itemList={products.filter(isRateable).map(toSchemaProduct).filter(Boolean)}
+          faqs={faqs}
+          breadcrumbs={[
+            { name: 'Home', path: '/' },
+            { name: breadcrumb, path: `/${slug}` },
+          ]}
+        />
+      )}
 
       {/* Hero */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
@@ -146,6 +149,13 @@ const MaterialLanding = ({ config }) => {
           {guide.map((para, i) => (
             <p key={i} className="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed">{para}</p>
           ))}
+          {guideSlug && (
+            <p className="mt-4">
+              <Link to={`/blog/${guideSlug}`} className="text-sm sm:text-base font-semibold text-brand-600 hover:text-brand-700">
+                {page('guideLink')}
+              </Link>
+            </p>
+          )}
         </section>
       )}
 

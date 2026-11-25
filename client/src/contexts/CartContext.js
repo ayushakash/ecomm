@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { toast } from 'react-hot-toast';
 import { abandonedCartAPI, productAPI } from '../services/api';
 import analytics from '../services/analytics';
+import { priceUnit } from '../utils/rates';
 
 const CartContext = createContext();
 
@@ -131,7 +132,7 @@ export const CartProvider = ({ children }) => {
         name: product.name,
         variantLabel: variant?.label || null,
         price: variant ? variant.price : product.price,
-        unit: product.unit,
+        unit: variant ? priceUnit(product, variant) : product.unit,
         quantity,
         images: product.images || [],
         stock: variant ? variant.stock : (product.totalStock || product.stock),

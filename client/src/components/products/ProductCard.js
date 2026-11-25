@@ -8,6 +8,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
 import analytics from '../../services/analytics';
 import { useTranslation } from 'react-i18next';
+import { effectivePrice, priceUnit } from '../../utils/rates';
+import { IMAGE_SIZES, productImageProps } from '../../utils/productImage';
 
 const ProductCard = ({ product, priority = false }) => {
   const { addToCart, removeFromCart, updateQuantity, getCartItem, cartCity, clearCart } = useCart();
@@ -18,9 +20,8 @@ const ProductCard = ({ product, priority = false }) => {
 
   const hasVariants = product.variants && product.variants.length > 0;
   const cartItem = getCartItem(product._id); // for non-variant products only
-  const minVariantPrice = hasVariants
-    ? Math.min(...product.variants.map(v => v.price))
-    : null;
+  const minVariantPrice = hasVariants ? effectivePrice(product) ?? 0 : null;
+  const shownUnit = priceUnit(product);
 
   const getCurrentCity = () =>
     user && selectedAddress ? selectedAddress.city : (selectedCity ? selectedCity.city : null);
@@ -90,7 +91,7 @@ const ProductCard = ({ product, priority = false }) => {
         <div className="relative aspect-square overflow-hidden bg-[#F3F4F6]">
           {product.images && product.images.length > 0 ? (
             <img
-              src={product.images[0]}
+              {...productImageProps(product.images[0], IMAGE_SIZES.card)}
               alt={product.name}
               width={320}
               height={320}
@@ -134,8 +135,8 @@ const ProductCard = ({ product, priority = false }) => {
                 <span className="text-lg font-extrabold text-ink-700 tracking-tight">
                   ₹{minVariantPrice.toLocaleString()}
                 </span>
-                {product.unit && (
-                  <span className="text-xs text-gray-400 font-semibold">/{product.unit}</span>
+                {shownUnit && (
+                  <span className="text-xs text-gray-400 font-semibold">/{shownUnit}</span>
                 )}
               </>
             ) : (

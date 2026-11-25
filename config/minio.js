@@ -48,6 +48,28 @@ const ensureBucket = async (bucketName) => {
   }
 };
 
+const publicUrl = (bucketName, objectName) =>
+  `${process.env.MINIO_PUBLIC_URL || 'https://storage.chardeevari.in'}/${bucketName}/${objectName}`;
+
+/** "<timestamp>-<random>.<ext>" object name for an uploaded file. */
+const uniqueObjectName = (fileName) => {
+  const fileExtension = fileName.split('.').pop();
+  return `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+};
+
+/**
+ * Store a buffer under an exact object name (bucket is created if missing).
+ * @returns {Promise<string>} - Public URL of the object
+ */
+const putPublicObject = async (bucketName, objectName, fileBuffer, contentType) => {
+  await ensureBucket(bucketName);
+  await minioClient.putObject(bucketName, objectName, fileBuffer, fileBuffer.length, {
+    'Content-Type': contentType,
+    'Cache-Control': 'max-age=31536000' // 1 year cache
+  });
+  return publicUrl(bucketName, objectName);
+};
+
 /**
  * Upload file to MinIO
  * @param {Buffer} fileBuffer - File buffer
@@ -58,36 +80,23 @@ const ensureBucket = async (bucketName) => {
  */
 const uploadFile = async (fileBuffer, fileName, bucketName = BUCKETS.PRODUCT_IMAGES, contentType = 'image/jpeg') => {
   try {
-    // Ensure bucket exists
-    await ensureBucket(bucketName);
-
-    // Generate unique filename with timestamp
-    const timestamp = Date.now();
-    const fileExtension = fileName.split('.').pop();
-    const uniqueFileName = `${timestamp}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
-
-    // Upload file
-    await minioClient.putObject(
-      bucketName,
-      uniqueFileName,
-      fileBuffer,
-      fileBuffer.length,
-      {
-        'Content-Type': contentType,
-        'Cache-Control': 'max-age=31536000' // 1 year cache
-      }
-    );
-
-    // Return public URL
-    const baseUrl = process.env.MINIO_PUBLIC_URL || 'https://storage.chardeevari.in';
-    const publicUrl = `${baseUrl}/${bucketName}/${uniqueFileName}`;
-
-    console.log(`✅ File uploaded: ${publicUrl}`);
-    return publicUrl;
+    const url = await putPublicObject(bucketName, uniqueObjectName(fileName), fileBuffer, contentType);
+    console.log(`✅ File uploaded: ${url}`);
+    return url;
   } catch (error) {
     console.error('MinIO upload error:', error);
     throw error;
   }
+};
+
+/** Split a storage URL into { bucketName, objectName }. */
+const parseObjectUrl = (fileUrl) => {
+  // Example: https://storage.chardeevari.in/product-images/1234-abc.jpg
+  const pathParts = new URL(fileUrl).pathname.split('/').filter(Boolean);
+  if (pathParts.length < 2) {
+    throw new Error('Invalid file URL format');
+  }
+  return { bucketName: pathParts[0], objectName: pathParts.slice(1).join('/') };
 };
 
 /**
@@ -97,19 +106,8 @@ const uploadFile = async (fileBuffer, fileName, bucketName = BUCKETS.PRODUCT_IMA
  */
 const deleteFile = async (fileUrl) => {
   try {
-    // Extract bucket and file name from URL
-    // Example: https://storage.chardeevari.in/product-images/1234-abc.jpg
-    const url = new URL(fileUrl);
-    const pathParts = url.pathname.split('/').filter(Boolean);
-
-    if (pathParts.length < 2) {
-      throw new Error('Invalid file URL format');
-    }
-
-    const bucketName = pathParts[0];
-    const fileName = pathParts.slice(1).join('/');
-
-    await minioClient.removeObject(bucketName, fileName);
+    const { bucketName, objectName } = parseObjectUrl(fileUrl);
+    await minioClient.removeObject(bucketName, objectName);
     console.log(`✅ File deleted: ${fileUrl}`);
   } catch (error) {
     console.error('MinIO delete error:', error);
@@ -137,6 +135,9 @@ module.exports = {
   minioClient,
   BUCKETS,
   uploadFile,
+  putPublicObject,
+  uniqueObjectName,
+  parseObjectUrl,
   deleteFile,
   deleteFiles,
   ensureBucket

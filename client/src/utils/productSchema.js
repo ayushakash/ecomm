@@ -1,8 +1,9 @@
 /**
  * Maps an /api/products product to the `product` / `itemList` entries that
- * SEO.js turns into schema.org Product + Offer. Prices are exactly what the
- * product page shows (single price, or the range of variant prices).
+ * SEO.js turns into schema.org Product + Offer (or ProductGroup + hasVariant).
+ * Prices are exactly the admin-set prices the product page shows.
  */
+import { effectivePrice, priceUnit } from './rates';
 
 // Brands we stock, as they appear in product names (catalogue has no brand field).
 const KNOWN_BRANDS = [
@@ -27,13 +28,20 @@ export const brandOf = (product) => {
 export const categoryNameOf = (product) =>
   product?.category?.name || (typeof product?.category === 'string' ? product.category : undefined);
 
+/** Admin-priced variants, in catalogue order. */
+export const pricedVariants = (product) =>
+  (product?.variants || []).filter((v) => Number(v?.price) > 0);
+
 /**
  * SEO.js product shape, or null when the product has no sellable price
  * (Product schema without an offer is invalid, so it is omitted entirely).
+ * - 2+ priced variants → `variants: [{ label, price, unit, sku, inStock }]` (ProductGroup)
+ * - 1 priced variant   → plain `price` of that variant (+ `size`)
+ * - no variants        → plain `price` (product.price)
  */
 export const toSchemaProduct = (product) => {
   if (!product) return null;
-  const variantPrices = (product.variants || []).map((v) => Number(v.price)).filter((p) => p > 0);
+  const variants = pricedVariants(product);
   const inStock = (product.totalStock ?? product.stock ?? 0) > 0
     || (product.variants || []).some((v) => v.stock > 0);
   const base = {
@@ -43,17 +51,30 @@ export const toSchemaProduct = (product) => {
     sku: product.sku,
     brand: brandOf(product),
     category: categoryNameOf(product),
-    unit: product.unit,
     inStock,
     url: `/products/${product._id}`,
   };
-  if (variantPrices.length) {
+  if (variants.length > 1) {
     return {
       ...base,
-      lowPrice: Math.min(...variantPrices),
-      highPrice: Math.max(...variantPrices),
-      offerCount: variantPrices.length,
+      variants: variants.map((v) => ({
+        label: v.label,
+        price: Number(v.price),
+        unit: priceUnit(product, v),
+        sku: v.sku,
+        inStock: v.stock > 0,
+      })),
     };
   }
-  return product.price > 0 ? { ...base, price: product.price } : null;
+  if (variants.length === 1) {
+    const [v] = variants;
+    return {
+      ...base,
+      price: Number(v.price),
+      unit: priceUnit(product, v),
+      size: v.label,
+    };
+  }
+  const price = effectivePrice(product);
+  return price ? { ...base, price, unit: priceUnit(product) } : null;
 };

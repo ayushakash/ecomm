@@ -91,6 +91,7 @@ const Footer = ({ cartCount = 0 }) => {
             <li><Link to="/about" className="hover:text-brand-600">{t('nav.aboutUs')}</Link></li>
             <li><Link to="/contact" className="hover:text-brand-600">{t('nav.contactUs')}</Link></li>
             <li><Link to="/blog" className="hover:text-brand-600">{t('nav.blog')}</Link></li>
+            <li><Link to="/privacy-policy" className="hover:text-brand-600">{t('nav.privacyPolicy')}</Link></li>
             <li>
               <a
                 href={playStoreLink('footer')}

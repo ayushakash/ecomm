@@ -108,11 +108,32 @@ function verify(include, productPaths) {
     ((html.match(tagRe) || [''])[0].match(new RegExp(`${attr}="([^"]*)"`)) || [])[1];
   const canonicalOf = (html) => tagAttr(html, /<link[^>]*rel="canonical"[^>]*>/, 'href');
   const isNoindex = (html) => /noindex/.test(tagAttr(html, /<meta[^>]*name="robots"[^>]*>/, 'content') || '');
+  // Top-level JSON-LD node types on a page; a type in 2+ nodes means a stale
+  // pre-data <SEO> graph was snapshotted next to the real one.
+  const duplicateLdTypes = (route, html) => {
+    const counts = {};
+    for (const [, json] of html.matchAll(/<script[^>]*type="?application\/ld\+json"?[^>]*>([\s\S]*?)<\/script>/g)) {
+      let data;
+      try {
+        data = JSON.parse(json);
+      } catch (err) {
+        errors.push(`${route}: unparseable JSON-LD (${err.message})`);
+        continue;
+      }
+      const nodes = (Array.isArray(data) ? data : [data]).flatMap((d) => d['@graph'] || [d]);
+      for (const node of nodes) {
+        for (const type of [].concat(node['@type'] || [])) counts[type] = (counts[type] || 0) + 1;
+      }
+    }
+    return Object.keys(counts).filter((type) => counts[type] > 1);
+  };
 
   for (const route of include) {
     const html = read(route);
     if (html === null) continue;
     if (html.includes(`localhost:${PORT}`)) errors.push(`${route}: localhost:${PORT} leaked into HTML`);
+    const dupTypes = duplicateLdTypes(route, html);
+    if (dupTypes.length) errors.push(`${route}: duplicate JSON-LD @type ${dupTypes.join(', ')} (stale pre-data <SEO> snapshotted?)`);
     if (route === NOT_FOUND_ROUTE) {
       if (!isNoindex(html)) errors.push(`${route}: missing noindex`);
       continue;
@@ -141,7 +162,7 @@ function verify(include, productPaths) {
   if (errors.length) fail(`output INVALID:\n   - ${errors.join('\n   - ')}`);
   console.log(
     `✅ prerender verified: ${include.length} pages (${productPaths.length} products, ` +
-      `${indexedProducts.length} with Product schema), canonicals self-referencing, prices present, no localhost leakage`
+      `${indexedProducts.length} with Product schema), canonicals self-referencing, no duplicate JSON-LD types, prices present, no localhost leakage`
   );
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useGoogleOneTapLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, useGoogleOneTapLogin } from '@react-oauth/google';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -21,28 +21,19 @@ import { useAuth } from '../contexts/AuthContext';
  *  - auth is still loading (avoid prompting before we know the login state),
  *  - the user is already logged in,
  *  - we're on a dedicated auth page (Login/Register already have a button).
+ *
+ * The Google Identity Services script (~100 KB) is loaded only when the prompt
+ * may actually show: <GoogleOAuthProvider> mounts the first time the gate
+ * opens, then stays mounted (no re-download) while `disabled` toggles.
  */
 const AUTH_ROUTES = ['/login', '/register', '/merchant-register'];
 
 const PAGEVIEWS_BEFORE_PROMPT = 2; // landing page = 1; prompt from the 2nd page on
 const PAGEVIEW_COUNT_KEY = 'oneTapPageviews'; // sessionStorage — resets each browser session
+const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
 
-const GoogleOneTap = () => {
-  const { user, loading, loginWithGoogle } = useAuth();
-  const { pathname } = useLocation();
-  const [engaged, setEngaged] = useState(false);
-
-  // Count route views for this session; unlock One Tap from the 2nd view.
-  useEffect(() => {
-    const views = (parseInt(sessionStorage.getItem(PAGEVIEW_COUNT_KEY), 10) || 0) + 1;
-    sessionStorage.setItem(PAGEVIEW_COUNT_KEY, String(views));
-    if (views >= PAGEVIEWS_BEFORE_PROMPT) setEngaged(true);
-  }, [pathname]);
-
-  const onAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
-  // react-snap prerender has no Google script (third-party requests are blocked).
-  const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent === 'ReactSnap';
-  const disabled = loading || !!user || onAuthRoute || isPrerender || !engaged;
+const OneTapPrompt = ({ disabled }) => {
+  const { loginWithGoogle } = useAuth();
 
   useGoogleOneTapLogin({
     disabled,
@@ -61,6 +52,36 @@ const GoogleOneTap = () => {
   });
 
   return null;
+};
+
+const GoogleOneTap = () => {
+  const { user, loading } = useAuth();
+  const { pathname } = useLocation();
+  const [engaged, setEngaged] = useState(false);
+  const [scriptWanted, setScriptWanted] = useState(false);
+
+  // Count route views for this session; unlock One Tap from the 2nd view.
+  useEffect(() => {
+    const views = (parseInt(sessionStorage.getItem(PAGEVIEW_COUNT_KEY), 10) || 0) + 1;
+    sessionStorage.setItem(PAGEVIEW_COUNT_KEY, String(views));
+    if (views >= PAGEVIEWS_BEFORE_PROMPT) setEngaged(true);
+  }, [pathname]);
+
+  const onAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
+  // react-snap prerender has no Google script (third-party requests are blocked).
+  const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent === 'ReactSnap';
+  const disabled = !CLIENT_ID || loading || !!user || onAuthRoute || isPrerender || !engaged;
+
+  useEffect(() => {
+    if (!disabled) setScriptWanted(true);
+  }, [disabled]);
+
+  if (!scriptWanted) return null;
+  return (
+    <GoogleOAuthProvider clientId={CLIENT_ID}>
+      <OneTapPrompt disabled={disabled} />
+    </GoogleOAuthProvider>
+  );
 };
 
 export default GoogleOneTap;

@@ -30,6 +30,15 @@ export const BUSINESS_EMAIL = 'hello@chardeevari.in';
 /** Google Maps listing (GBP CID). */
 export const BUSINESS_MAPS_URL = 'https://maps.google.com/?cid=5686756681345402583';
 
+/**
+ * Opening hours (schema.org day names, 24h times). Single source for the
+ * HardwareStore JSON-LD; must match the Google Business Profile hours.
+ * Current value: Mon–Sat 09:00–18:00, Sunday closed.
+ */
+export const BUSINESS_HOURS = [
+  { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], opens: '09:00', closes: '18:00' },
+];
+
 /** Localities we deliver to (≈5 km around each), in display order. */
 export const SERVICE_AREAS = ['Kadru', 'Harmu', 'Ashok Nagar', 'Doranda'];
 

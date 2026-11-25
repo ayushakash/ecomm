@@ -236,9 +236,9 @@ const ProductList = () => {
   // SEO renders in every state below (react-snap may snapshot any of them).
   const seo = (
     <SEO
-      title="Building Materials Price in Ranchi – Cement, Sariya, Balu, Bricks, Gitti"
-      description="Today's rates for cement (ACC, Dalmia, Concreto), Rungta TMT sariya, balu, grey cement bricks and gitti in Ranchi. 60-minute delivery near Kadru, Harmu, Ashok Nagar and Doranda. Cash on delivery."
-      keywords="building materials price Ranchi, cement price Ranchi, ACC cement Ranchi, Dalmia cement Ranchi, Concreto cement Ranchi, Rungta TMT Ranchi, sariya rate Ranchi, balu price Ranchi, cement bricks Ranchi, gitti rate Ranchi"
+      title="Buy Building Materials Online in Ranchi"
+      description="Shop cement (ACC, Dalmia, Concreto), Rungta TMT sariya, balu, grey cement bricks and gitti online. 60-min delivery near Kadru, Harmu, Ashok Nagar, Doranda. COD."
+      keywords="buy building materials online Ranchi, building materials shop Ranchi, cement online Ranchi, TMT sariya online Ranchi, balu delivery Ranchi, cement bricks Ranchi, gitti delivery Ranchi"
       breadcrumbs={[
         { name: 'Home', path: '/' },
         { name: 'Products', path: '/products' }

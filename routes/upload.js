@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
-const { uploadFile, deleteFile, BUCKETS } = require('../config/minio');
+const { uploadFile, BUCKETS } = require('../config/minio');
+const { uploadProductImage, deleteImage } = require('../services/ProductImageService');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -33,17 +34,10 @@ router.post('/product-images', verifyToken, requireAdmin, upload.array('images',
       return res.status(400).json({ message: 'No files uploaded' });
     }
 
-    // Upload all files to MinIO
-    const uploadPromises = req.files.map(file =>
-      uploadFile(
-        file.buffer,
-        file.originalname,
-        BUCKETS.PRODUCT_IMAGES,
-        file.mimetype
-      )
+    // Each photo is stored with resized WebP variants for srcset (ProductImageService).
+    const urls = await Promise.all(
+      req.files.map(file => uploadProductImage(file.buffer, file.originalname, file.mimetype))
     );
-
-    const urls = await Promise.all(uploadPromises);
 
     res.json({
       message: `${urls.length} image(s) uploaded successfully`,
@@ -68,12 +62,7 @@ router.post('/single-product-image', verifyToken, requireAdmin, upload.single('i
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const url = await uploadFile(
-      req.file.buffer,
-      req.file.originalname,
-      BUCKETS.PRODUCT_IMAGES,
-      req.file.mimetype
-    );
+    const url = await uploadProductImage(req.file.buffer, req.file.originalname, req.file.mimetype);
 
     res.json({
       message: 'Image uploaded successfully',
@@ -160,7 +149,7 @@ router.delete('/delete', verifyToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ message: 'File URL is required' });
     }
 
-    await deleteFile(url);
+    await deleteImage(url);
 
     res.json({ message: 'File deleted successfully' });
   } catch (error) {

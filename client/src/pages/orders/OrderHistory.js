@@ -6,6 +6,7 @@ import { orderAPI } from "../../services/api";
 import { toast } from 'react-hot-toast';
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import { useTranslation } from 'react-i18next';
+import { IMAGE_SIZES, productImageProps } from '../../utils/productImage';
 
 const OrderHistory = () => {
   const { t } = useTranslation('orders');
@@ -282,10 +283,10 @@ const OrderHistory = () => {
                               className="flex-shrink-0 group"
                             >
                               <img
-                                src={item.productId?.images?.[0] || '/placeholder-product.jpg'}
+                                {...productImageProps(item.productId?.images?.[0] || '/placeholder-product.jpg', IMAGE_SIZES.thumb)}
                                 alt={item.productName || t('items.product')}
                                 className="w-16 h-16 object-cover rounded-lg border border-gray-200 group-hover:border-primary-500 group-hover:shadow-lg transition-all cursor-pointer"
-                                onError={(e) => { e.target.src = '/placeholder-product.jpg'; }}
+                                onError={(e) => { e.target.removeAttribute('srcset'); e.target.src = '/placeholder-product.jpg'; }}
                               />
                             </Link>
                           ) : (

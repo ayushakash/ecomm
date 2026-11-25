@@ -41,7 +41,7 @@
     "merchantsAvailable_other": "{{count}} merchants available · <reg>Register</reg> for precise delivery",
     "change": "Change",
     "changeCity": "Change city",
-    "title": "Construction Materials",
+    "title": "Buy Building Materials Online in Ranchi",
     "subtitle": "Find the best quality materials for your construction needs",
     "searchPlaceholder": "Search products...",
     "searchShort": "Search...",
@@ -84,6 +84,24 @@
     "stockAvailable": "Stock: {{stock}} {{unit}} available",
     "description": "Description",
     "specifications": "Specifications",
+    "specLabels": {
+      "brand": "Brand",
+      "grade": "Grade",
+      "weight": "Weight",
+      "dimensions": "Dimensions",
+      "category": "Category",
+      "sku": "SKU",
+      "unit": "Sold per"
+    },
+    "priceTable": {
+      "heading": "{{name}} price in Ranchi by size",
+      "size": "Size",
+      "price": "Price (incl. GST)",
+      "outOfStock": "Out of stock"
+    },
+    "home": "Home",
+    "allProducts": "Products",
+    "moreLinks": "More on {{category}}",
     "qty": "Qty",
     "addMore": "Add More",
     "addToCart": "Add to Cart",

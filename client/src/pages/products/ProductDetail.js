@@ -7,14 +7,33 @@ import { useCart } from '../../contexts/CartContext';
 import { toast } from 'react-hot-toast';
 import analytics from '../../services/analytics';
 import SEO from '../../components/SEO/SEO';
-import { categoryNameOf, toSchemaProduct } from '../../utils/productSchema';
+import { categoryNameOf, pricedVariants, toSchemaProduct } from '../../utils/productSchema';
 import { landingForCategory } from '../landing/landingConfig';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
+import { effectivePrice, formatINR, priceUnit, priceText } from '../../utils/rates';
+import { IMAGE_SIZES, productImageProps } from '../../utils/productImage';
 import { useTranslation } from 'react-i18next';
+
+/** "L 20 × W 25 × H 5" from the stored dimensions (values only; no unit is stored). */
+const formatDimensions = (d) =>
+  d && typeof d === 'object'
+    ? [['length', 'L'], ['width', 'W'], ['height', 'H']]
+        .filter(([k]) => d[k] != null && d[k] !== '')
+        .map(([k, abbr]) => `${abbr} ${d[k]}`)
+        .join(' × ')
+    : '';
+
+/** [{ key, label, value }] for the admin-entered specifications that have a value. */
+const specificationRows = (specs, t) =>
+  Object.entries(specs || {})
+    .map(([key, value]) => [key, key === 'dimensions' ? formatDimensions(value) : value])
+    .filter(([, value]) => value != null && value !== '' && typeof value !== 'object')
+    .map(([key, value]) => ({ key, label: t(`detail.specLabels.${key}`, { defaultValue: key }), value: String(value) }));
 
 const ProductDetail = () => {
   const { t } = useTranslation('products');
+  const { t: tl } = useTranslation('landing');
   const { id } = useParams();
   const { addToCart, getCartItem } = useCart();
   const navigate = useNavigate();
@@ -94,15 +113,8 @@ const ProductDetail = () => {
     setQuantity(Math.min(val, activeStock));
   };
 
-
-  if (isLoading) {
-    return (
-      <>
-        <SEO title="Building material price in Ranchi" />
-        <PageSpinner />
-      </>
-    );
-  }
+  // No <SEO> while loading: a pre-data snapshot would add a second JSON-LD graph.
+  if (isLoading) return <PageSpinner />;
 
   if (error || !product) {
     return (
@@ -115,17 +127,25 @@ const ProductDetail = () => {
     );
   }
 
-  // SEO copy uses the price exactly as shown below (incl. GST).
+  // SEO copy uses the admin price exactly as shown below (incl. GST).
   const rawCategory = categoryNameOf(product);
   const categoryName = rawCategory ? rawCategory.charAt(0).toUpperCase() + rawCategory.slice(1) : 'Building material';
   const categoryLanding = landingForCategory(rawCategory);
   const schemaProduct = toSchemaProduct(product);
-  const shownPrice = schemaProduct
-    ? `₹${(schemaProduct.price ?? schemaProduct.lowPrice).toLocaleString('en-IN')}${schemaProduct.price ? '' : '+'}${product.unit ? `/${product.unit}` : ''}`
-    : null;
-  const productTitle = `${product.name} Price in Ranchi${shownPrice ? ` – ${shownPrice}` : ''}`;
-  const productDescription = `${product.name}${shownPrice ? ` at ${shownPrice} (incl. GST)` : ''} in Ranchi. Delivered in about 60 minutes within ~5 km of Kadru, Harmu, Ashok Nagar and Doranda. Cash on delivery.`;
+  const shownPrice = schemaProduct ? priceText(product) : '';
+  // Keep the title within ~60 chars where the product name allows it.
+  const productTitle = shownPrice
+    ? [`${product.name} Price in Ranchi – ${shownPrice}`, `${product.name} – ${shownPrice}, Ranchi`]
+        .find((s, i, all) => s.length <= 60 || i === all.length - 1)
+    : `${product.name} Price in Ranchi`;
+  const productDescription = `${product.name}${shownPrice ? ` at ${shownPrice} (incl. GST)` : ''} in Ranchi. 60-min delivery near Kadru, Harmu, Ashok Nagar, Doranda. Cash on delivery.`;
   const productKeywords = `${product.name} price Ranchi, ${product.name} rate Ranchi, ${categoryName} price Ranchi, ${categoryName} dealer Ranchi, ${categoryName} home delivery Ranchi`;
+  // Same trail in the visible breadcrumb and the BreadcrumbList schema.
+  const categoryCrumb = categoryLanding
+    ? { name: categoryLanding.breadcrumb, path: `/${categoryLanding.slug}` }
+    : { name: t('detail.allProducts', { lng: 'en' }), path: '/products' };
+  const priceRows = pricedVariants(product);
+  const specRows = specificationRows(product.specifications, t);
 
   return (
     <div className="bg-gray-50">
@@ -138,13 +158,18 @@ const ProductDetail = () => {
         product={schemaProduct}
         breadcrumbs={[
           { name: 'Home', path: '/' },
-          categoryLanding
-            ? { name: categoryName, path: `/${categoryLanding.slug}` }
-            : { name: 'Products', path: '/products' },
+          categoryCrumb,
           { name: product.name, path: `/products/${product._id}` }
         ]}
       />
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 lg:py-8">
+        <nav className="text-sm text-gray-500 mb-3 lg:mb-5" aria-label="Breadcrumb">
+          <Link to="/" className="hover:text-primary-600">{t('detail.home')}</Link>
+          <span className="mx-2">/</span>
+          <Link to={categoryCrumb.path} className="hover:text-primary-600">{categoryCrumb.name}</Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-700">{product.name}</span>
+        </nav>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-12">
           {/* Product Image Gallery */}
           <div className="lg:sticky lg:top-8">
@@ -152,7 +177,7 @@ const ProductDetail = () => {
               {/* Main Image */}
               <div className="relative aspect-square overflow-hidden bg-gray-50 group">
                 <img
-                  src={product.images?.[selectedImageIndex] || product.images?.[0] || '/placeholder-product.jpg'}
+                  {...productImageProps(product.images?.[selectedImageIndex] || product.images?.[0] || '/placeholder-product.jpg', IMAGE_SIZES.main)}
                   alt={`${product.name} - Image ${selectedImageIndex + 1}`}
                   width={600}
                   height={600}
@@ -214,7 +239,7 @@ const ProductDetail = () => {
                       }`}
                     >
                       <img
-                        src={image}
+                        {...productImageProps(image, IMAGE_SIZES.thumb)}
                         alt=""
                         width={64}
                         height={64}
@@ -290,7 +315,7 @@ const ProductDetail = () => {
                             selectedImageIndex === index ? 'border-white' : 'border-white/30 hover:border-white/60'
                           }`}
                         >
-                          <img src={image} alt={`thumb ${index + 1}`} className="w-full h-full object-cover" />
+                          <img {...productImageProps(image, IMAGE_SIZES.thumb)} alt={`thumb ${index + 1}`} className="w-full h-full object-cover" />
                         </button>
                       ))}
                     </div>
@@ -312,9 +337,9 @@ const ProductDetail = () => {
                 <>
                   <span className="text-sm text-gray-400 font-medium">{t('detail.from')}</span>
                   <span className="text-xl lg:text-2xl font-bold text-gray-900">
-                    ₹{Math.min(...product.variants.map(v => v.price)).toLocaleString()}
+                    ₹{(effectivePrice(product) ?? 0).toLocaleString()}
                   </span>
-                  {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
+                  {priceUnit(product) && <span className="text-sm text-gray-500">/ {priceUnit(product)}</span>}
                 </>
               ) : (
                 <>
@@ -324,7 +349,7 @@ const ProductDetail = () => {
                     </span>
                   )}
                   <span className="text-xl lg:text-2xl font-bold text-gray-900">₹{activePrice?.toLocaleString()}</span>
-                  {product.unit && <span className="text-sm text-gray-500">/ {product.unit}</span>}
+                  {priceUnit(product, selectedVariant) && <span className="text-sm text-gray-500">/ {priceUnit(product, selectedVariant)}</span>}
                   {product.mrp > activePrice && (
                     <span className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
                       {t('detail.percentOff', { percent: Math.round((1 - activePrice / product.mrp) * 100) })}
@@ -394,33 +419,19 @@ const ProductDetail = () => {
             {/* Description */}
             {product.description && (
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('detail.description')}</p>
+                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('detail.description')}</h2>
                 <p className="text-sm text-gray-600 leading-relaxed">{product.description}</p>
               </div>
             )}
 
-            {/* Specifications */}
-            {product.specifications && Object.values(product.specifications).some(Boolean) && (
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('detail.specifications')}</p>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                  {Object.entries(product.specifications).map(([key, value]) =>
-                    value ? (
-                      <div key={key} className="flex gap-1 text-sm">
-                        <span className="text-gray-500 capitalize">{key}:</span>
-                        <span className="text-gray-800 font-medium">{value}</span>
-                      </div>
-                    ) : null
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Category tag */}
+            {/* Category tag → its rate page */}
             {product.category?.name && (
-              <span className="inline-block px-3 py-1 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full uppercase tracking-wide">
+              <Link
+                to={categoryCrumb.path}
+                className="inline-block px-3 py-1 bg-primary-50 text-primary-700 hover:bg-primary-100 text-xs font-semibold rounded-full uppercase tracking-wide"
+              >
                 {product.category.name}
-              </span>
+              </Link>
             )}
 
             {/* Quantity + Actions */}
@@ -479,7 +490,7 @@ const ProductDetail = () => {
                 <div className="flex gap-3">
                   <a
                     href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
-                      `Hi, I want to order:\n${product.name}${selectedVariant ? ` (${selectedVariant.label})` : ''} — ₹${activePrice?.toLocaleString() || ''}${product.unit ? `/${product.unit}` : ''}\nQty: ${quantity}`
+                      `Hi, I want to order:\n${product.name}${selectedVariant ? ` (${selectedVariant.label})` : ''}${priceText(product, selectedVariant) ? ` — ${priceText(product, selectedVariant)}` : ''}\nQty: ${quantity}`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -513,6 +524,99 @@ const ProductDetail = () => {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="mt-4 lg:mt-8 grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-12">
+          {/* Size → price table (admin variant prices, incl. GST) */}
+          {priceRows.length > 0 && (
+            <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 lg:p-6">
+              <h2 className="text-lg font-bold text-gray-900">{t('detail.priceTable.heading', { name: product.name })}</h2>
+              <table className="mt-3 w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500 border-b border-gray-200">
+                    <th scope="col" className="py-2 pr-4 font-semibold">{t('detail.priceTable.size')}</th>
+                    <th scope="col" className="py-2 font-semibold">{t('detail.priceTable.price')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {priceRows.map((v) => (
+                    <tr key={v._id || v.label} className="border-b border-gray-100 last:border-0">
+                      <th scope="row" className="py-2 pr-4 text-left font-medium text-gray-800">{v.label}</th>
+                      <td className="py-2 text-gray-900">
+                        {formatINR(v.price)}
+                        {priceUnit(product, v) && <span className="text-gray-500"> / {priceUnit(product, v)}</span>}
+                        {v.stock <= 0 && <span className="ml-2 text-xs text-red-600">{t('detail.priceTable.outOfStock')}</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
+
+          {/* Specifications (admin-entered fields only) */}
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 lg:p-6">
+            <h2 className="text-lg font-bold text-gray-900">{t('detail.specifications')}</h2>
+            <table className="mt-3 w-full text-sm">
+              <tbody>
+                {specRows.map((row) => (
+                  <tr key={row.key} className="border-b border-gray-100">
+                    <th scope="row" className="py-2 pr-4 text-left font-medium text-gray-500 w-1/3">{row.label}</th>
+                    <td className="py-2 text-gray-900">{row.value}</td>
+                  </tr>
+                ))}
+                {product.category?.name && (
+                  <tr className="border-b border-gray-100">
+                    <th scope="row" className="py-2 pr-4 text-left font-medium text-gray-500 w-1/3">{t('detail.specLabels.category')}</th>
+                    <td className="py-2">
+                      <Link to={categoryCrumb.path} className="text-primary-600 hover:text-primary-700 font-medium">{product.category.name}</Link>
+                    </td>
+                  </tr>
+                )}
+                {!priceRows.length && product.unit && (
+                  <tr className="border-b border-gray-100">
+                    <th scope="row" className="py-2 pr-4 text-left font-medium text-gray-500 w-1/3">{t('detail.specLabels.unit')}</th>
+                    <td className="py-2 text-gray-900">{priceUnit(product)}</td>
+                  </tr>
+                )}
+                {product.sku && (
+                  <tr>
+                    <th scope="row" className="py-2 pr-4 text-left font-medium text-gray-500 w-1/3">{t('detail.specLabels.sku')}</th>
+                    <td className="py-2 text-gray-900">{product.sku}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </section>
+
+          {/* Internal links: category rate page, buying guide, all rates */}
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 lg:p-6">
+            <h2 className="text-lg font-bold text-gray-900">{t('detail.moreLinks', { category: categoryName })}</h2>
+            <ul className="mt-3 space-y-2 text-sm font-semibold">
+              {categoryLanding && (
+                <li>
+                  <Link to={categoryCrumb.path} className="text-primary-600 hover:text-primary-700">
+                    {tl(`pages.${categoryLanding.key}.h1`)} →
+                  </Link>
+                </li>
+              )}
+              {categoryLanding?.guideSlug && (
+                <li>
+                  <Link to={`/blog/${categoryLanding.guideSlug}`} className="text-primary-600 hover:text-primary-700">
+                    {tl(`pages.${categoryLanding.key}.guideLink`)}
+                  </Link>
+                </li>
+              )}
+              <li>
+                <Link to="/aaj-ka-rate" className="text-primary-600 hover:text-primary-700">{tl('related.aajKaRate')} →</Link>
+              </li>
+              {!categoryLanding && (
+                <li>
+                  <Link to="/products" className="text-primary-600 hover:text-primary-700">{t('detail.allProducts')} →</Link>
+                </li>
+              )}
+            </ul>
+          </section>
         </div>
 
         {/* Customer Reviews - Rating Display (Hidden for now) */}

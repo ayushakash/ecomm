@@ -41,7 +41,7 @@
     "merchantsAvailable_other": "{{count}} विक्रेता उपलब्ध · सही डिलीवरी के लिए <reg>साइन अप</reg> करें",
     "change": "बदलें",
     "changeCity": "शहर बदलें",
-    "title": "बिल्डिंग मटीरियल",
+    "title": "रांची में बिल्डिंग मटीरियल ऑनलाइन खरीदें",
     "subtitle": "अपने निर्माण के लिए सबसे अच्छी क्वालिटी का मटीरियल खोजें",
     "searchPlaceholder": "प्रोडक्ट्स खोजें...",
     "searchShort": "खोजें...",
@@ -84,6 +84,24 @@
     "stockAvailable": "स्टॉक: {{stock}} {{unit}} उपलब्ध",
     "description": "जानकारी",
     "specifications": "स्पेसिफिकेशन",
+    "specLabels": {
+      "brand": "ब्रांड",
+      "grade": "ग्रेड",
+      "weight": "वज़न",
+      "dimensions": "माप",
+      "category": "कैटेगरी",
+      "sku": "SKU",
+      "unit": "किस हिसाब से"
+    },
+    "priceTable": {
+      "heading": "रांची में {{name}} का साइज़ के हिसाब से रेट",
+      "size": "साइज़",
+      "price": "रेट (GST सहित)",
+      "outOfStock": "स्टॉक में नहीं"
+    },
+    "home": "होम",
+    "allProducts": "प्रोडक्ट्स",
+    "moreLinks": "{{category}} पर और जानकारी",
     "qty": "मात्रा",
     "addMore": "और डालें",
     "addToCart": "कार्ट में डालें",

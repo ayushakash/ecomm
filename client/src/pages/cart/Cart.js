@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useBulkWhatsApp } from '../../hooks/useBulkWhatsApp';
 import { useTranslation } from 'react-i18next';
 import analytics from '../../services/analytics';
+import { IMAGE_SIZES, productImageProps } from '../../utils/productImage';
 
 const Cart = () => {
   const { t } = useTranslation('cart');
@@ -117,7 +118,7 @@ const Cart = () => {
                   <div className="flex gap-3">
                     {/* Product Image */}
                     <img
-                      src={item.images?.[0] || '/placeholder-product.jpg'}
+                      {...productImageProps(item.images?.[0] || '/placeholder-product.jpg', IMAGE_SIZES.thumb)}
                       alt={item.name}
                       loading="lazy"
                       decoding="async"
