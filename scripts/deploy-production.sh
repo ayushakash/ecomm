@@ -70,7 +70,12 @@ echo "==> [4/5] Deploying on server (/root/ecomm/deploy.sh)"
 ssh "$SERVER" 'cd /root/ecomm && ./deploy.sh'
 
 echo "==> [5/5] Smoke check"
-code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/api/settings/public")
+# The backend needs a few seconds to connect to Mongo after the restart; nginx returns 502 until then.
+for _ in $(seq 1 12); do
+  code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/api/settings/public")
+  [ "$code" = "200" ] && break
+  sleep 5
+done
 echo "    $SITE/api/settings/public -> HTTP $code"
 [ "$code" = "200" ] || { echo "!! Site check failed" >&2; exit 1; }
 
