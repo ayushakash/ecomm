@@ -50,6 +50,10 @@ ENV CI=false \
     REACT_APP_GA_MEASUREMENT_ID=$REACT_APP_GA_MEASUREMENT_ID \
     REACT_APP_ANALYTICS_ENABLED=$REACT_APP_ANALYTICS_ENABLED
 
+# Prerender snapshots live catalogue data; a fresh stamp per deploy keeps Docker from
+# reusing a cached build whose prices/images/products are stale.
+ARG PRERENDER_STAMP
+RUN echo "prerender stamp: $PRERENDER_STAMP"
 RUN npm run build
 
 # Stage 2: Production with Nginx

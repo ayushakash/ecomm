@@ -45,7 +45,7 @@ done
 echo "==> [2/5] Building images $TAG (prerender=$PRERENDER)"
 docker build -q -t "$DOCKER_USERNAME/ecomm-backend:$TAG" "$WORKTREE" > /tmp/build-backend.log 2>&1 &
 B=$!
-docker build -q --build-arg PRERENDER="$PRERENDER" -t "$DOCKER_USERNAME/ecomm-frontend:$TAG" "$WORKTREE/client" > /tmp/build-frontend.log 2>&1 &
+docker build -q --build-arg PRERENDER="$PRERENDER" --build-arg PRERENDER_STAMP="$(date +%s)" -t "$DOCKER_USERNAME/ecomm-frontend:$TAG" "$WORKTREE/client" > /tmp/build-frontend.log 2>&1 &
 F=$!
 wait $B || { echo "!! Backend build failed:"; cat /tmp/build-backend.log; exit 1; }
 wait $F || { echo "!! Frontend build failed:"; cat /tmp/build-frontend.log; exit 1; }
